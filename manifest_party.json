@@ -1,7 +1,7 @@
 {
     "name": "Dynamic Party",
     "short_name": "Party",
-    "start_url": "Dynamic_Party.html",
+    "start_url": "index.html",
     "display": "standalone",
     "background_color": "#007BFF",
     "theme_color": "#007BFF",
