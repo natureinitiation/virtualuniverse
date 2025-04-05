@@ -327,23 +327,32 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        function pickUpObject() {
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(scene.children);
-            if (intersects.length > 0) {
-                const objectId = intersects[0].object.userData.id;
-                deleteObject(objectId);
-                personalObjects++; // Увеличиваем количество объектов при сборе
-                updateObjectCounter();
-                // Отправляем команду удаления и сбора всем узлам
-                Object.values(peers).forEach(conn => {
-                    conn.send({ type: 'objectDeleted', objectId });
-                    conn.send({ type: 'objectCollected' });
-                });
+function pickUpObject() {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
+    if (intersects.length > 0) {
+        const objectId = intersects[0].object.userData.id;
+        deleteObject(objectId);
+        personalObjects++;
+        updateObjectCounter();
+
+        // Отправка данных всем подключенным узлам
+        Object.values(peers).forEach(conn => {
+            if (conn.open) { // Проверка активности соединения
+                conn.send({ type: 'objectDeleted', objectId: objectId });
+                conn.send({ type: 'objectCollected' });
             }
-        }
+        });
+
+        // Локальная синхронизация через BroadcastChannel
+        localChannel.postMessage({ 
+            type: 'objectDeleted', 
+            objectId: objectId 
+        });
+    }
+}
 
         // Анимация вращения объектов
         function animateObjects() {
