@@ -403,19 +403,19 @@ const applyDeceleration = () => {
 
 
         // Управление кнопками
-let mode = 'Fix'; // Текущий режим
+let mode = 'Static'; // Текущий режим
 const modeButton = document.querySelector('.mode-button');
 
 modeButton.addEventListener('click', () => {
-    if (mode === 'Fix') {
+    if (mode === 'Static') {
         mode = 'Polar';
         modeButton.innerText = "Polar";
     } else if (mode === 'Polar') {
         mode = 'Delete';
         modeButton.innerText = "Delete";
     } else {
-        mode = 'Fix';
-        modeButton.innerText = "Fix";
+        mode = 'Static';
+        modeButton.innerText = "Static";
     }
     console.log('Current mode:', mode);
 });
