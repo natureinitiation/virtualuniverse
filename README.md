@@ -1,5 +1,6 @@
 # Attractive Levitating Multipurpose Environment
-Add the site to your home screen via the browser menu to use the entire screen without an extra distracting attributes and functionality. 
+<a href="https://natureinitiation@github.io/virtualuniverse/index.html" target="_blank">Virtual Universe</a>
+Add the site to your home screen via the browser menu to use the full interface of your device. 
 
 Try different combinations of mouse buttons and touching the screen with one finger to rotate around the center and two fingers to move and scale the scene.
 
