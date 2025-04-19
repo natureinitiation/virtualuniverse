@@ -69,6 +69,9 @@
         }
 
         const scene = new THREE.Scene();
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1E90FF); // Голубой цвет (Sky Blue)
+        
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.z = 30;
 
