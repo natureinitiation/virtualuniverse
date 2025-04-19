@@ -60,6 +60,7 @@
             renderer = new THREE.WebGLRenderer({ 
                 antialias: true,
                 preserveDrawingBuffer: true // Для совместимости с Linux
+                alpha: false  // Важно для отображения фона
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
