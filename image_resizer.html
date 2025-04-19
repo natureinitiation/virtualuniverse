@@ -75,6 +75,13 @@
             min-width: 120px;
             text-align: right;
         }
+        #download-btn {
+            background-color: #4CAF50;
+            margin-top: 20px;
+        }
+        #download-btn:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -107,6 +114,8 @@
         Dimensions: <span id="current-dimensions">400px × 400px</span>
     </div>
 
+    <button id="download-btn">Save Image</button>
+
     <script>
         const image = document.getElementById('resizable-image');
         const zoomInBtn = document.getElementById('zoom-in');
@@ -116,10 +125,12 @@
         const widthInput = document.getElementById('width-input');
         const dimensionsDisplay = document.getElementById('current-dimensions');
         const imageUpload = document.getElementById('image-upload');
+        const downloadBtn = document.getElementById('download-btn');
         
         let originalWidth = 400;
         let originalHeight = 400;
         let currentWidth = 400;
+        let currentImageSrc = null;
         
         // Загрузка своего изображения
         imageUpload.addEventListener('change', function(e) {
@@ -127,7 +138,8 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    image.src = event.target.result;
+                    currentImageSrc = event.target.result;
+                    image.src = currentImageSrc;
                     image.onload = function() {
                         originalWidth = this.naturalWidth;
                         originalHeight = this.naturalHeight;
@@ -149,9 +161,10 @@
         });
         
         widthInput.addEventListener('change', function() {
-            currentWidth = ensureEven(parseInt(this.value));
-            if (currentWidth < 20) currentWidth = 20;
-            if (currentWidth > 800) currentWidth = 800;
+            let newWidth = ensureEven(parseInt(this.value));
+            if (isNaN(newWidth)) newWidth = currentWidth;
+            newWidth = Math.min(Math.max(newWidth, 20), 800);
+            currentWidth = newWidth;
             resizeImage(currentWidth);
             updateControls();
         });
@@ -177,6 +190,33 @@
             updateControls();
         });
         
+        // Кнопка сохранения
+        downloadBtn.addEventListener('click', function() {
+            if (!currentImageSrc && image.src.includes('placeholder.com')) {
+                alert('Please upload an image first');
+                return;
+            }
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Устанавливаем размеры canvas в соответствии с текущим размером изображения
+            const imgWidth = parseInt(image.style.width) || originalWidth;
+            const imgHeight = Math.round(imgWidth * (originalHeight / originalWidth));
+            
+            canvas.width = imgWidth;
+            canvas.height = imgHeight;
+            
+            // Рисуем изображение на canvas
+            ctx.drawImage(image, 0, 0, imgWidth, imgHeight);
+            
+            // Создаем ссылку для скачивания
+            const link = document.createElement('a');
+            link.download = 'resized-image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+        
         // Функции
         function ensureEven(value) {
             return Math.round(value / 2) * 2;
@@ -192,12 +232,20 @@
         function updateControls() {
             sizeSlider.value = currentWidth;
             widthInput.value = currentWidth;
+            sizeSlider.min = Math.min(20, currentWidth);
+            sizeSlider.max = Math.max(800, currentWidth);
         }
         
         function updateDimensions() {
             const currentHeight = Math.round(currentWidth * (originalHeight / originalWidth));
             dimensionsDisplay.textContent = 
                 currentWidth + 'px × ' + currentHeight + 'px';
+        }
+        
+        function resetImageSize() {
+            currentWidth = originalWidth;
+            resizeImage(currentWidth);
+            updateControls();
         }
         
         // Инициализация
