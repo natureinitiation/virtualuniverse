@@ -1,0 +1,20 @@
+{
+    "name": "Image Resizer",
+    "short_name": "Resizer",
+    "start_url": "image-resizer.html",
+    "display": "standalone",
+    "background_color": "#007BFF",
+    "theme_color": "#007BFF",
+    "icons": [
+        {
+            "src": "resizer-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "resizer-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
