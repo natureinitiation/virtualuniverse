@@ -19,8 +19,8 @@
 
         .image-container {
             margin: 20px 0;
-            border: 1px dashed #333;
-            padding: 10px;
+            border: 0px dashed #333;
+            padding: 8px;
             background-color: #222;
             align-items: center;
 
@@ -103,9 +103,6 @@
             align-items: center;
         }
 
-
-
-
         /* Полностью скрываем оригинальный input */
         .hidden-file-input {
             position: absolute;
@@ -122,7 +119,7 @@
             padding: 10px 20px;
             background: #af811a;
             color: white;
-            border: 1px solid #аав800;
+            border: 0px solid #aab800;
             border-radius: 0px;
             cursor: pointer;
             transition: background 0.3s;
@@ -149,14 +146,12 @@
         input[type="file"]::file-selector-button {
             display: none;
         }
-
-
     </style>
 </head>
 <body>
     <h1>Precision Image Resizer</h1>
     
-<div class="upload-container">
+    <div class="upload-container">
         <!-- Наша красивая кнопка -->
         <label for="real-file-input" class="custom-upload-btn">
             Select Image
@@ -165,31 +160,33 @@
         <!-- Настоящий input, полностью скрытый -->
         <input type="file" id="real-file-input" class="hidden-file-input" accept="image/*">
     </div>
-</div>
+    
     <div class="image-container">
         <img id="resizable-image" src="https://via.placeholder.com/400/333/fff" alt="Resizable Image">
     </div>
-        <div class="dimensions">
+    
+    <div class="dimensions">
         Dimensions: <span id="current-dimensions">400px × 400px</span>
     </div>
-        <input type="range" id="size-slider" min="20" max="1960" value="400" step="2">
-
+    
+    <input type="range" id="size-slider" min="20" max="1960" value="400" step="2">
            
-<div>
-            <button id="zoom-in">+2</button>
-            <button id="zoom-out">-2</button>
-            <button id="reset-size">Reset</button>
-        </div>
-        <div><input type="number" id="width-input" min="20" max="1960" value="400"></div>
-        <div>Width (px)</div>
+    <div>
+        <button id="zoom-in">+2</button>
+        <button id="zoom-out">-2</button>
+        <button id="reset-size">Reset</button>
+    </div>
+    
+    <div>
+        <input type="number" id="width-input" min="20" max="1960" value="400">
+    </div>
+    
+    <div>Width (px)</div>
 
     <button id="download-btn">Save Image</button>
     <a href="https://t.me/hobbyandlobby" target="_blank" style="color: inherit; text-decoration: none; display: block; margin-top: 20px;">Help</a>
-        </div>
-
-    </div>
     
-<script>
+    <script>
         const image = document.getElementById('resizable-image');
         const zoomInBtn = document.getElementById('zoom-in');
         const zoomOutBtn = document.getElementById('zoom-out');
@@ -197,7 +194,7 @@
         const sizeSlider = document.getElementById('size-slider');
         const widthInput = document.getElementById('width-input');
         const dimensionsDisplay = document.getElementById('current-dimensions');
-        const imageUpload = document.getElementById('image-upload');
+        const imageUpload = document.getElementById('real-file-input'); // Изменено с image-upload на real-file-input
         const downloadBtn = document.getElementById('download-btn');
         
         let originalWidth = 400;
@@ -236,7 +233,7 @@
         widthInput.addEventListener('change', function() {
             let newWidth = ensureEven(parseInt(this.value));
             if (isNaN(newWidth)) newWidth = currentWidth;
-            newWidth = Math.min(Math.max(newWidth, 20), 800);
+            newWidth = Math.min(Math.max(newWidth, 20), 1960); // Изменено с 800 на 1960 для соответствия с max в input
             currentWidth = newWidth;
             resizeImage(currentWidth);
             updateControls();
@@ -245,7 +242,7 @@
         // Кнопки управления
         zoomInBtn.addEventListener('click', function() {
             currentWidth = ensureEven(currentWidth + 2);
-            if (currentWidth > 800) currentWidth = 800;
+            if (currentWidth > 1960) currentWidth = 1960; // Изменено с 800 на 1960
             resizeImage(currentWidth);
             updateControls();
         });
@@ -306,7 +303,7 @@
             sizeSlider.value = currentWidth;
             widthInput.value = currentWidth;
             sizeSlider.min = Math.min(20, currentWidth);
-            sizeSlider.max = Math.max(800, currentWidth);
+            sizeSlider.max = Math.max(1960, currentWidth); // Изменено с 800 на 1960
         }
         
         function updateDimensions() {
