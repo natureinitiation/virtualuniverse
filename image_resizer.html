@@ -105,6 +105,10 @@
         <div class="control-group">
             <label for="size-slider">Width:</label>
         </div>
+    <div class="dimensions">
+        Dimensions: <span id="current-dimensions">400px × 400px</span>
+    </div>
+    <button id="download-btn">Save Image</button>
         <div class="control-group">
             <input type="range" id="size-slider" min="20" max="800" value="400" step="2">
         </div>
@@ -114,13 +118,7 @@
         </div>
     </div>
     
-    <div class="dimensions">
-        Dimensions: <span id="current-dimensions">400px × 400px</span>
-    </div>
-
-    <button id="download-btn">Save Image</button>
-
-    <script>
+<script>
         const image = document.getElementById('resizable-image');
         const zoomInBtn = document.getElementById('zoom-in');
         const zoomOutBtn = document.getElementById('zoom-out');
