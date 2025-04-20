@@ -11,111 +11,181 @@
             margin: 0 auto;
             padding: 20px;
             text-align: center;
-            background-color: #000;
+            align-items: center;
+            background-color: #333;
             color: #fff;
         }
+
         .image-container {
             margin: 20px 0;
-            border: 1px dashed #444;
+            border: 1px dashed #333;
             padding: 10px;
             background-color: #222;
+            align-items: center;
+
         }
+
         #resizable-image {
             max-width: 100%;
             transition: width 0.3s ease;
             display: block;
             margin: 0 auto;
+            align-items: center;
+
         }
+
         .controls {
-            margin: 20px 0;
+            margin: 30px 0;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             align-items: center;
             gap: 10px;
         }
+
         button {
             padding: 8px 15px;
+            margin: 20px 0;
             cursor: pointer;
-            background-color: #333;
+            background-color: #777;
             color: white;
             border: 1px solid #555;
             border-radius: 0px;
             min-width: 100px;
+            align-items: center;
         }
+
         button:hover {
             background-color: #444;
         }
+
         input[type="range"] {
             width: 300px;
             background: #333;
+            margin: 30px 0;
+            align-items: center;
         }
+
         input[type="number"] {
             width: 80px;
             padding: 8px;
-            background: #333;
+            margin: 20px;
+            background: #222;
             color: white;
             border: 1px solid #555;
-            border-radius: 0px;
             text-align: center;
         }
+
         .dimensions {
-            margin: 10px 0;
-            font-weight: bold;
+            margin: 0px 0;
             color: #ccc;
-        }
-        .control-group {
-            display: flex;
             align-items: center;
-            gap: 10px;
-            margin: 5px 0;
+
         }
+
         label {
             display: inline-block;
             min-width: 120px;
-            text-align: right;
+            align-items: center;
+
         }
+
         #download-btn {
             background-color: #4CAF50;
-            margin-top: 20px;
+            margin-top: 25px;
+            align-items: center;
+
         }
+
         #download-btn:hover {
             background-color: #45a049;
+            align-items: center;
         }
+
+
+
+
+        /* Полностью скрываем оригинальный input */
+        .hidden-file-input {
+            position: absolute;
+            width: 0.1px;
+            height: 0.1px;
+            opacity: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        /* Стили для кастомной кнопки */
+        .custom-upload-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #af811a;
+            color: white;
+            border: 1px solid #аав800;
+            border-radius: 0px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .custom-upload-btn:hover {
+            background: #444;
+        }
+
+        /* Контейнер для позиционирования */
+        .upload-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Убираем все следы текста в input */
+        input[type="file"] {
+            color: transparent;
+            font-size: 0;
+        }
+
+        /* Убираем текст в разных браузерах */
+        input[type="file"]::-webkit-file-upload-button,
+        input[type="file"]::file-selector-button {
+            display: none;
+        }
+
+
     </style>
 </head>
 <body>
     <h1>Precision Image Resizer</h1>
     
-    <div class="controls">
-        <input type="file" id="image-upload" accept="image/*">
+<div class="upload-container">
+        <!-- Наша красивая кнопка -->
+        <label for="real-file-input" class="custom-upload-btn">
+            Select Image
+        </label>
+        
+        <!-- Настоящий input, полностью скрытый -->
+        <input type="file" id="real-file-input" class="hidden-file-input" accept="image/*">
     </div>
-    
+</div>
     <div class="image-container">
         <img id="resizable-image" src="https://via.placeholder.com/400/333/fff" alt="Resizable Image">
     </div>
-    
-    <div class="controls">
-        <div class="control-group">
+        <div class="dimensions">
+        Dimensions: <span id="current-dimensions">400px × 400px</span>
+    </div>
+        <input type="range" id="size-slider" min="20" max="1960" value="400" step="2">
+
+           
+<div>
             <button id="zoom-in">Zoom In (+2px)</button>
             <button id="zoom-out">Zoom Out (-2px)</button>
             <button id="reset-size">Reset Size</button>
         </div>
-        
-        <div class="control-group">
-            <label for="size-slider">Width:</label>
-        </div>
-    <div class="dimensions">
-        Dimensions: <span id="current-dimensions">400px × 400px</span>
-    </div>
+        <div><input type="number" id="width-input" min="20" max="1960" value="400"></div>
+        <div>Width (px)</div>
+
     <button id="download-btn">Save Image</button>
-        <div class="control-group">
-            <input type="range" id="size-slider" min="20" max="800" value="400" step="2">
+        
         </div>
-        <div class="control-group">
-            <input type="number" id="width-input" min="20" max="800" value="400" step="2">
-            <span>px</span>
-        </div>
+
     </div>
     
 <script>
