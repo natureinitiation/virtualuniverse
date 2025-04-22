@@ -45,8 +45,8 @@
             text-align: center;
         }
 
-        input[type="number"] {
-            width: 50px;
+        select {
+            width: 200px;
             text-align: center;
         }
 
@@ -88,29 +88,59 @@
     <h2>Заполните показатели на сегодня:</h2>
     <form id="form">
         <div class="description">
-            <label for="emotion">Эмоциональное состояние (1-5):</label>
-            <p>1 — тревога, 2 — нейтральное, 3 — спокойствие, 4 — радость, 5 — гармония</p>
-            <input type="number" id="emotion" name="emotion" min="1" max="5" required><br><br>
+            <label for="emotion">Эмоциональное состояние:</label>
+            <select id="emotion" name="emotion" required>
+                <option value="1">Тревога</option>
+                <option value="2">Нейтральное</option>
+                <option value="3">Спокойствие</option>
+                <option value="4">Радость</option>
+                <option value="5">Гармония</option>
+            </select><br><br>
 
-            <label for="energy">Энергия (1-5):</label>
-            <p>1 — усталость, 2 — немного устал, 3 — есть энергия, 4 — полон сил, 5 — энергия на пике</p>
-            <input type="number" id="energy" name="energy" min="1" max="5" required><br><br>
+            <label for="energy">Энергия:</label>
+            <select id="energy" name="energy" required>
+                <option value="1">Усталость</option>
+                <option value="2">Немного устал</option>
+                <option value="3">Есть энергия</option>
+                <option value="4">Полон сил</option>
+                <option value="5">Энергия на пике</option>
+            </select><br><br>
 
-            <label for="focus">Сосредоточенность (1-5):</label>
-            <p>1 — легко отвлекаюсь, 2 — могу сосредоточиться иногда, 3 — хорошая концентрация, 4 — отличная концентрация, 5 — полный фокус</p>
-            <input type="number" id="focus" name="focus" min="1" max="5" required><br><br>
+            <label for="focus">Сосредоточенность:</label>
+            <select id="focus" name="focus" required>
+                <option value="1">Легко отвлекаюсь</option>
+                <option value="2">Могу сосредоточиться иногда</option>
+                <option value="3">Хорошая концентрация</option>
+                <option value="4">Отличная концентрация</option>
+                <option value="5">Полный фокус</option>
+            </select><br><br>
 
-            <label for="creativity">Творческий процесс (1-5):</label>
-            <p>1 — нет идей, 2 — изредка появляются идеи, 3 — несколько идей, 4 — много идей, 5 — поток идей</p>
-            <input type="number" id="creativity" name="creativity" min="1" max="5" required><br><br>
+            <label for="creativity">Творческий процесс:</label>
+            <select id="creativity" name="creativity" required>
+                <option value="1">Нет идей</option>
+                <option value="2">Идеи появляются редко</option>
+                <option value="3">Есть несколько идей</option>
+                <option value="4">Много идей</option>
+                <option value="5">Поток идей</option>
+            </select><br><br>
 
-            <label for="social">Социальные взаимодействия (1-5):</label>
-            <p>1 — одиночество, 2 — мало общения, 3 — несколько встреч, 4 — активное общение, 5 — насыщенное общение</p>
-            <input type="number" id="social" name="social" min="1" max="5" required><br><br>
+            <label for="social">Социальные взаимодействия:</label>
+            <select id="social" name="social" required>
+                <option value="1">Одиночество</option>
+                <option value="2">Мало общения</option>
+                <option value="3">Немного встреч</option>
+                <option value="4">Активное общение</option>
+                <option value="5">Насыщенное общение</option>
+            </select><br><br>
 
-            <label for="reflection">Саморефлексия (1-5):</label>
-            <p>1 — не задумываюсь о себе, 2 — иногда думаю, 3 — регулярно размышляю, 4 — часто анализирую, 5 — глубокие размышления</p>
-            <input type="number" id="reflection" name="reflection" min="1" max="5" required><br><br>
+            <label for="reflection">Саморефлексия:</label>
+            <select id="reflection" name="reflection" required>
+                <option value="1">Не задумываюсь</option>
+                <option value="2">Иногда думаю</option>
+                <option value="3">Регулярно размышляю</option>
+                <option value="4">Часто анализирую</option>
+                <option value="5">Глубокие размышления</option>
+            </select><br><br>
 
             <button type="submit" class="submit-btn">Сохранить данные</button>
         </div>
@@ -156,108 +186,84 @@
         'Саморефлексия'
     ];
 
+    // Попытка загрузить сохраненные данные
+    const savedData = JSON.parse(localStorage.getItem('stateData')) || [];
+
+    // Если есть сохраненные данные, отображаем их
+    if (savedData.length > 0) {
+        renderResults(savedData);
+    }
+
     form.addEventListener('submit', function(event) {
         event.preventDefault();
 
         const data = [];
-        let totalScore = 0;
 
+        // Собираем данные из формы
         categories.forEach((category, index) => {
             const inputId = category.toLowerCase().replace(/ /g, '');
-            const inputValue = parseInt(document.getElementById(inputId).value);
+            const value = parseInt(document.getElementById(inputId).value);
 
-            data.push({ category, value: inputValue });
-            totalScore += inputValue;
+            data.push({ category, value });
         });
 
-        // Очищаем таблицу перед добавлением новых данных
-        resultsTable.innerHTML = '';
+        // Сохраняем данные в localStorage
+        savedData.push(data);
+        localStorage.setItem('stateData', JSON.stringify(savedData));
 
-        // Добавляем новые данные в таблицу
+        // Отображаем результаты
+        renderResults(data);
+    });
+
+    function renderResults(data) {
+        resultsTable.innerHTML = ''; // Очистить таблицу
+
+        let totalScore = 0;
         data.forEach(item => {
             const row = resultsTable.insertRow();
             row.insertCell(0).textContent = item.category;
             row.insertCell(1).textContent = item.value;
+            totalScore += item.value;
         });
 
-        // Вычисляем и показываем средний балл
-        const averageScore = totalScore / categories.length;
+        const averageScore = totalScore / data.length;
         averageScoreElement.textContent = `Средний балл: ${averageScore.toFixed(2)}`;
 
-        // Автоматическое сохранение в localStorage
-        localStorage.setItem('userData', JSON.stringify(data));
+        // Обновляем график
+        updateChart(data);
+    }
 
-        // Визуализация данных на графике
-        const chartData = {
-            labels: categories,
-            datasets: [{
-                label: 'Оценки',
-                data: data.map(item => item.value),
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        };
+    function updateChart(data) {
+        const labels = data.map(item => item.category);
+        const values = data.map(item => item.value);
 
-        const chart = new Chart(ctx, {
+        // Настройки графика
+        if (window.chartInstance) {
+            window.chartInstance.destroy();
+        }
+
+        window.chartInstance = new Chart(ctx, {
             type: 'bar',
-            data: chartData,
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    });
-
-    // При загрузке страницы проверим, есть ли сохранённые данные
-    window.onload = function() {
-        const savedData = localStorage.getItem('userData');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            const totalScore = data.reduce((acc, item) => acc + item.value, 0);
-
-            // Очищаем таблицу перед добавлением новых данных
-            resultsTable.innerHTML = '';
-
-            // Добавляем сохранённые данные в таблицу
-            data.forEach(item => {
-                const row = resultsTable.insertRow();
-                row.insertCell(0).textContent = item.category;
-                row.insertCell(1).textContent = item.value;
-            });
-
-            // Вычисляем и показываем средний балл
-            const averageScore = totalScore / categories.length;
-            averageScoreElement.textContent = `Средний балл: ${averageScore.toFixed(2)}`;
-
-            // Визуализация данных на графике
-            const chartData = {
-                labels: categories,
+            data: {
+                labels: labels,
                 datasets: [{
                     label: 'Оценки',
-                    data: data.map(item => item.value),
+                    data: values,
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
                 }]
-            };
-
-            const chart = new Chart(ctx, {
-                type: 'bar',
-                data: chartData,
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5
                     }
                 }
-            });
-        }
-    };
+            }
+        });
+    }
 </script>
 
 </body>
