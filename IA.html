@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Анализ внутреннего состояния</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
+            background-color: #000;
+            color: #fff;
             font-family: Arial, sans-serif;
             margin: 20px;
         }
@@ -16,6 +19,11 @@
 
         .form-container {
             margin-bottom: 20px;
+        }
+
+        .form-container label {
+            display: block;
+            margin-top: 10px;
         }
 
         .table-container {
@@ -61,6 +69,15 @@
             margin-top: 10px;
             text-align: center;
         }
+
+        .description {
+            margin-top: 20px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
     </style>
 </head>
 <body>
@@ -70,25 +87,33 @@
 <div class="form-container">
     <h2>Заполните показатели на сегодня:</h2>
     <form id="form">
-        <label for="emotion">Эмоциональное состояние (1-5):</label>
-        <input type="number" id="emotion" name="emotion" min="1" max="5" required><br><br>
+        <div class="description">
+            <label for="emotion">Эмоциональное состояние (1-5):</label>
+            <p>1 — тревога, 2 — нейтральное, 3 — спокойствие, 4 — радость, 5 — гармония</p>
+            <input type="number" id="emotion" name="emotion" min="1" max="5" required><br><br>
 
-        <label for="energy">Энергия (1-5):</label>
-        <input type="number" id="energy" name="energy" min="1" max="5" required><br><br>
+            <label for="energy">Энергия (1-5):</label>
+            <p>1 — усталость, 2 — немного устал, 3 — есть энергия, 4 — полон сил, 5 — энергия на пике</p>
+            <input type="number" id="energy" name="energy" min="1" max="5" required><br><br>
 
-        <label for="focus">Сосредоточенность (1-5):</label>
-        <input type="number" id="focus" name="focus" min="1" max="5" required><br><br>
+            <label for="focus">Сосредоточенность (1-5):</label>
+            <p>1 — легко отвлекаюсь, 2 — могу сосредоточиться иногда, 3 — хорошая концентрация, 4 — отличная концентрация, 5 — полный фокус</p>
+            <input type="number" id="focus" name="focus" min="1" max="5" required><br><br>
 
-        <label for="creativity">Творческий процесс (1-5):</label>
-        <input type="number" id="creativity" name="creativity" min="1" max="5" required><br><br>
+            <label for="creativity">Творческий процесс (1-5):</label>
+            <p>1 — нет идей, 2 — изредка появляются идеи, 3 — несколько идей, 4 — много идей, 5 — поток идей</p>
+            <input type="number" id="creativity" name="creativity" min="1" max="5" required><br><br>
 
-        <label for="social">Социальные взаимодействия (1-5):</label>
-        <input type="number" id="social" name="social" min="1" max="5" required><br><br>
+            <label for="social">Социальные взаимодействия (1-5):</label>
+            <p>1 — одиночество, 2 — мало общения, 3 — несколько встреч, 4 — активное общение, 5 — насыщенное общение</p>
+            <input type="number" id="social" name="social" min="1" max="5" required><br><br>
 
-        <label for="reflection">Саморефлексия (1-5):</label>
-        <input type="number" id="reflection" name="reflection" min="1" max="5" required><br><br>
+            <label for="reflection">Саморефлексия (1-5):</label>
+            <p>1 — не задумываюсь о себе, 2 — иногда думаю, 3 — регулярно размышляю, 4 — часто анализирую, 5 — глубокие размышления</p>
+            <input type="number" id="reflection" name="reflection" min="1" max="5" required><br><br>
 
-        <button type="submit" class="submit-btn">Сохранить данные</button>
+            <button type="submit" class="submit-btn">Сохранить данные</button>
+        </div>
     </form>
 </div>
 
@@ -111,10 +136,16 @@
     </div>
 </div>
 
+<div class="chart-container">
+    <h2>График</h2>
+    <canvas id="chart"></canvas>
+</div>
+
 <script>
     const form = document.getElementById('form');
     const resultsTable = document.getElementById('results-table').getElementsByTagName('tbody')[0];
     const averageScoreElement = document.getElementById('average-score');
+    const ctx = document.getElementById('chart').getContext('2d');
 
     const categories = [
         'Эмоциональное состояние',
@@ -152,7 +183,81 @@
         // Вычисляем и показываем средний балл
         const averageScore = totalScore / categories.length;
         averageScoreElement.textContent = `Средний балл: ${averageScore.toFixed(2)}`;
+
+        // Автоматическое сохранение в localStorage
+        localStorage.setItem('userData', JSON.stringify(data));
+
+        // Визуализация данных на графике
+        const chartData = {
+            labels: categories,
+            datasets: [{
+                label: 'Оценки',
+                data: data.map(item => item.value),
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
     });
+
+    // При загрузке страницы проверим, есть ли сохранённые данные
+    window.onload = function() {
+        const savedData = localStorage.getItem('userData');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            const totalScore = data.reduce((acc, item) => acc + item.value, 0);
+
+            // Очищаем таблицу перед добавлением новых данных
+            resultsTable.innerHTML = '';
+
+            // Добавляем сохранённые данные в таблицу
+            data.forEach(item => {
+                const row = resultsTable.insertRow();
+                row.insertCell(0).textContent = item.category;
+                row.insertCell(1).textContent = item.value;
+            });
+
+            // Вычисляем и показываем средний балл
+            const averageScore = totalScore / categories.length;
+            averageScoreElement.textContent = `Средний балл: ${averageScore.toFixed(2)}`;
+
+            // Визуализация данных на графике
+            const chartData = {
+                labels: categories,
+                datasets: [{
+                    label: 'Оценки',
+                    data: data.map(item => item.value),
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            };
+
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    };
 </script>
 
 </body>
