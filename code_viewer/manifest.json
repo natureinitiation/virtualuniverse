@@ -1,6 +1,6 @@
 {
     "name": "Code Viewer",
-    "short_name": "Code Viewer",
+    "short_name": "Viewer",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#007BFF",
