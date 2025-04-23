@@ -1,0 +1,20 @@
+{
+    "name": "Code Viewer",
+    "short_name": "Viewer",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#007BFF",
+    "theme_color": "#007BFF",
+    "icons": [
+        {
+            "src": "viewer-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "viewer-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
