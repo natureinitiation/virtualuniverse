@@ -1,6 +1,6 @@
 {
     "name": "Self Analysis",
-    "short_name": "self_analysis",
+    "short_name": "Analysis",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#007BFF",
