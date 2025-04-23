@@ -2,8 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Анкета и диагностика темперамента">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">    <meta name="description" content="Анкета и диагностика темперамента">
   <title>Самоанализ</title>
       <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,7 +10,7 @@
     body {
       background: #000;
       color: #fff;
-      font-family: Arial, sans-serif;
+      font-family: Ubuntu;
       padding: 20px;
     }
     .select-container {
@@ -73,7 +72,7 @@ button {
       height: 400px;
     }
     .category-header {
-      font-weight: bold;
+      font-weight: normal;
       text-align: left !important;
     }
  :root {
@@ -135,13 +134,25 @@ button {
       width: 100%;
     }
   }
+    @supports (-webkit-touch-callout: none) {
+  select, button {
+    min-height: 44px; /* Минимальный размер для iOS */
+  }
+}
+    @media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Улучшенная мобильная таблица */
+  }
+}
   </style>
 </head>
 <body>
 
 <h2>Самоанализ</h2>
 
-<div>
+<div class="buttons">
   <button onclick="save()">Сохранить</button>
   <button onclick="load()">Загрузить</button>
 </div>
