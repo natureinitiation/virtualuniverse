@@ -368,7 +368,16 @@ const chart = new Chart(document.getElementById('chart').getContext('2d'), {
       }
     },
     scales: {
-      x: {
+      
+      y: {
+        min: 0.5,
+        max: 5.5,
+        grace: '10%',
+        ticks: {
+          stepSize: 1,
+          callback: v => Number.isInteger(v) ? v : ''
+        },
+x: {
         type: 'time',  // Указываем, что ось X будет работать с типом 'time'
         time: {
           unit: 'day',  // Шаг по времени (по дням)
@@ -381,15 +390,7 @@ const chart = new Chart(document.getElementById('chart').getContext('2d'), {
           autoSkip: true, // Пропускать метки, если они слишком близки
           maxTicksLimit: 10 // Ограничение количества меток
         }
-      },
-      y: {
-        min: 0.5,
-        max: 5.5,
-        grace: '10%',
-        ticks: {
-          stepSize: 1,
-          callback: v => Number.isInteger(v) ? v : ''
-        }
+      }
       }
     }
   }
