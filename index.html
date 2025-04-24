@@ -1,473 +1,650 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">    <meta name="description" content="Анкета-памятка + диагностика темперамента">
-  <title>Самоанализ</title>
-      <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
+<!-- Feel free to feedback for p2p exchange concept testing via @eugenebox (Telegram, Instagram) -->
+        
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Space Polarity</title>
+    <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
+    <style>
     body {
-      background: #000;
-      color: #fff;
-      font-size: 18px; 
-      line-height: 1.6; /* для читабельности */
-      font-family: monospace;
-      padding: 0px;
-    }
-    .select-container {
+            user-select: none; /* Отключает выделение текста */
+            margin: 0;
+            overflow: hidden;
+                 
+            -webkit-user-select: none; /* Для браузеров на базе WebKit */
+            -moz-user-select: none; /* Для Firefox */
+            -ms-user-select: none; /* Для IE */
+        }
+        body { margin: 0; overflow: hidden; background: #000; }
+    .mode-button {
+    position: fixed;
+    top: 10px;
+    left: 20%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    cursor: pointer;
+    width: auto;
+    height: auto;
+    padding: 15px; 
+    background: none;
+    font-family: Verdana;
+    font-size: 18px;
+    font-weight: normal;
+    color: rgba(255, 255, 255) !important;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px; /* Равномерные отступы между группами */
-    margin: 10px 0;
-  }
-  
-  .select-group {
-    display: inline-block;
-    min-width: 160px; /* Минимальная ширина для выравнивания */
-  }
-  
-  .select-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-  }
-select option {
-  font-size: inherit; /* Наследует от select */
+    align-items: center;
+    justify-content: center;
+    border: 0px solid white;
+    border-radius: 12px;
+    text-align: center;
 }
 
-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  font-family: var(--main-font);
-  font-size: calc(16px + 0.5vw);
-  background: #000;
-  color: #fff;
-  border: 1px solid #fff;
-  padding: 10px;
-  margin: 5px 0;
-  font-size: 14px;
-  width: 100%;
-  font-family: monospace; /* Добавлено: явно задаём шрифт */
+    .slow-button {
+    position: fixed;
+    bottom: 10px;
+    left: 20%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    cursor: pointer;
+    width: auto;
+    height: auto;
+    padding: 15px; 
+    background: none; /* Убираем изображение */
+    font-family: Verdana;
+    font-size: 18px;
+    font-weight: normal;
+    color: rgba(255, 255, 255) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0px solid white; /* Опционально */
+    border-radius: 12px; /* Опционально */
 }
 
-  
-  select, button {
-    background: #000;
-    color: #fff;
-    border: 1px solid #fff;
-    padding: 10px;
-    margin: 5px 0; /* Единые отступы сверху/снизу */
-    font-size: 14px;
-    width: 100%; /* Растягиваем на всю ширину родителя */
-  }
-  
-  .buttons {
-    margin: 10px 0;
-  }
-button {
-      background: #444; /* Серый фон */
-      color: #fff;
-      border: 0px solid #888; /* Серая рамка */
-      padding: 10px 15px;
-      margin-right: 10px;
-      margin-bottom: 20px;
-      width: auto;
-      min-width: 120px;
-      font-size: 14px;
-      cursor: pointer;
-      border-radius: 0; /* Убираем скругление углов */
-    }
-    button:hover {
-      background: #444; /* Темнее при наведении */
-    }
-    table {
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    td, th {
-      border: 1px solid #888;
-      padding: 6px 10px;
-      text-align: center;
-    }
-    canvas {
-      max-width: 100%;
-      height: 400px;
-      margin-bottom: 40px;
-    }
-    .category-header {
-      font-weight: normal;
-      text-align: left !important;
-    }
- :root {
-  --main-font: monospace;
-
-      --breath-color: #ffffff; /* Белый цвет для дыхания */
-      --emotion-color: #ff5252;
-      --energy-color: #ff9800;
-      --focus-color: #ffeb3b;
-      --creativity-color: #00ff00;
-      --vision-color: #0000ff;
-      --hearing-color: #9c27b0;
-      --smell-color: #00bcd4;
-    }
-
-    /* Стили для select с цветными рамками */
-    #breath { 
-      border: 1px solid var(--breath-color); /* Рамка для дыхания */
-    } 
-    #emotion {
-      border: 1px solid var(--emotion-color);
-    }
-    #energy {
-      border: 1px solid var(--energy-color);
-    }
-    #focus {
-      border: 1px solid var(--focus-color);
-    }
-    #creativity {
-      border: 1px solid var(--creativity-color);
-    }
-    #vision {
-      border: 1px solid var(--vision-color);
-    }
-    #hearing {
-      border: 1px solid var(--hearing-color);
-    }
-    #smell {
-      border: 1px solid var(--smell-color);
-    }
-
-    /* При наведении делаем рамку ярче */
-    select:hover {
-      filter: brightness(1.2);
-    }
- /* Добавленные отступы */
-    
-  .select-container {
-    margin-bottom: 50px;
-    gap: 15px;
-  }
-  .select-group {
-    margin-top: 30px;
-
-    gap: 15px;
-  }
-  
-  table {
-    margin: 50px 0;
-  }
-  
-  @media (max-width: 768px) {
-    .select-group {
-      margin-bottom: 10px;
-      width: 100%;
-    }
-  }
-    @supports (-webkit-touch-callout: none) {
-  select, button {
-    min-height: 44px; /* Минимальный размер для iOS */
-  }
-}
-    @media (max-width: 768px) {
-  table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch; /* Улучшенная мобильная таблица */
-  }
-}
-@media (max-width: 768px) {
-  body {
-    font-size: calc(16px + 0.5vw);
-      touch-action: manipulation; /* Улучшает отзывчивость */
-  }
+    .fast-button {
+    position: fixed;
+    bottom: 10px;
+    left: 80%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    cursor: pointer;
+    width: auto;
+    height: auto;
+    padding: 15px; 
+    background: none; /* Убираем изображение */
+    font-family: Verdana;
+    font-size: 18px;
+    font-weight: normal;
+    color: rgba(255, 255, 255) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0px solid white; /* Опционально */
+    border-radius: 12px; /* Опционально */
 }
 
-  </style>
+    .go-button {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    cursor: pointer;
+    width: auto;
+    height: auto;
+    padding: 15px; 
+    background: none; /* Убираем изображение */
+    font-family: Verdana;
+    font-size: 18px;
+    font-weight: normal;
+    color: rgba(255, 255, 255) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0px solid white; /* Опционально */
+    border-radius: 12px; /* Опционально */
+}
+        
+    .fore-button {
+    position: fixed;
+    top: 10px;
+    left: 80%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    cursor: pointer;
+    width: auto;
+    height: auto;
+    padding: 15px; 
+    background: none; /* Убираем изображение */
+    font-family: Verdana;
+    font-size: 18px;
+    font-weight: normal;
+    color: rgba(255, 255, 255) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0px solid white; /* Опционально */
+    border-radius: 12px; /* Опционально */
+}
+        
+    .help-button {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    cursor: pointer;
+    width: auto;
+    height: auto;
+    padding: 15px; 
+    background: none; /* Убираем изображение */
+    font-family: Verdana;
+    font-size: 18px;
+    font-weight: normal;
+    color: rgba(255, 255, 255) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0px solid white; /* Опционально */
+    border-radius: 12px; /* Опционально */
+}
+        
+        .hidden {
+    display: none;
+}
+
+    </style>
 </head>
 <body>
+<div class="mode-button">Static</div>
+<div class="go-button">Voyage</div>
+<div class="fore-button">Push</div>
+<div class="slow-button">Slow</div>
+<div class="fast-button">Fast</div>
+<a href="https://t.me/hobbyandlobby/192" style="text-decoration: none;" class="help-button" target="_blank">Help</a>
 
-<h1>Самоанализ</h1>
-<p>Анкета-памятка + диагностика темперамента</p>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+    <script>
 
-<div class="buttons">
-  <button onclick="save()">Сохранить</button>
-  <button onclick="load()">Загрузить</button>
-  <button class="standard-btn" onclick="window.open('https://t.me/hobbyandlobby/222', '_blank')">Помощь</button>
-</div>
-
-<p>Далее, выберите вариант из любого списка произвольно в любой момент. <br/>Категории пополняются.</p>
-
-<div>
-<div class="select-container">
-  <div class="select-group">
-    <label for="breath" style="color: #ffffff;">Дыхание</label>
-    <select id="breath" onchange="log('breath')">
-      <option selected disabled>Выберите значение</option>
-      <option value="1">Вдох ртом, выдох носом</option>
-      <option value="2">Вдох и выдох ртом</option>
-      <option value="3">Вдох и выдох ртом и носом вместе</option>
-      <option value="4">Вдох и выдох носом</option>
-      <option value="5">Вдох носом, выдох ртом</option>
-    </select>
-  </div>
-</div>
-
-  <div class="select-group">
-    <label for="emotion" style="color: #ffffff;">Эмоции</label>
-    <select id="emotion" onchange="log('emotion')">
-      <option selected disabled>Выберите значение</option>
-      <option value="1">Тревога</option>
-      <option value="2">Нейтрально</option>
-      <option value="3">Спокойствие</option>
-      <option value="4">Радость</option>
-      <option value="5">Гармония</option>
-    </select>
-  </div>
-
-  <div class="select-group">
-    <label for="energy" style="color: #ffffff;">Энергия</label>
-    <select id="energy" onchange="log('energy')">
-      <option selected disabled>Выберите значение</option>
-      <option value="1">Усталость</option>
-      <option value="2">Низкая</option>
-      <option value="3">Средняя</option>
-      <option value="4">Высокая</option>
-      <option value="5">Пик</option>
-    </select>
-  </div>
-
-  <div class="select-group">
-    <label for="focus" style="color: #ffffff;">Фокус</label>
-    <select id="focus" onchange="log('focus')">
-      <option selected disabled>Выберите значение</option>
-      <option value="1">Рассеян</option>
-      <option value="2">Периодический</option>
-      <option value="3">Умеренный</option>
-      <option value="4">Сильный</option>
-      <option value="5">Полный</option>
-    </select>
-  </div>
-
-  <div class="select-group">
-    <label for="creativity" style="color: #ffffff;">Творчество</label>
-    <select id="creativity" onchange="log('creativity')">
-      <option selected disabled>Выберите значение</option>
-      <option value="1">Блок</option>
-      <option value="2">Редко</option>
-      <option value="3">Умеренно</option>
-      <option value="4">Активно</option>
-      <option value="5">Поток</option>
-    </select>
-  </div>
-
-  <div class="select-group">
-    <label for="vision" style="color: #ffffff;">Зрение</label>
-    <select id="vision" onchange="log('vision')">
-      <option selected disabled>Выберите значение</option>
-      <option value="1">Затуманено</option>
-      <option value="2">Снижение</option>
-      <option value="3">Норма</option>
-      <option value="4">Чётко</option>
-      <option value="5">Очень остро</option>
-    </select>
-  </div>
-
-  <div class="select-group">
-    <label for="hearing" style="color: #ffffff;">Слух</label>
-    <select id="hearing" onchange="log('hearing')">
-      <option selected disabled>Выберите значение</option>
-      <option value="1">Приглушён</option>
-      <option value="2">Слабый</option>
-      <option value="3">Норма</option>
-      <option value="4">Повышен</option>
-      <option value="5">Очень острый</option>
-    </select>
-  </div>
-
-  <div class="select-group">
-    <label for="smell" style="color: #ffffff;">Обоняние</label>
-    <select id="smell" onchange="log('smell')">
-      <option selected disabled>Выберите значение</option>
-      <option value="1">Отсутствует</option>
-      <option value="2">Слабое</option>
-      <option value="3">Норма</option>
-      <option value="4">Яркое</option>
-      <option value="5">Очень чувствительное</option>
-    </select>
-  </div>
-</div>
-</div>
-
-<table id="table">
-  
-</table>
-
-<div class="chart-container">
-  <canvas id="chart"></canvas>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+        // Создание сцены
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x007bff); // Dodger Blue
 
 
 
-<script>
-  // Добавляем 'breath' в массив категорий
-  const rows = ['breath', 'emotion', 'energy', 'focus', 'creativity', 'vision', 'hearing', 'smell' ];  const colors = {
-    breath: '#ffffff',
-    emotion: '#ff5252',
-    energy: '#ff9800',
-    focus: '#ffeb3b',
-    creativity: '#00ff00',
-    vision: '#0000ff',
-    hearing: '#9c27b0',
-    smell: '#00bcd4'
+        // Камера
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
 
-  };
-  
-  const categoryNames = {
-    breath: 'Дыхание',
-    emotion: 'Эмоции',
-    energy: 'Энергия',
-    focus: 'Фокус',
-    creativity: 'Творчество',
-    vision: 'Зрение',
-    hearing: 'Слух',
-    smell: 'Обоняние'
-  };
+        // Рендерер
+        const renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                preserveDrawingBuffer: true,
+                alpha: false  // Отключаем прозрачность
+            });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-  const table = document.getElementById('table');
-  
-  // Инициализация таблицы с заголовками категорий
-  rows.forEach(key => {
-    const row = table.insertRow(-1);
-    const cell = row.insertCell(0);
-    cell.textContent = categoryNames[key];
-    cell.className = 'category-header';
-    cell.style.color = colors[key];
-  });
+        // Массив цветов для фона сцены
+        const colors = ['#007bff', '#7058a8', '#000033', '#f48474']; // Голубой, Оранжевый, Тёмно-синий, Персиковый
+        let currentColorIndex = 0;
 
-  const chart = new Chart(document.getElementById('chart').getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: rows.map(key => ({
-        label: '',
-        data: [],
-        borderColor: colors[key],
-        borderWidth: 1,
-        fill: false,
-        tension: 0.1
-      }))
-    },
-    options: {
-      plugins: {
-        legend: {
-          display: false
+        // Функция для плавного изменения фона сцены
+        function changeBackgroundColor() {
+            currentColorIndex = (currentColorIndex + 1) % colors.length;
+            const targetColor = new THREE.Color(colors[currentColorIndex]);
+            animateBackgroundColor(targetColor);
         }
-      },
-      scales: {
-        y: {
-min: 0.5,
-        max: 5.5,
-        grace: '10%', // Автоматический отступ
-          ticks: {
-          stepSize: 1, // Шаг сетки
 
-            callback: v => Number.isInteger(v) ? v : ''
-          },
-         
+        // Функция для плавного изменения цвета фона сцены
+        function animateBackgroundColor(targetColor) {
+            const startColor = scene.background.clone(); // Начальный цвет
+            const duration = 5; // Длительность анимации (в секундах)
+            const startTime = performance.now();
+
+            function updateBackgroundColor() {
+                const elapsed = (performance.now() - startTime) / 1000;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Плавное изменение цвета
+                scene.background.lerpColors(startColor, targetColor, progress);
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateBackgroundColor);
+                }
+            }
+
+            updateBackgroundColor();
         }
-      }
-    }
-  });
 
-  function log(key) {
-  const val = +document.getElementById(key).value;
-  const col = chart.data.labels.length;
-  const rowIndex = rows.indexOf(key);
+        // Интервал для изменения фона каждые 5 секунд
+        setInterval(changeBackgroundColor, 100000);
 
-  chart.data.labels.push(col + 1);
-  rows.forEach(r => {
-    const dataset = chart.data.datasets.find(d => d.borderColor === colors[r]);
-    dataset.data.push(r === key ? val : (dataset.data[col - 1] ?? null));
-    
-    const row = table.rows[rows.indexOf(r)];
-    const cell = row.insertCell(-1);
-    cell.textContent = r === key ? val : '';
-    
-    // Цвет цифр в зависимости от значения
-    if (val) {
-      if (val === 1) cell.style.color = '#ff0000'; // красный
-      else if (val === 2) cell.style.color = '#ff9800'; // оранжевый
-      else if (val === 3) cell.style.color = '#ffeb3b'; // жёлтый
-      else if (val === 4) cell.style.color = '#00ff00'; // зелёный
-      else if (val === 5) cell.style.color = '#0000ff'; // синий
-    }
-  });
+        // Управление камерой
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.005;
 
-  chart.update();
-}
+        // Источники света
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
 
-  function save() {
-    const payload = {
-      labels: chart.data.labels,
-      datasets: chart.data.datasets.map(d => d.data)
+        // Основной источник света
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 10, 10);
+        scene.add(directionalLight);
+        const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 0.8); // Ультрамариновый цвет
+ultramarineLight.position.set(-10, -10, -10); // Позиция света
+scene.add(ultramarineLight);
+
+        // Дополнительные DirectionalLights с недостающими цветами
+        const lights = [
+            { color: 0xff0000, position: [10, 0, 0] }, // Красный
+            { color: 0x00ff00, position: [0, 10, 0] }, // Зеленый
+            { color: 0x0000ff, position: [0, 0, 10] }, // Синий
+            { color: 0x3f00ff, position: [-10, -10, -10] }, // Ультрамариновый
+
+        ];
+
+        lights.forEach(({ color, position }) => {
+            const light = new THREE.DirectionalLight(color, 0.8); // Интенсивность света
+            light.position.set(...position);
+            scene.add(light);
+        });
+
+
+        // Хранилища объектов
+        const staticObjects = [];
+        const polarObjects = [];
+       
+
+
+        // Создание геометрии
+        const createGeometry = (size) => {
+            const geometries = [
+                new THREE.BoxGeometry(size, size, size),
+                new THREE.TetrahedronGeometry(size),
+                new THREE.IcosahedronGeometry(size, 0),
+                new THREE.IcosahedronGeometry(size, 2),
+                new THREE.OctahedronGeometry(size),
+                new THREE.DodecahedronGeometry(size),
+            ];
+            return geometries[Math.floor(Math.random() * geometries.length)];
+        };
+
+        // Режим Fix
+        const createFixObject = () => {
+            const size = Math.random() * 1 + 2;
+            const geometry = createGeometry(size);
+            const material = new THREE.MeshStandardMaterial({
+                color: Math.random() * 0xffffff,
+                roughness: Math.random() * 0.8 + 0.1,
+                metalness: Math.random() * 0.8 + 0.2,
+                opacity: Math.random() * 0.8 + 0.4,
+                transparent: true,
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+
+            // Положение перед камерой
+            mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10)));
+
+            // Случайный угол наклона
+            mesh.rotation.set(
+                Math.random() * Math.PI * 1,
+                Math.random() * Math.PI * 1,
+                Math.random() * Math.PI * 1
+            );
+
+            scene.add(mesh);
+            staticObjects.push(mesh);
+            
+        };
+
+       
+
+const createPolarObject = () => {
+    const size = Math.random() * 1.0 + 2.0; // Случайный размер
+    const geometry = createGeometry(size); // Случайная геометрия
+    const material = new THREE.MeshStandardMaterial({
+        color: Math.random() * 0xffffff,
+        roughness: Math.random(),
+        metalness: Math.random(),
+        opacity: Math.random() * 0.5 + 0.5, // Случайная прозрачность
+        transparent: true,
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+
+    // Установка позиции перед камерой
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction); // Направление взгляда камеры
+    mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10))); // На 10 единиц вперед
+
+    // Случайные пользовательские свойства
+    mesh.userData = {
+        velocity: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.1,
+            (Math.random() - 0.5) * 0.1,
+            (Math.random() - 0.5) * 0.1
+        ),
+        rotationSpeed: new THREE.Vector3(
+            (Math.random() - 0.5) * 0.05,
+            (Math.random() - 0.5) * 0.05,
+            (Math.random() - 0.5) * 0.05
+        ),
+        mass: Math.random() * 5 + 1,
+        polarity: Math.random() < 0.5 ? 1 : -1,
     };
-    const blob = new Blob([JSON.stringify(payload)], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'self_state.json';
-    a.click();
-  }
 
-  function load() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = () => {
-      const parsed = JSON.parse(reader.result);
-      chart.data.labels = parsed.labels;
-      parsed.datasets.forEach((d, i) => {
-        chart.data.datasets[i].data = d;
-      });
+    scene.add(mesh);
+    polarObjects.push(mesh); // Добавляем объект в массив полярных объектов
+};
 
-      // Очистка таблицы (кроме первого столбца)
-      rows.forEach(r => {
-        const row = table.rows[rows.indexOf(r)];
-        while (row.cells.length > 1) row.deleteCell(-1);
-      });
 
-      // Заполнение данных
-      // В функции load(), внутри обработчика reader.onload
-parsed.datasets[0].forEach((_, step) => {
-  rows.forEach(r => {
-    const v = parsed.datasets[rows.indexOf(r)][step];
-    const row = table.rows[rows.indexOf(r)];
-    const cell = row.insertCell(-1);
-    cell.textContent = Number.isFinite(v) ? v : '';
-    
-    // Цвет цифр в зависимости от значения
-    if (v) {
-      if (v === 1) cell.style.color = '#ff0000';
-      else if (v === 2) cell.style.color = '#ff9800';
-      else if (v === 3) cell.style.color = '#ffeb3b';
-      else if (v === 4) cell.style.color = '#4caf50';
-      else if (v === 5) cell.style.color = '#2196f3';
+
+
+
+        // Расталкивание объектов камерой
+        const applyCameraRepulsion = () => {
+            const repulsionDistance = 15;
+            const repulsionStrength = 0.05;
+                const rotationDuration = 3000; // Время вращения после столкновения (в миллисекундах)
+
+    [...staticObjects, ...polarObjects].forEach((obj) => {
+
+                const distance = camera.position.distanceTo(obj.position);
+                if (distance < repulsionDistance) {
+                    const direction = obj.position.clone().sub(camera.position).normalize();
+                    const force = direction.multiplyScalar((repulsionDistance - distance) * repulsionStrength);
+                    if (obj.userData.velocity) {
+                        obj.userData.velocity.add(force);
+                    } else {
+                        obj.position.add(force);
+                    }
+                }
+            });
+        };
+
+        // Расталкивание статичных объектов динамичными
+        const handleCollisions = () => {
+            polarObjects.forEach((dynamicObj) => {
+                staticObjects.forEach((staticObj) => {
+                    const distance = dynamicObj.position.distanceTo(staticObj.position);
+                    if (distance < 1) {
+                        const forceDirection = staticObj.position.clone().sub(dynamicObj.position).normalize();
+                        const forceMagnitude = (15 - distance) * 0.1;
+                        staticObj.position.add(forceDirection.multiplyScalar(forceMagnitude));
+                    }
+                });
+            });
+        };
+        
+        const handlePolarInteractions = () => {
+    for (let i = 0; i < polarObjects.length; i++) {
+        for (let j = i + 1; j < polarObjects.length; j++) {
+            const objA = polarObjects[i];
+            const objB = polarObjects[j];
+            const distance = objA.position.distanceTo(objB.position);
+
+            if (distance < 1) {
+                const direction = objB.position.clone().sub(objA.position).normalize();
+                const polarityEffect = objA.userData.polarity * objB.userData.polarity; // -1 притяжение, +1 отталкивание
+                const force = direction.multiplyScalar(polarityEffect * 0.05);
+
+                // Применяем силы
+                objA.userData.velocity.add(force.clone().multiplyScalar(-1 / objA.userData.mass));
+                objB.userData.velocity.add(force.clone().multiplyScalar(1 / objB.userData.mass));
+            }
+        }
     }
-  });
+};
+
+
+const handlePolarAndStaticInteractions = () => {
+    polarObjects.forEach((polarObj) => {
+        staticObjects.forEach((staticObj) => {
+            const distance = polarObj.position.distanceTo(staticObj.position);
+
+            if (distance < 15) { // Если объекты близко друг к другу
+                const direction = staticObj.position.clone().sub(polarObj.position).normalize();
+                const repulsionForce = direction.multiplyScalar(0.005 * (8 - distance)); // Сила отталкивания
+
+                // Расталкиваем статичный объект
+                staticObj.position.add(repulsionForce);
+
+                // Добавляем обратную силу для полярного объекта (реакция на действие)
+                polarObj.userData.velocity.add(repulsionForce.clone().multiplyScalar(-1 / polarObj.userData.mass));
+                                // Включаем бесконечное вращение
+                polarObj.userData.isRotating = true;
+            } else {
+                // Если объект вне зоны гравитации, он может перестать вращаться (опционально)
+                polarObj.userData.isRotating = false; // Уберите это, если вращение не должно выключаться
+
+            }
+        });
+    });
+};
+
+const applyDeceleration = () => {
+    polarObjects.forEach((obj) => {
+        if (obj.userData.velocity.length() > 0) {
+            const deceleration = 0.003;  // Ускорение торможения
+            obj.userData.velocity.multiplyScalar(1 - deceleration);
+            if (obj.userData.velocity.length() < 0.001) {
+                obj.userData.velocity.set(0, 0, 0);  // Если скорость близка к нулю, то обнуляем
+            }
+        }
+    });
+};
+
+
+
+        // Управление кнопками
+let mode = 'Fix'; // Текущий режим
+const modeButton = document.querySelector('.mode-button');
+
+modeButton.addEventListener('click', () => {
+    if (mode === 'Fix') {
+        mode = 'Polar';
+        modeButton.innerText = "Dynamic";
+    } else if (mode === 'Polar') {
+        mode = 'Delete';
+        modeButton.innerText = "Delete";
+    } else {
+        mode = 'Fix';
+        modeButton.innerText = "Static";
+    }
+    console.log('Current mode:', mode);
 });
 
-      chart.update();
-    };
-    reader.readAsText(file);
-  };
-  input.click();
+
+// Функция удаления объектов
+function handleDelete(event) {
+    if (mode !== 'Delete') return; // Действие только в режиме Delete
+
+    // Определение координат касания или клика
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+    const mouse = new THREE.Vector2(
+        (clientX / window.innerWidth) * 2 - 1,
+        -(clientY / window.innerHeight) * 2 + 1
+    );
+
+    // Рейкастинг
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    // Проверка пересечений с объектами
+    const intersects = raycaster.intersectObjects(scene.children);
+    if (intersects.length > 0) {
+        const selectedObject = intersects[0].object;
+        scene.remove(selectedObject); // Удаляем объект из сцены
+        console.log('Object deleted:', selectedObject);
+    }
 }
-</script>
+
+// Подключение событий для клика и касания
+window.addEventListener('click', handleDelete);
+window.addEventListener('touchstart', handleDelete);
+
+
+let targetVelocity = new THREE.Vector3();  // Целевая скорость
+const acceleration = 0.001;  // Ускорение
+const deceleration = 0.01;  // Замедление (добавляем это определение)
+
+        let isMovingForward = true;
+        const cameraVelocity = new THREE.Vector3();
+        
+
+
+        const adjustCameraFocus = () => {
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            const azimuthOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
+            const elevationOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
+            direction.applyQuaternion(new THREE.Quaternion()
+                .setFromAxisAngle(new THREE.Vector3(0, 1, 0), azimuthOffset)
+                .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), elevationOffset)));
+            // Устанавливаем целевую скорость
+    targetVelocity.copy(direction.multiplyScalar(isMovingForward ? 1.0 : -1.0));
+    if (isMoving) {
+        sound.play();  // Проигрываем звук при старте движения
+    }
+};
+
+        const foreButton = document.querySelector('.fore-button');
+        foreButton.addEventListener('click', () => {
+            isMovingForward = !isMovingForward;
+            foreButton.innerText = isMovingForward
+                ? "Push"
+                : "Reel";
+        });
+
+        const goButton = document.querySelector('.go-button');
+        let isMoving = false;
+        goButton.addEventListener('click', () => {
+          isMoving = !isMoving;
+          goButton.innerText = isMoving
+            ? "Stop"  // Текст при движении
+            : "Go";   // Текст при остановке
+
+          if (isMoving) {
+            adjustCameraFocus();
+          } else {
+            targetVelocity.set(0, 0, 0);
+          }
+});
+
+
+        // Создание объектов
+        document.addEventListener('click', (event) => {
+    if (!event.target.closest('.mode-button, .go-button, .fore-button, .slow-button, .fast-button, .help-button')) {
+        if (mode === 'Fix') {
+            createFixObject();
+        
+        } else if (mode === 'Polar') {
+            createPolarObject();
+        }
+    }
+});
+
+
+
+
+        
+                // Удаление объекта правым кликом
+        document.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            const mouse = new THREE.Vector2(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1
+            );
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects([...staticObjects, ...polarObjects]);
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+                scene.remove(object);
+                staticObjects.splice(staticObjects.indexOf(object), 1);
+                polarObjects.splice(polarObjects.indexOf(object), 1);
+            }
+        });
+        
+                
+
+
+
+        // Управление скоростью камеры
+        const slowButton = document.querySelector('.slow-button');
+        const fastButton = document.querySelector('.fast-button');
+
+        slowButton.addEventListener('click', () => {
+            cameraVelocity.multiplyScalar(0.5); // Уменьшаем скорость
+        });
+
+        fastButton.addEventListener('click', () => {
+            cameraVelocity.multiplyScalar(1.5); // Увеличиваем скорость
+        });
+
+
+
+
+        const animate = () => {
+    if (isMoving) {
+        cameraVelocity.lerp(targetVelocity, acceleration);  // Увеличиваем скорость
+    } else {
+        cameraVelocity.lerp(new THREE.Vector3(), deceleration);  // Плавно останавливаем
+    }
+
+    // Обновляем позицию камеры
+    camera.position.add(cameraVelocity);
+    applyCameraRepulsion();
+
+    
+
+    // Обновление полярных объектов
+    polarObjects.forEach((obj) => {
+        obj.position.add(obj.userData.velocity);
+        obj.rotation.x += obj.userData.rotationSpeed.x;
+        obj.rotation.y += obj.userData.rotationSpeed.y;
+        obj.rotation.z += obj.userData.rotationSpeed.z;
+    });
+
+    // Взаимодействия
+    if (mode === 'Polar') {
+        handlePolarInteractions();
+    }
+    handlePolarAndStaticInteractions();
+    
+    // Применяем торможение для полярных объектов
+    applyDeceleration()
+
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+};
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+window.addEventListener('orientationchange', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+        animate();
+    </script>
 </body>
 </html>
