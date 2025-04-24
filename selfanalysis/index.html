@@ -348,76 +348,55 @@ button {
     cell.style.color = colors[key];
   });
 
-const chart = new Chart(document.getElementById('chart').getContext('2d'), {
-  type: 'line',
-  data: {
-    labels: [],
-    datasets: rows.map(key => ({
-      label: '',
-      data: [],
-      borderColor: colors[key],
-      borderWidth: 1,
-      fill: false,
-      tension: 0.1
-    }))
-  },
-  options: {
-    plugins: {
-      legend: {
-        display: false
-      }
+  const chart = new Chart(document.getElementById('chart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: rows.map(key => ({
+        label: '',
+        data: [],
+        borderColor: colors[key],
+        borderWidth: 1,
+        fill: false,
+        tension: 0.1
+      }))
     },
-    scales: {
-      
-      y: {
-        min: 0.5,
+    options: {
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+min: 0.5,
         max: 5.5,
-        grace: '10%',
-        ticks: {
-          stepSize: 1,
-          callback: v => Number.isInteger(v) ? v : ''
-        },
-x: {
-        type: 'time',  // Указываем, что ось X будет работать с типом 'time'
-        time: {
-          unit: 'day',  // Шаг по времени (по дням)
-          tooltipFormat: 'll',  // Формат отображения даты при наведении
-          displayFormats: {
-            day: 'YYYY-MM-DD'  // Формат меток на оси X
-          }
-        },
-        ticks: {
-          autoSkip: true, // Пропускать метки, если они слишком близки
-          maxTicksLimit: 10 // Ограничение количества меток
+        grace: '10%', // Автоматический отступ
+          ticks: {
+          stepSize: 1, // Шаг сетки
+
+            callback: v => Number.isInteger(v) ? v : ''
+          },
+         
         }
       }
-      }
     }
-  }
-});
+  });
 
-function log(key) {
+  function log(key) {
   const val = +document.getElementById(key).value;
   const col = chart.data.labels.length;
   const rowIndex = rows.indexOf(key);
 
-  // Получаем текущую дату и увеличиваем её на количество шагов (например, по дням)
-  const currentDate = new Date();
-  currentDate.setDate(currentDate.getDate() + col); // Прибавляем 1 день для каждого нового значения
-
-  // Преобразуем дату в строку формата YYYY-MM-DD
-  const dateString = currentDate.toISOString().split('T')[0];
-
-  chart.data.labels.push(dateString);  // Добавляем метку даты на ось X
-
+  chart.data.labels.push(col + 1);
   rows.forEach(r => {
     const dataset = chart.data.datasets.find(d => d.borderColor === colors[r]);
     dataset.data.push(r === key ? val : (dataset.data[col - 1] ?? null));
-
+    
     const row = table.rows[rows.indexOf(r)];
     const cell = row.insertCell(-1);
     cell.textContent = r === key ? val : '';
-
+    
     // Цвет цифр в зависимости от значения
     if (val) {
       if (val === 1) cell.style.color = '#ff0000'; // красный
@@ -430,7 +409,6 @@ function log(key) {
 
   chart.update();
 }
-
 
   function save() {
     const payload = {
