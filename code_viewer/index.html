@@ -7,16 +7,32 @@
     <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
     <title>Code Viewer</title>
     <style>
-        body {
-            margin: 0;
-            display: flex;
-            flex-direction: row;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-            background-color: black;
-            color: white;
-            position: relative;
-        }
+body {
+    margin: 0;
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    background-color: black;
+    color: white;
+    position: relative;
+    padding-bottom: 60px; /* Добавляем отступ снизу для панели */
+}
+
+#controlPanel {
+    position: fixed; /* Закрепляем панель внизу */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between; /* Кнопки по краям */
+    align-items: center; /* Центрирование по вертикали */
+    padding: 10px 10px; /* Внутренние отступы */
+    background-color: black;
+    box-sizing: border-box; /* Корректное вычисление ширины */
+    z-index: 10; /* Убедимся, что панель будет сверху */
+}
+
         #editor {
             flex: 38.2;
             padding: 10px;
@@ -35,18 +51,7 @@
             background-color: #333333;
             overflow: auto;
         }
-        #controlPanel {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: space-between; /* Кнопки по краям */
-            align-items: center; /* Центрирование по вертикали */
-            padding: 10px 10px; /* Внутренние отступы */
-            background-color: black;
-            box-sizing: border-box; /* Корректное вычисление ширины */
-        }
+
         #fileFormat {
             margin-right: 10px;
             font-size: 14px;
