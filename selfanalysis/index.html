@@ -2,15 +2,17 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">    <meta name="description" content="Анкета и диагностика темперамента">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">    <meta name="description" content="Анкета-памятка + диагностика темперамента">
   <title>Самоанализ</title>
       <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
+font-size: calc(16px + 0.5vw); /* Динамический размер шрифта */
+      touch-action: manipulation; /* Улучшает отзывчивость */
       background: #000;
       color: #fff;
-      font-family: Verdana, Tahoma, Arial, sans serif;
+      font-family: monospace;
       padding: 20px;
     }
     .select-container {
@@ -30,6 +32,26 @@
     margin-bottom: 5px;
     font-weight: bold;
   }
+select option {
+  font-size: inherit; /* Наследует от select */
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  font-family: var(--main-font);
+  font-size: calc(16px + 0.5vw);
+  background: #000;
+  color: #fff;
+  border: 1px solid #fff;
+  padding: 10px;
+  margin: 5px 0;
+  font-size: 14px;
+  width: 100%;
+  font-family: monospace; /* Добавлено: явно задаём шрифт */
+}
+
   
   select, button {
     background: #000;
@@ -79,6 +101,9 @@ button {
       text-align: left !important;
     }
  :root {
+  --main-font: monospace;
+
+      --breath-color: #ffffff; /* Белый цвет для дыхания */
       --emotion-color: #ff5252;
       --energy-color: #ff9800;
       --focus-color: #ffeb3b;
@@ -89,6 +114,9 @@ button {
     }
 
     /* Стили для select с цветными рамками */
+    #breath { 
+      border: 1px solid var(--breath-color); /* Рамка для дыхания */
+    } 
     #emotion {
       border: 1px solid var(--emotion-color);
     }
@@ -154,15 +182,30 @@ button {
 <body>
 
 <h1>Самоанализ</h1>
-<p>Анкета и диагностика темперамента</p>
+<p>Анкета-памятка + диагностика темперамента</p>
 
 <div class="buttons">
   <button onclick="save()">Сохранить</button>
   <button onclick="load()">Загрузить</button>
+  <button class="standard-btn" onclick="window.open('https://t.me/lobbyandhobby', '_blank')">Помощь</button>
 </div>
+
+<p>Далее, выберите вариант из любого списка произвольно в любой момент. <br/>Категории пополняются.</p>
 
 <div>
 <div class="select-container">
+  <div class="select-group">
+    <label for="breath" style="color: #ffffff;">Дыхание</label>
+    <select id="breath" onchange="log('breath')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Вдох ртом, выдох носом</option>
+      <option value="2">Вдох и выдох ртом</option>
+      <option value="3">Вдох и выдох ртом и носом вместе</option>
+      <option value="4">Вдох и выдох носом</option>
+      <option value="5">Вдох носом, выдох ртом</option>
+    </select>
+  </div>
+</div>
 
   <div class="select-group">
     <label for="emotion" style="color: #ffffff;">Эмоции</label>
@@ -260,11 +303,12 @@ button {
 <div class="chart-container">
   <canvas id="chart"></canvas>
 </div>
-<button class="standard-btn" onclick="window.open('https://t.me/lobbyandhobby', '_blank')">Помощь</button>
+
 
 <script>
-  const rows = ['emotion', 'energy', 'focus', 'creativity', 'vision', 'hearing', 'smell'];
-  const colors = {
+  // Добавляем 'breath' в массив категорий
+  const rows = ['breath', 'emotion', 'energy', 'focus', 'creativity', 'vision', 'hearing', 'smell' ];  const colors = {
+    breath: '#ffffff',
     emotion: '#ff5252',
     energy: '#ff9800',
     focus: '#ffeb3b',
@@ -272,9 +316,11 @@ button {
     vision: '#0000ff',
     hearing: '#9c27b0',
     smell: '#00bcd4'
+
   };
   
   const categoryNames = {
+    breath: 'Дыхание',
     emotion: 'Эмоции',
     energy: 'Энергия',
     focus: 'Фокус',
