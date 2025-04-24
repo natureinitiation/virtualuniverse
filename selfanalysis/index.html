@@ -8,10 +8,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-font-size: calc(16px + 0.5vw); /* Динамический размер шрифта */
-      touch-action: manipulation; /* Улучшает отзывчивость */
       background: #000;
       color: #fff;
+      font-size: 18px; 
+      line-height: 1.6; /* для читабельности */
       font-family: monospace;
       padding: 0px;
     }
@@ -177,6 +177,13 @@ button {
     -webkit-overflow-scrolling: touch; /* Улучшенная мобильная таблица */
   }
 }
+@media (max-width: 768px) {
+  body {
+    font-size: calc(16px + 0.5vw);
+      touch-action: manipulation; /* Улучшает отзывчивость */
+  }
+}
+
   </style>
 </head>
 <body>
