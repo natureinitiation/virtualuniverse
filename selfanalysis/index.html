@@ -192,8 +192,8 @@ button {
 <p>Анкета-памятка + диагностика темперамента</p>
 
 <div class="buttons">
-  <button onclick="save()">Сохранить</button>
-  <button onclick="load()">Загрузить</button>
+<!--  <button onclick="save()">Сохранить</button>
+  <button onclick="load()">Загрузить</button> -->
   <button class="standard-btn" onclick="window.open('https://t.me/hobbyandlobby/222', '_blank')">Помощь</button>
 </div>
 
@@ -410,17 +410,32 @@ min: 0.5,
   chart.update();
 }
 
+/*
   function save() {
-    const payload = {
+  const payload = {
+    formData: {
+      breath: document.getElementById('breath').value,
+      emotion: document.getElementById('emotion').value,
+      energy: document.getElementById('energy').value,
+      focus: document.getElementById('focus').value,
+      creativity: document.getElementById('creativity').value,
+      vision: document.getElementById('vision').value,
+      hearing: document.getElementById('hearing').value,
+      smell: document.getElementById('smell').value,
+    },
+    chartData: {
       labels: chart.data.labels,
-      datasets: chart.data.datasets.map(d => d.data)
-    };
-    const blob = new Blob([JSON.stringify(payload)], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'self_state.json';
-    a.click();
-  }
+      datasets: chart.data.datasets.map(d => d.data),
+    }
+  };
+
+  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'self_state.json';
+  a.click();
+}
+
 
   function load() {
   const input = document.createElement('input');
@@ -435,7 +450,7 @@ min: 0.5,
       parsed.datasets.forEach((d, i) => {
         chart.data.datasets[i].data = d;
       });
-
+*/
       // Очистка таблицы (кроме первого столбца)
       rows.forEach(r => {
         const row = table.rows[rows.indexOf(r)];
