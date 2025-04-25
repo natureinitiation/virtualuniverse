@@ -44,6 +44,7 @@
       color: white;
       outline: none;
       caret-color: white;
+      position: relative;
     }
 
     #preview {
@@ -59,8 +60,7 @@
       padding: 5px;
     }
 
-    #saveButton,
-    #openButton {
+    #saveButton {
       width: 70px;
       height: 40px;
       background-color: #007bff;
@@ -70,59 +70,26 @@
       font-size: 14px;
     }
 
-    #saveButton:hover,
-    #openButton:hover {
+    #saveButton:hover {
       background-color: #0056b3;
     }
 
-    #searchText {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      color: yellow;
-      font-weight: bold;
-      font-size: 16px;
-      cursor: pointer;
-      z-index: 20;
-    }
-
-    #searchOverlay {
-      position: fixed;
-      top: 45px;
-      right: 10px;
-      background: #222;
-      color: white;
-      padding: 8px;
-      border: 1px solid yellow;
-      border-radius: 4px;
-      display: none;
-      z-index: 100;
-    }
-
-    #searchOverlay input {
-      padding: 5px;
-      font-size: 14px;
-      border: none;
-      outline: none;
-      width: 150px;
-    }
-
-    @media (max-aspect-ratio: 1/1) {
-      body {
-        flex-direction: column;
-      }
-    }
 #helpLink {
   color: yellow;
   text-decoration: none;
-  margin-left: 10px;
-  font-weight: bold;
+  margin-left: 20px;
+  font-weight: normal;
   font-size: 16px;
 }
 #helpLink:hover {
   text-decoration: underline;
 }
 
+    @media (max-aspect-ratio: 1/1) {
+      body {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
@@ -130,9 +97,6 @@
   <iframe id="preview" title="Preview"></iframe>
 
   <div id="controlPanel">
-    <button id="openButton">Open</button>
-<a id="helpLink" href="https://t.me/eugenebox" target="_blank">Help</a>
-
     <div>
       <select id="fileFormat">
         <option value="html">HTML</option>
@@ -142,22 +106,16 @@
         <option value="css">CSS</option>
       </select>
       <button id="saveButton">Save</button>
+      <a id="helpLink" href="https://t.me/eugenebox" target="_blank">Help</a>
+
     </div>
   </div>
 
-  <!-- Слово "Search" как элемент интерфейса -->
-  <div id="searchText">Search</div>
-
-  <!-- Всплывающее поле поиска -->
-  <div id="searchOverlay">
-    <input type="text" id="searchInput" placeholder="Find..." />
-  </div>
 
   <script>
     const editor = document.getElementById("editor");
     const preview = document.getElementById("preview");
     const saveButton = document.getElementById("saveButton");
-    const openButton = document.getElementById("openButton");
     const fileFormat = document.getElementById("fileFormat");
 
     const mimeTypes = {
@@ -185,26 +143,7 @@
       document.body.removeChild(a);
     });
 
-    // Поиск
-    const searchText = document.getElementById("searchText");
-    const searchOverlay = document.getElementById("searchOverlay");
-    const searchInput = document.getElementById("searchInput");
 
-    searchText.addEventListener("click", () => {
-      searchOverlay.style.display =
-        searchOverlay.style.display === "none" ? "block" : "none";
-      searchInput.focus();
-    });
-
-    searchInput.addEventListener("input", () => {
-      const term = searchInput.value.toLowerCase();
-      const content = editor.value;
-      const index = content.toLowerCase().indexOf(term);
-      if (index !== -1) {
-        editor.focus();
-        editor.setSelectionRange(index, index + term.length);
-      }
-    });
   </script>
 </body>
 </html>
