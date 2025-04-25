@@ -70,15 +70,17 @@ const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50; // Сдви
     }
 
     // Функция для рассыпания элементов
-    function scatter() {
+function scatter() {
   const centerX = window.innerWidth / 2;
   const centerY = window.innerHeight / 2;
-        blocks.forEach((block) => {
+
+  blocks.forEach((block) => {
     const randX = centerX + (Math.random() - 0.5) * window.innerWidth;
     const randY = centerY + (Math.random() - 0.5) * window.innerHeight;
     block.style.transform = `translate(${randX}px, ${randY}px)`;
   });
 }
+
 
     // Обработчик для клика или касания
     container.addEventListener('click', () => {
