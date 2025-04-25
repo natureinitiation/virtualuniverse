@@ -13,7 +13,7 @@
       justify-content: center;
       align-items: center;
       touch-action: manipulation;
-      user-select: none; /* Отключаем выделение содержимого */
+      user-select: none;
     }
     .container {
       position: relative;
@@ -24,16 +24,31 @@
       position: absolute;
       width: 60px;
       height: 60px;
-      background: #38f;
       border-radius: 8px;
       transition: all 0.8s ease;
       opacity: 0.85;
       touch-action: none;
     }
+    .help-link {
+      position: absolute;
+      bottom: 500px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 18px;
+      text-decoration: none;
+      font-family: Arial, sans-serif;
+      opacity: 0.6;
+    }
+    .help-link:hover {
+      color: #ffd700;
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
   <div class="container" id="scene"></div>
+  <a href="https://lobbyandhobby.t.me" class="help-link" target="_blank">Help</a>
 
   <script>
     const container = document.getElementById('scene');
@@ -41,27 +56,24 @@
     const blocks = [];
     let isGathered = false;
 
-    // Функция для создания блоков
+    const colors = ['#e3342f', '#f6993f', '#ffed4a', '#38c172', '#4dc0b5', '#3490dc', '#6574cd', '#9561e2', '#f66d9b'];
+
     function createBlocks() {
       for (let i = 0; i < 9; i++) {
         const block = document.createElement('div');
         block.className = 'block';
-
-        // Расставляем блоки случайным образом для начала
+        block.style.backgroundColor = colors[i % colors.length];
         const randX = (Math.random() - 0.5) * 600;
         const randY = (Math.random() - 0.5) * 600;
         block.style.transform = `translate(${randX}px, ${randY}px)`;
-
         container.appendChild(block);
         blocks.push(block);
       }
     }
 
-    // Функция для центрации элементов
     function gather() {
       const centerX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
-const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50; // Сдвигаем эпицентр на 50px вверх
-
+      const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50;
       blocks.forEach((block, i) => {
         const xOffset = (i % 3) * (size + 10);
         const yOffset = Math.floor(i / 3) * (size + 10);
@@ -69,41 +81,27 @@ const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50; // Сдви
       });
     }
 
-    // Функция для рассыпания элементов
-function scatter() {
-  const centerX = window.innerWidth / 2;
-  const centerY = window.innerHeight / 2;
+    function scatter() {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      blocks.forEach((block) => {
+        const randX = centerX + (Math.random() - 0.5) * window.innerWidth;
+        const randY = centerY + (Math.random() - 0.5) * window.innerHeight;
+        block.style.transform = `translate(${randX}px, ${randY}px)`;
+      });
+    }
 
-  blocks.forEach((block) => {
-    const randX = centerX + (Math.random() - 0.5) * window.innerWidth;
-    const randY = centerY + (Math.random() - 0.5) * window.innerHeight;
-    block.style.transform = `translate(${randX}px, ${randY}px)`;
-  });
-}
-
-
-    // Обработчик для клика или касания
     container.addEventListener('click', () => {
-      if (isGathered) {
-        scatter();
-      } else {
-        gather();
-      }
+      isGathered ? scatter() : gather();
       isGathered = !isGathered;
     });
 
-    // Обработка удержания касания (чтобы не было выделения содержимого)
     container.addEventListener('touchstart', (e) => {
-      e.preventDefault(); // Отменяем стандартное поведение браузера (выделение текста)
-      if (isGathered) {
-        scatter();
-      } else {
-        gather();
-      }
+      e.preventDefault();
+      isGathered ? scatter() : gather();
       isGathered = !isGathered;
     }, { passive: false });
 
-    // Инициализация блоков
     createBlocks();
   </script>
 </body>
