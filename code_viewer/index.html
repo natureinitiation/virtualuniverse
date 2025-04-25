@@ -1,165 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Simple Code Editor">
-    <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
-    <title>Code Viewer</title>
-    <style>
-body {
-    margin: 0;
-    display: flex;
-    flex-direction: row;
-    height: 100vh;
-    font-family: Arial, sans-serif;
-    background-color: black;
-    color: white;
-    position: relative;
-    padding-bottom: 60px; /* Добавляем отступ снизу для панели */
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Simple Code Editor" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Code Viewer</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      background-color: black;
+      color: white;
+      position: relative;
+      padding-bottom: 60px;
+    }
+
+    #controlPanel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 10px;
+      background-color: black;
+      box-sizing: border-box;
+      z-index: 10;
+    }
+
+    #editor {
+      flex: 38.2;
+      padding: 10px;
+      border: none;
+      resize: none;
+      font-family: monospace;
+      font-size: 14px;
+      background-color: black;
+      color: white;
+      outline: none;
+      caret-color: white;
+    }
+
+    #preview {
+      flex: 61.8;
+      border: none;
+      background-color: #333333;
+      overflow: auto;
+    }
+
+    #fileFormat {
+      margin-right: 10px;
+      font-size: 14px;
+      padding: 5px;
+    }
+
+    #saveButton,
+    #openButton {
+      width: 70px;
+      height: 40px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    #saveButton:hover,
+    #openButton:hover {
+      background-color: #0056b3;
+    }
+
+    #searchText {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      color: yellow;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 20;
+    }
+
+    #searchOverlay {
+      position: fixed;
+      top: 45px;
+      right: 10px;
+      background: #222;
+      color: white;
+      padding: 8px;
+      border: 1px solid yellow;
+      border-radius: 4px;
+      display: none;
+      z-index: 100;
+    }
+
+    #searchOverlay input {
+      padding: 5px;
+      font-size: 14px;
+      border: none;
+      outline: none;
+      width: 150px;
+    }
+
+    @media (max-aspect-ratio: 1/1) {
+      body {
+        flex-direction: column;
+      }
+    }
+#helpLink {
+  color: yellow;
+  text-decoration: none;
+  margin-left: 10px;
+  font-weight: bold;
+  font-size: 16px;
+}
+#helpLink:hover {
+  text-decoration: underline;
 }
 
-#controlPanel {
-    position: fixed; /* Закрепляем панель внизу */
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between; /* Кнопки по краям */
-    align-items: center; /* Центрирование по вертикали */
-    padding: 10px 10px; /* Внутренние отступы */
-    background-color: black;
-    box-sizing: border-box; /* Корректное вычисление ширины */
-    z-index: 10; /* Убедимся, что панель будет сверху */
-}
-
-        #editor {
-            flex: 38.2;
-            padding: 10px;
-            border: none;
-            resize: none;
-            font-family: monospace;
-            font-size: 14px;
-            background-color: black;
-            color: white;
-            outline: none;
-            caret-color: white;
-        }
-        #preview {
-            flex: 61.8;
-            border: none;
-            background-color: #333333;
-            overflow: auto;
-        }
-
-        #fileFormat {
-            margin-right: 10px;
-            font-size: 14px;
-            padding: 5px;
-        }
-        #saveButton, #openButton {
-            width: 70px;
-            height: 40px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        #saveButton:hover, #openButton:hover {
-            background-color: #0056b3;
-        }
-        @media (max-aspect-ratio: 1/1) {
-            body {
-                flex-direction: column;
-            }
-        }
-    </style>
+  </style>
 </head>
 <body>
-    <textarea id="editor" placeholder="Write your code here..."></textarea>
-    <iframe id="preview" title="Preview"></iframe>
-    <div id="controlPanel">
-        <button id="openButton">Open</button>
-        <div>
-            <select id="fileFormat">
-                <option value="html">HTML</option>
-                <option value="json">JSON</option>
-                <option value="txt">TXT</option>
-                <option value="js">JavaScript</option>
-                <option value="css">CSS</option>
-            </select>
-            <button id="saveButton">Save</button>
-        </div>
+  <textarea id="editor" placeholder="Write your code here..."></textarea>
+  <iframe id="preview" title="Preview"></iframe>
+
+  <div id="controlPanel">
+    <button id="openButton">Open</button>
+<a id="helpLink" href="https://t.me/hobbyandlobby" target="_blank">Help</a>
+
+    <div>
+      <select id="fileFormat">
+        <option value="html">HTML</option>
+        <option value="json">JSON</option>
+        <option value="txt">TXT</option>
+        <option value="js">JavaScript</option>
+        <option value="css">CSS</option>
+      </select>
+      <button id="saveButton">Save</button>
     </div>
+  </div>
 
-    <script>
-        const editor = document.getElementById('editor');
-        const preview = document.getElementById('preview');
-        const saveButton = document.getElementById('saveButton');
-        const openButton = document.getElementById('openButton');
-        const fileFormat = document.getElementById('fileFormat');
+  <!-- Слово "Search" как элемент интерфейса -->
+  <div id="searchText">Search</div>
 
-        const mimeTypes = {
-            html: 'text/html',
-            json: 'application/json',
-            txt: 'text/plain',
-            js: 'application/javascript',
-            css: 'text/css'
-        };
+  <!-- Всплывающее поле поиска -->
+  <div id="searchOverlay">
+    <input type="text" id="searchInput" placeholder="Find..." />
+  </div>
 
-        // Обновление окна просмотра
-        editor.addEventListener('input', () => {
-            preview.srcdoc = editor.value;
-        });
+  <script>
+    const editor = document.getElementById("editor");
+    const preview = document.getElementById("preview");
+    const saveButton = document.getElementById("saveButton");
+    const openButton = document.getElementById("openButton");
+    const fileFormat = document.getElementById("fileFormat");
 
-        // Сохранение содержимого редактора
-        saveButton.addEventListener('click', () => {
-            const format = fileFormat.value;
-            const mimeType = mimeTypes[format] || 'text/plain';
-            const blob = new Blob([editor.value], { type: mimeType });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `code.${format}`;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
+    const mimeTypes = {
+      html: "text/html",
+      json: "application/json",
+      txt: "text/plain",
+      js: "application/javascript",
+      css: "text/css",
+    };
 
-        // Открытие файла и загрузка в редактор
-        openButton.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = Object.values(mimeTypes).join(', ');
-            input.style.display = 'none';
-            document.body.appendChild(input);
+    editor.addEventListener("input", () => {
+      preview.srcdoc = editor.value;
+    });
 
-            input.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        editor.value = e.target.result;
-                        preview.srcdoc = e.target.result; // Обновить preview
-                    };
-                    reader.readAsText(file);
-                }
-                document.body.removeChild(input);
-            });
+    saveButton.addEventListener("click", () => {
+      const format = fileFormat.value;
+      const mimeType = mimeTypes[format] || "text/plain";
+      const blob = new Blob([editor.value], { type: mimeType });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `code.${format}`;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
 
-            input.click();
-        });
+    // Поиск
+    const searchText = document.getElementById("searchText");
+    const searchOverlay = document.getElementById("searchOverlay");
+    const searchInput = document.getElementById("searchInput");
 
-        // Пример содержимого
-        editor.value = 
+    searchText.addEventListener("click", () => {
+      searchOverlay.style.display =
+        searchOverlay.style.display === "none" ? "block" : "none";
+      searchInput.focus();
+    });
 
-
-// Write your code here...
-
-
-;
-        preview.srcdoc = editor.value;
-    </script>
+    searchInput.addEventListener("input", () => {
+      const term = searchInput.value.toLowerCase();
+      const content = editor.value;
+      const index = content.toLowerCase().indexOf(term);
+      if (index !== -1) {
+        editor.focus();
+        editor.setSelectionRange(index, index + term.length);
+      }
+    });
+  </script>
 </body>
 </html>
