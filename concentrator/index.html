@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: manipulation;
+    }
+    .container {
+      position: relative;
+      width: 400px;
+      height: 400px;
+    }
+    .block {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: #38f;
+      border-radius: 8px;
+      transition: all 0.8s ease;
+      opacity: 0.85;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="scene"></div>
+
+  <script>
+    const container = document.getElementById('scene');
+    const size = 60;
+    const blocks = [];
+    const positions = [];
+    let isGathered = false;
+
+    // Создание блоков
+    for (let i = 0; i < 9; i++) {
+      const block = document.createElement('div');
+      block.className = 'block';
+
+      const randX = (Math.random() - 0.5) * 600;
+      const randY = (Math.random() - 0.5) * 600;
+      block.style.transform = `translate(${randX}px, ${randY}px)`;
+
+      const row = Math.floor(i / 3);
+      const col = i % 3;
+      positions.push({ x: col * (size + 10), y: row * (size + 10) });
+
+      container.appendChild(block);
+      blocks.push(block);
+    }
+
+    // Сбор и рассыпание
+    function gather() {
+      blocks.forEach((block, i) => {
+        const pos = positions[i];
+        block.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+      });
+    }
+
+    function scatter() {
+      blocks.forEach((block) => {
+        const randX = (Math.random() - 0.5) * 600;
+        const randY = (Math.random() - 0.5) * 600;
+        block.style.transform = `translate(${randX}px, ${randY}px)`;
+      });
+    }
+
+    // Сенсорный клик (тап)
+    container.addEventListener('click', () => {
+      isGathered ? scatter() : gather();
+      isGathered = !isGathered;
+    });
+
+    container.addEventListener('touchstart', () => {
+      isGathered ? scatter() : gather();
+      isGathered = !isGathered;
+    }, { passive: true });
+
+    // Наклон устройства (gyro)
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', (event) => {
+        const { beta, gamma } = event;
+        const tilt = Math.abs(beta) + Math.abs(gamma);
+
+        if (tilt > 30 && isGathered) {
+          scatter();
+          isGathered = false;
+        }
+      });
+    }
+
+    // Громкий звук (через микрофон)
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      const ctx = new AudioContext();
+      const mic = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      mic.connect(analyser);
+
+      const data = new Uint8Array(analyser.frequencyBinCount);
+
+      function detect() {
+        analyser.getByteFrequencyData(data);
+        const volume = data.reduce((a, b) => a + b) / data.length;
+
+        if (volume > 50 && isGathered) {
+          scatter();
+          isGathered = false;
+        }
+
+        requestAnimationFrame(detect);
+      }
+
+      detect();
+    }).catch(err => {
+      console.warn('Микрофон не разрешён или недоступен:', err);
+    });
+
+    // Свайп вверх/вниз
+    let startY = null;
+
+    container.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    container.addEventListener('touchend', (e) => {
+      if (startY === null) return;
+
+      const endY = e.changedTouches[0].clientY;
+      const delta = endY - startY;
+
+      if (delta < -50 && !isGathered) {
+        gather();
+        isGathered = true;
+      } else if (delta > 50 && isGathered) {
+        scatter();
+        isGathered = false;
+      }
+
+      startY = null;
+    }, { passive: true });
+  </script>
+</body>
+</html>
