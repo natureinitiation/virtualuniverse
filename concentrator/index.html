@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
-
   <style>
     body {
       margin: 0;
@@ -34,7 +32,7 @@
     }
     .help-link {
       position: absolute;
-      bottom: 50px;
+      bottom: 100px;
       color: #FFF;
       font-size: 18px;
       text-decoration: none;
@@ -115,19 +113,7 @@
       });
     }
 
-    <!-- function startBlinking() {
-      blocks.forEach((block) => {
-        const blinkDelay = Math.random() * 3;
-        setTimeout(() => {
-          block.addEventListener('mouseenter', () => {
-            block.style.opacity = 1;
-          });
-          block.addEventListener('mouseleave', () => {
-            block.style.opacity = 0.7;
-          });
-        }, blinkDelay * 1000);
-      });
-    } -->
+
 
     function enableEscapeEffect() {
       blocks.forEach((block) => {
@@ -154,7 +140,7 @@
     createBlocks();
     scatter();
     startPulse();
-    startBlinking();
+
     enableEscapeEffect();
 
     container.addEventListener('pointerdown', () => {
