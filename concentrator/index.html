@@ -26,20 +26,19 @@
       width: 60px;
       height: 60px;
       border-radius: 8px;
-      transition: transform 0.8s ease;
+      transition: all 0.8s ease;
       opacity: 0.85;
       touch-action: none;
     }
     .secret {
       position: absolute;
-      color: #ccc;
-      font-size: 14px;
-      opacity: 0.6;
-      pointer-events: auto;
-      user-select: none;
-      transition: opacity 0.5s;
+      color: #fff;
+      font-size: 18px;
+      font-family: monospace;
       white-space: nowrap;
-      transform: translate(-50%, -50%);
+      pointer-events: auto;
+      opacity: 1;
+      transition: opacity 8s linear;
     }
     .help-link {
       position: absolute;
@@ -52,14 +51,11 @@
     .help-link:hover {
       color: #FFD700;
     }
-
-
-
   </style>
 </head>
 <body>
   <div class="container" id="scene"></div>
-  <a href="https://natureinitiation.github.io/virtualuniverse/selfanalysis/index.html" class="help-link" target="_blank">Help</a>
+  <a href="https://lobbyandhobby.t.me" class="help-link" target="_blank">Help</a>
 
   <script>
     const container = document.getElementById('scene');
@@ -67,16 +63,8 @@
     const blocks = [];
     let isGathered = false;
 
-    const secretMessages = [
-      "тайна", "следуй", "слушай", "поймай", "смелее", "верь", "тихо", "почувствуй", "найди", "secret", "follow", "listen", "catch", "bolder", "believe", "quietly", "feel", "find"
-    ];
     const colors = ['#e3342f', '#f6993f', '#ffed4a', '#38c172', '#4dc0b5', '#3490dc', '#6574cd', '#9561e2', '#f66d9b'];
-
-    function randomWithinScreen(padding = 100) {
-      const x = Math.random() * (window.innerWidth - padding * 2) + padding;
-      const y = Math.random() * (window.innerHeight - padding * 2) + padding;
-      return { x, y };
-    }
+    const secrets = ["тайна", "следуй", "слушай", "поймай", "смелее", "верь", "тихо", "почувствуй", "найди", "secret", "follow", "listen", "catch", "bolder", "believe", "quietly", "feel", "find"];
 
     function createBlocks() {
       for (let i = 0; i < 9; i++) {
@@ -85,109 +73,101 @@
         block.style.backgroundColor = colors[i % colors.length];
         container.appendChild(block);
         blocks.push(block);
-
-block.addEventListener('pointerdown', (e) => {
-  e.stopPropagation();
-  const rect = block.getBoundingClientRect();
-  const currentX = rect.left;
-  const currentY = rect.top;
-
-  const escapeX = currentX + (Math.random() - 0.5) * 300;
-  const escapeY = currentY + (Math.random() - 0.5) * 300;
-
-  block.style.transition = 'transform 0.3s ease';
-  block.style.transform = `translate(${escapeX}px, ${escapeY}px)`;
-
-  createSecret(escapeX, escapeY);
-
-  setTimeout(() => {
-    block.style.transition = 'transform 0.8s ease';
-    const targetX = parseFloat(block.dataset.targetX);
-    const targetY = parseFloat(block.dataset.targetY);
-    block.style.transform = `translate(${targetX}px, ${targetY}px)`;
-  }, 300);
-});
-
       }
-      scatter(); // начальная раскладка
-    }
-
-    function moveAndLeaveSecret(block) {
-      // Сначала небольшое быстрое движение
-      const temp = randomWithinScreen();
-      block.style.transition = 'transform 0.2s ease';
-      block.style.transform = `translate(${temp.x - size/2}px, ${temp.y - size/2}px)`;
-
-      setTimeout(() => {
-        createSecret(temp.x, temp.y);
-
-        // Потом нормальное движение
-        const final = isGathered ? gatherPosition(blocks.indexOf(block)) : randomWithinScreen();
-        block.style.transition = 'transform 0.8s ease';
-        block.style.transform = `translate(${final.x - size/2}px, ${final.y - size/2}px)`;
-      }, 200);
-    }
-
-    function createSecret(x, y) {
-      const secret = document.createElement('div');
-      secret.className = 'secret';
-      secret.innerText = secretMessages[Math.floor(Math.random() * secretMessages.length)];
-      secret.style.left = `${x}px`;
-      secret.style.top = `${y}px`;
-      container.appendChild(secret);
-
-
-      // Старт автоматического исчезновения
-      setTimeout(() => {
-        secret.style.opacity = '0';
-        // Удалить после плавного исчезновения
-        setTimeout(() => {
-          if (secret.parentNode) {
-            secret.remove();
-          }
-        }, 5000); // подождать пока анимация исчезновения завершится
-      }, 3000); // 8 секунд до начала исчезновения
-
-      // Удаление по клику (мгновенно)
-      secret.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-        secret.remove();
-      });
     }
 
     function scatter() {
       blocks.forEach((block) => {
-        const { x, y } = randomWithinScreen();
-        block.style.transition = 'transform 0.8s ease';
-        block.style.transform = `translate(${x - size/2}px, ${y - size/2}px)`;
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const randX = centerX + (Math.random() - 0.5) * window.innerWidth * 0.8;
+        const randY = centerY + (Math.random() - 0.5) * window.innerHeight * 0.8;
+        block.dataset.targetX = randX;
+        block.dataset.targetY = randY;
+        block.style.transform = `translate(${randX}px, ${randY}px)`;
       });
     }
 
-function gather() {
-  const centerX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
-  const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50;
+    function gather() {
+      const centerX = (window.innerWidth - (size * 3 + 20)) / 2;
+      const centerY = (window.innerHeight - (size * 3 + 20)) / 2;
+      blocks.forEach((block, i) => {
+        const xOffset = (i % 3) * (size + 10);
+        const yOffset = Math.floor(i / 3) * (size + 10);
+        const x = centerX + xOffset;
+        const y = centerY + yOffset;
+        block.dataset.targetX = x;
+        block.dataset.targetY = y;
+        block.style.transform = `translate(${x}px, ${y}px)`;
+      });
+    }
 
-  blocks.forEach((block, i) => {
-    const xOffset = (i % 3) * (size + 10);
-    const yOffset = Math.floor(i / 3) * (size + 10);
-    const finalX = centerX + xOffset;
-    const finalY = centerY + yOffset;
+function createSecret(x, y) {
+  const secret = document.createElement('div');
+  secret.className = 'secret';
+  secret.textContent = secrets[Math.floor(Math.random() * secrets.length)];
+  secret.style.left = `${x}px`;
+  secret.style.top = `${y}px`;
+  secret.style.opacity = 0;  // Начальная невидимость
+  container.appendChild(secret);
 
-    block.dataset.targetX = finalX;
-    block.dataset.targetY = finalY;
+  // Плавно увеличиваем видимость
+  setTimeout(() => {
+    secret.style.transition = 'opacity 0.2s ease-in-out'; // Плавное появление
+    secret.style.opacity = 1;
+  }, 10); // Немедленно после появления тайной надписи
 
-    block.style.transform = `translate(${finalX}px, ${finalY}px)`;
+  // Таймер для плавного исчезновения через 8 секунд
+  setTimeout(() => {
+    secret.style.transition = 'opacity 1s ease-out'; // Плавное исчезновение
+    secret.style.opacity = 0;
+  }, 8000);
+
+  // Удаление элемента после исчезновения
+  setTimeout(() => {
+    secret.remove();
+  }, 9000);
+
+  // Удаление при нажатии
+  secret.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    secret.remove();
   });
 }
 
 
 
-    function gatherPosition(i) {
-      const gridX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
-      const gridY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50;
-      const xOffset = (i % 3) * (size + 10);
-      const yOffset = Math.floor(i / 3) * (size + 10);
-      return { x: gridX + xOffset, y: gridY + yOffset };
+    function setupEscape() {
+blocks.forEach((block) => {
+  block.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Текущее целевое положение
+    const originalX = parseFloat(block.dataset.targetX) || 0;
+    const originalY = parseFloat(block.dataset.targetY) || 0;
+
+    // Вычисляем временную случайную позицию
+    const tempX = originalX + (Math.random() - 0.5) * 700;
+    const tempY = originalY + (Math.random() - 0.5) * 700;
+
+    // Убегаем в случайное место
+    block.style.transition = 'transform 0.4s ease';
+    block.style.transform = `translate(${tempX}px, ${tempY}px)`;
+
+    // Через 400 мс (когда "убегание" закончилось)
+    setTimeout(() => {
+      // Создаём надпись в месте убегания
+      createSecret(tempX, tempY);
+
+      // Потом возвращаем блок в нормальное положение
+      block.style.transition = 'transform 0.8s ease';
+      block.style.transform = `translate(${originalX}px, ${originalY}px)`;
+    }, 400);
+  });
+});
+
     }
 
     function toggleGatherScatter() {
@@ -200,9 +180,16 @@ function gather() {
     }
 
     createBlocks();
+    gather();
+    setupEscape();
 
-    container.addEventListener('pointerdown', () => {
-      toggleGatherScatter();
+    window.addEventListener('pointerdown', toggleGatherScatter);
+    window.addEventListener('resize', () => {
+      if (isGathered) {
+        gather();
+      } else {
+        scatter();
+      }
     });
   </script>
 </body>
