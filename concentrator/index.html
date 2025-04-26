@@ -121,7 +121,7 @@ function createSecret(x, y) {
   setTimeout(() => {
     secret.style.transition = 'opacity 1s ease-out'; // Плавное исчезновение
     secret.style.opacity = 0;
-  }, 3000);
+  }, 5000);
 
   // Удаление элемента после исчезновения
   setTimeout(() => {
@@ -149,8 +149,8 @@ blocks.forEach((block) => {
     const originalY = parseFloat(block.dataset.targetY) || 0;
 
     // Вычисляем временную случайную позицию
-    const tempX = originalX + (Math.random() - 0.5) * 700;
-    const tempY = originalY + (Math.random() - 0.5) * 700;
+    const tempX = originalX + (Math.random() - 0.5) * 400;
+    const tempY = originalY + (Math.random() - 0.5) * 400;
 
     // Убегаем в случайное место
     block.style.transition = 'transform 0.4s ease';
