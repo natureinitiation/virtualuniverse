@@ -6,6 +6,7 @@
   <style>
     body {
       margin: 0;
+      font-family: monospace;
       height: 100vh;
       overflow: hidden;
       background: #111;
@@ -31,18 +32,14 @@
     }
     .help-link {
       position: absolute;
-      top: 320px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #fff;
+      bottom: 100px;
+      color: #FFF;
       font-size: 18px;
       text-decoration: none;
-      font-family: Arial, sans-serif;
-      opacity: 0.6;
+      font-family: monospace;
     }
     .help-link:hover {
-      color: #ffd700;
-      opacity: 1;
+      color: #FFD700;
     }
   </style>
 </head>
@@ -63,17 +60,26 @@
         const block = document.createElement('div');
         block.className = 'block';
         block.style.backgroundColor = colors[i % colors.length];
-        const randX = (Math.random() - 0.5) * 600;
-        const randY = (Math.random() - 0.5) * 600;
-        block.style.transform = `translate(${randX}px, ${randY}px)`;
         container.appendChild(block);
         blocks.push(block);
       }
     }
 
+    function scatter() {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      blocks.forEach((block) => {
+        const randX = centerX + (Math.random() - 0.5) * window.innerWidth - size / 2;
+        const randY = centerY + (Math.random() - 0.5) * window.innerHeight - size / 2;
+        block.style.transform = `translate(${randX}px, ${randY}px)`;
+      });
+    }
+
     function gather() {
       const centerX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
       const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50;
+
       blocks.forEach((block, i) => {
         const xOffset = (i % 3) * (size + 10);
         const yOffset = Math.floor(i / 3) * (size + 10);
@@ -81,28 +87,77 @@
       });
     }
 
-    function scatter() {
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
+    function toggleGatherScatter() {
+      if (isGathered) {
+        scatter();
+      } else {
+        gather();
+      }
+      isGathered = !isGathered;
+    }
+
+    function startPulse() {
       blocks.forEach((block) => {
-        const randX = centerX + (Math.random() - 0.5) * window.innerWidth;
-        const randY = centerY + (Math.random() - 0.5) * window.innerHeight;
-        block.style.transform = `translate(${randX}px, ${randY}px)`;
+        const pulse = () => {
+          const scale = 1 + Math.random() * 0.2;
+          const duration = 1000 + Math.random() * 2000;
+          block.style.transition = `transform ${duration}ms ease-in-out`;
+          block.style.transform += ` scale(${scale})`;
+
+          setTimeout(() => {
+            block.style.transform = block.style.transform.replace(/scale\([^\)]+\)/, 'scale(1)');
+            setTimeout(pulse, Math.random() * 3000);
+          }, duration);
+        };
+        setTimeout(pulse, Math.random() * 3000);
       });
     }
 
-    container.addEventListener('click', () => {
-      isGathered ? scatter() : gather();
-      isGathered = !isGathered;
-    });
+    function startBlinking() {
+      blocks.forEach((block) => {
+        const blinkDelay = Math.random() * 3;
+        setTimeout(() => {
+          block.addEventListener('mouseenter', () => {
+            block.style.opacity = 1;
+          });
+          block.addEventListener('mouseleave', () => {
+            block.style.opacity = 0.7;
+          });
+        }, blinkDelay * 1000);
+      });
+    }
 
-    container.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      isGathered ? scatter() : gather();
-      isGathered = !isGathered;
-    }, { passive: false });
+    function enableEscapeEffect() {
+      blocks.forEach((block) => {
+        block.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
 
+          const randAngle = Math.random() * 2 * Math.PI;
+          const randDistance = 80 + Math.random() * 100;
+          const dx = Math.cos(randAngle) * randDistance;
+          const dy = Math.sin(randAngle) * randDistance;
+
+          block.style.transition = 'transform 0.4s ease';
+          block.style.transform += ` translate(${dx}px, ${dy}px)`;
+
+          // Переключаем gather/scatter через 300мс
+          setTimeout(() => {
+            toggleGatherScatter();
+          }, 300);
+        });
+      });
+    }
+
+    // Инициализация
     createBlocks();
+    scatter();
+    startPulse();
+    startBlinking();
+    enableEscapeEffect();
+
+    container.addEventListener('pointerdown', () => {
+      toggleGatherScatter();
+    });
   </script>
 </body>
 </html>
