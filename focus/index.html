@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Focus</title>
+  <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
+  <style>
+    body {
+      margin: 0;
+      font-family: monospace;
+      height: 100vh;
+      overflow: hidden;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    .block {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      transition: all 0.8s ease;
+      opacity: 0.85;
+      touch-action: none;
+    }
+    .secret {
+      position: absolute;
+      color: #fff;
+      font-size: 18px;
+      font-family: monospace;
+      white-space: nowrap;
+      pointer-events: auto;
+      opacity: 1;
+      transition: opacity 8s linear;
+    }
+    .help-link {
+      position: absolute;
+      bottom: 80px;
+      color: #FFF;
+      font-size: 18px;
+      text-decoration: none;
+      font-family: monospace;
+    }
+    .help-link:hover {
+      color: #FFD700;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="scene"></div>
+  <a href="https://lobbyandhobby.t.me" class="help-link" target="_blank">Help</a>
+
+  <script>
+    const container = document.getElementById('scene');
+    const size = 60;
+    const blocks = [];
+    let isGathered = false;
+
+    const colors = ['#e3342f', '#f6993f', '#ffed4a', '#38c172', '#4dc0b5', '#3490dc', '#6574cd', '#9561e2', '#f66d9b'];
+    const secrets = ["тайна", "следуй", "слушай", "поймай", "смелее", "верь", "тихо", "почувствуй", "найди", "secret", "follow", "listen", "catch", "bolder", "believe", "quietly", "feel", "find"];
+
+    function createBlocks() {
+      for (let i = 0; i < 9; i++) {
+        const block = document.createElement('div');
+        block.className = 'block';
+        block.style.backgroundColor = colors[i % colors.length];
+        container.appendChild(block);
+        blocks.push(block);
+      }
+    }
+
+    function scatter() {
+      blocks.forEach((block) => {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const randX = centerX + (Math.random() - 0.5) * window.innerWidth * 0.8;
+        const randY = centerY + (Math.random() - 0.5) * window.innerHeight * 0.8;
+        block.dataset.targetX = randX;
+        block.dataset.targetY = randY;
+        block.style.transform = `translate(${randX}px, ${randY}px)`;
+      });
+    }
+
+    function gather() {
+      const centerX = (window.innerWidth - (size * 3 + 20)) / 2;
+      const centerY = (window.innerHeight - (size * 3 + 20)) / 2;
+      blocks.forEach((block, i) => {
+        const xOffset = (i % 3) * (size + 10);
+        const yOffset = Math.floor(i / 3) * (size + 10);
+        const x = centerX + xOffset;
+        const y = centerY + yOffset;
+        block.dataset.targetX = x;
+        block.dataset.targetY = y;
+        block.style.transform = `translate(${x}px, ${y}px)`;
+      });
+    }
+
+function createSecret(x, y) {
+  const secret = document.createElement('div');
+  secret.className = 'secret';
+  secret.textContent = secrets[Math.floor(Math.random() * secrets.length)];
+  secret.style.left = `${x}px`;
+  secret.style.top = `${y}px`;
+  secret.style.opacity = 0;  // Начальная невидимость
+  container.appendChild(secret);
+
+  // Плавно увеличиваем видимость
+  setTimeout(() => {
+    secret.style.transition = 'opacity 0.2s ease-in-out'; // Плавное появление
+    secret.style.opacity = 1;
+  }, 10); // Немедленно после появления тайной надписи
+
+  // Таймер для плавного исчезновения через 8 секунд
+  setTimeout(() => {
+    secret.style.transition = 'opacity 1s ease-out'; // Плавное исчезновение
+    secret.style.opacity = 0;
+  }, 5000);
+
+  // Удаление элемента после исчезновения
+  setTimeout(() => {
+    secret.remove();
+  }, 9000);
+
+  // Удаление при нажатии
+  secret.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    secret.remove();
+  });
+}
+
+
+
+    function setupEscape() {
+blocks.forEach((block) => {
+  block.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Текущее целевое положение
+    const originalX = parseFloat(block.dataset.targetX) || 0;
+    const originalY = parseFloat(block.dataset.targetY) || 0;
+
+    // Вычисляем временную случайную позицию
+    const tempX = originalX + (Math.random() - 0.5) * 400;
+    const tempY = originalY + (Math.random() - 0.5) * 400;
+
+    // Убегаем в случайное место
+    block.style.transition = 'transform 0.4s ease';
+    block.style.transform = `translate(${tempX}px, ${tempY}px)`;
+
+    // Через 400 мс (когда "убегание" закончилось)
+    setTimeout(() => {
+      // Создаём надпись в месте убегания
+      createSecret(tempX, tempY);
+
+      // Потом возвращаем блок в нормальное положение
+      block.style.transition = 'transform 0.8s ease';
+      block.style.transform = `translate(${originalX}px, ${originalY}px)`;
+    }, 400);
+  });
+});
+
+    }
+
+    function toggleGatherScatter() {
+      if (isGathered) {
+        scatter();
+      } else {
+        gather();
+      }
+      isGathered = !isGathered;
+    }
+
+    createBlocks();
+    gather();
+    setupEscape();
+
+    window.addEventListener('pointerdown', toggleGatherScatter);
+    window.addEventListener('resize', () => {
+      if (isGathered) {
+        gather();
+      } else {
+        scatter();
+      }
+    });
+  </script>
+</body>
+</html>
