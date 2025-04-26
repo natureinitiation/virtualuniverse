@@ -86,10 +86,28 @@
         container.appendChild(block);
         blocks.push(block);
 
-        block.addEventListener('pointerdown', (e) => {
-          e.stopPropagation();
-          moveAndLeaveSecret(block);
-        });
+block.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  const rect = block.getBoundingClientRect();
+  const currentX = rect.left;
+  const currentY = rect.top;
+
+  const escapeX = currentX + (Math.random() - 0.5) * 300;
+  const escapeY = currentY + (Math.random() - 0.5) * 300;
+
+  block.style.transition = 'transform 0.3s ease';
+  block.style.transform = `translate(${escapeX}px, ${escapeY}px)`;
+
+  createSecret(escapeX, escapeY);
+
+  setTimeout(() => {
+    block.style.transition = 'transform 0.8s ease';
+    const targetX = parseFloat(block.dataset.targetX);
+    const targetY = parseFloat(block.dataset.targetY);
+    block.style.transform = `translate(${targetX}px, ${targetY}px)`;
+  }, 300);
+});
+
       }
       scatter(); // начальная раскладка
     }
@@ -145,13 +163,24 @@
       });
     }
 
-    function gather() {
-      blocks.forEach((block, i) => {
-        const { x, y } = gatherPosition(i);
-        block.style.transition = 'transform 0.8s ease';
-        block.style.transform = `translate(${x - size/2}px, ${y - size/2}px)`;
-      });
-    }
+function gather() {
+  const centerX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
+  const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50;
+
+  blocks.forEach((block, i) => {
+    const xOffset = (i % 3) * (size + 10);
+    const yOffset = Math.floor(i / 3) * (size + 10);
+    const finalX = centerX + xOffset;
+    const finalY = centerY + yOffset;
+
+    block.dataset.targetX = finalX;
+    block.dataset.targetY = finalY;
+
+    block.style.transform = `translate(${finalX}px, ${finalY}px)`;
+  });
+}
+
+
 
     function gatherPosition(i) {
       const gridX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
