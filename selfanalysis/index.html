@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">    <meta name="description" content="Анкета-памятка + диагностика темперамента">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">    <meta name="description" content="Lиагностика темперамента">
   <title>Самоанализ</title>
       <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -183,7 +183,16 @@ button {
       touch-action: manipulation; /* Улучшает отзывчивость */
   }
 }
-
+#helpLink {
+  color: gray;
+  text-decoration: none;
+  padding-bottom: 50px;
+  font-weight: normal;
+  font-size: 16px;
+}
+#helpLink:hover {
+  text-decoration: underline;
+}
   </style>
 </head>
 <body>
@@ -191,15 +200,18 @@ button {
 <h1>Самоанализ</h1>
 <p>Диагностика темперамента</p>
 
-<div class="buttons">
-<!--  <button onclick="save()">Сохранить</button>
-  <button onclick="load()">Загрузить</button> -->
+
+<!--  <div class="buttons">
+<button onclick="save()">Сохранить</button>
+  <button onclick="load()">Загрузить</button> 
   <button class="standard-btn" onclick="window.open('https://t.me/hobbyandlobby/222', '_blank')">Помощь</button>
-</div>
+</div> -->
 
 <p>Выбирайте варианты из любого списка произвольно. 
 <br/>Данные сохраняются пока активно окно. 
 <br/>Категории пополняются.</p>
+<a id="helpLink" href="https://natureinitiation.github.io/virtualuniverse/concentrator/" target="_blank">Функциональное программирование</a>
+
 
 <div>
 <div class="select-container">
@@ -485,5 +497,7 @@ parsed.datasets[0].forEach((_, step) => {
   input.click();
 }
 </script>
+        <a id="helpLink" href="https://t.me/eugenebox" target="_blank">Help</a>
+
 </body>
 </html>
