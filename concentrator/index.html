@@ -26,9 +26,20 @@
       width: 60px;
       height: 60px;
       border-radius: 8px;
-      transition: all 0.8s ease;
+      transition: transform 0.8s ease;
       opacity: 0.85;
       touch-action: none;
+    }
+    .secret {
+      position: absolute;
+      color: #ccc;
+      font-size: 14px;
+      opacity: 0.6;
+      pointer-events: auto;
+      user-select: none;
+      transition: opacity 0.5s;
+      white-space: nowrap;
+      transform: translate(-50%, -50%);
     }
     .help-link {
       position: absolute;
@@ -41,11 +52,14 @@
     .help-link:hover {
       color: #FFD700;
     }
+
+
+
   </style>
 </head>
 <body>
   <div class="container" id="scene"></div>
-  <a href="https://lobbyandhobby.t.me" class="help-link" target="_blank">Help</a>
+  <a href="https://natureinitiation.github.io/virtualuniverse/selfanalysis/index.html" class="help-link" target="_blank">Help</a>
 
   <script>
     const container = document.getElementById('scene');
@@ -53,7 +67,16 @@
     const blocks = [];
     let isGathered = false;
 
+    const secretMessages = [
+      "тайна", "следуй", "слушай", "поймай", "смелее", "верь", "тихо", "почувствуй", "найди", "secret", "follow", "listen", "catch", "bolder", "believe", "quietly", "feel", "find"
+    ];
     const colors = ['#e3342f', '#f6993f', '#ffed4a', '#38c172', '#4dc0b5', '#3490dc', '#6574cd', '#9561e2', '#f66d9b'];
+
+    function randomWithinScreen(padding = 100) {
+      const x = Math.random() * (window.innerWidth - padding * 2) + padding;
+      const y = Math.random() * (window.innerHeight - padding * 2) + padding;
+      return { x, y };
+    }
 
     function createBlocks() {
       for (let i = 0; i < 9; i++) {
@@ -62,29 +85,80 @@
         block.style.backgroundColor = colors[i % colors.length];
         container.appendChild(block);
         blocks.push(block);
+
+        block.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          moveAndLeaveSecret(block);
+        });
       }
+      scatter(); // начальная раскладка
+    }
+
+    function moveAndLeaveSecret(block) {
+      // Сначала небольшое быстрое движение
+      const temp = randomWithinScreen();
+      block.style.transition = 'transform 0.2s ease';
+      block.style.transform = `translate(${temp.x - size/2}px, ${temp.y - size/2}px)`;
+
+      setTimeout(() => {
+        createSecret(temp.x, temp.y);
+
+        // Потом нормальное движение
+        const final = isGathered ? gatherPosition(blocks.indexOf(block)) : randomWithinScreen();
+        block.style.transition = 'transform 0.8s ease';
+        block.style.transform = `translate(${final.x - size/2}px, ${final.y - size/2}px)`;
+      }, 200);
+    }
+
+    function createSecret(x, y) {
+      const secret = document.createElement('div');
+      secret.className = 'secret';
+      secret.innerText = secretMessages[Math.floor(Math.random() * secretMessages.length)];
+      secret.style.left = `${x}px`;
+      secret.style.top = `${y}px`;
+      container.appendChild(secret);
+
+
+      // Старт автоматического исчезновения
+      setTimeout(() => {
+        secret.style.opacity = '0';
+        // Удалить после плавного исчезновения
+        setTimeout(() => {
+          if (secret.parentNode) {
+            secret.remove();
+          }
+        }, 5000); // подождать пока анимация исчезновения завершится
+      }, 3000); // 8 секунд до начала исчезновения
+
+      // Удаление по клику (мгновенно)
+      secret.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        secret.remove();
+      });
     }
 
     function scatter() {
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-
       blocks.forEach((block) => {
-        const randX = centerX + (Math.random() - 0.5) * window.innerWidth - size / 2;
-        const randY = centerY + (Math.random() - 0.5) * window.innerHeight - size / 2;
-        block.style.transform = `translate(${randX}px, ${randY}px)`;
+        const { x, y } = randomWithinScreen();
+        block.style.transition = 'transform 0.8s ease';
+        block.style.transform = `translate(${x - size/2}px, ${y - size/2}px)`;
       });
     }
 
     function gather() {
-      const centerX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
-      const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50;
-
       blocks.forEach((block, i) => {
-        const xOffset = (i % 3) * (size + 10);
-        const yOffset = Math.floor(i / 3) * (size + 10);
-        block.style.transform = `translate(${centerX + xOffset}px, ${centerY + yOffset}px)`;
+        const { x, y } = gatherPosition(i);
+        block.style.transition = 'transform 0.8s ease';
+        block.style.transform = `translate(${x - size/2}px, ${y - size/2}px)`;
       });
+    }
+
+    function gatherPosition(i) {
+      const gridX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
+      const gridY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50;
+      const xOffset = (i % 3) * (size + 10);
+      const yOffset = Math.floor(i / 3) * (size + 10);
+      return { x: gridX + xOffset, y: gridY + yOffset };
     }
 
     function toggleGatherScatter() {
@@ -96,52 +170,7 @@
       isGathered = !isGathered;
     }
 
-    function startPulse() {
-      blocks.forEach((block) => {
-        const pulse = () => {
-          const scale = 1 + Math.random() * 0.2;
-          const duration = 1000 + Math.random() * 2000;
-          block.style.transition = `transform ${duration}ms ease-in-out`;
-          block.style.transform += ` scale(${scale})`;
-
-          setTimeout(() => {
-            block.style.transform = block.style.transform.replace(/scale\([^\)]+\)/, 'scale(1)');
-            setTimeout(pulse, Math.random() * 3000);
-          }, duration);
-        };
-        setTimeout(pulse, Math.random() * 3000);
-      });
-    }
-
-
-
-    function enableEscapeEffect() {
-      blocks.forEach((block) => {
-        block.addEventListener('pointerdown', (e) => {
-          e.stopPropagation();
-
-          const randAngle = Math.random() * 2 * Math.PI;
-          const randDistance = 80 + Math.random() * 100;
-          const dx = Math.cos(randAngle) * randDistance;
-          const dy = Math.sin(randAngle) * randDistance;
-
-          block.style.transition = 'transform 0.4s ease';
-          block.style.transform += ` translate(${dx}px, ${dy}px)`;
-
-          // Переключаем gather/scatter через 300мс
-          setTimeout(() => {
-            toggleGatherScatter();
-          }, 300);
-        });
-      });
-    }
-
-    // Инициализация
     createBlocks();
-    scatter();
-    startPulse();
-
-    enableEscapeEffect();
 
     container.addEventListener('pointerdown', () => {
       toggleGatherScatter();
