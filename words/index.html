@@ -58,6 +58,7 @@
 </head>
 <body>
   <div class="container" id="scene"></div>
+  <audio id="background-audio" src="birds.mp3" loop></audio>
   <a href="https://lobbyandhobby.t.me" class="help-link" target="_blank">Help</a>
 
   <script>
@@ -180,6 +181,22 @@
     startPulse();
 
     document.body.addEventListener('pointerdown', toggleGatherScatter);
-  </script>
+const audio = document.getElementById('background-audio');
+
+audio.volume = 0; // начать с нулевой громкости
+audio.play().then(() => {
+  let volume = 0;
+  const fadeIn = setInterval(() => {
+    volume += 0.01;
+    if (volume >= 0.5) { // максимальная громкость 50%
+      volume = 0.5;
+      clearInterval(fadeIn);
+    }
+    audio.volume = volume;
+  }, 100); // каждые 100мс прибавлять громкость
+}).catch((e) => {
+  console.log('Audio play error:', e);
+});
+    </script>
 </body>
 </html>
