@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>Анимация планет с траекториями, легендой, масштабированием и перемещением</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    h1 {
+      margin: 10px 0;
+      font-weight: normal;
+    }
+    #controls {
+      margin: 10px 0;
+      user-select: none;
+    }
+    label {
+      cursor: pointer;
+      margin: 0 10px;
+      font-size: 16px;
+    }
+    #orbitCanvas {
+      display: block;
+      margin: 0 auto;
+      background-color: #000;
+      border: 1px solid #444;
+      max-width: 100vw;
+      height: auto;
+      width: 90vw;
+      aspect-ratio: 1 / 1;
+      touch-action: none;
+    }
+    #info {
+      margin-top: 10px;
+      font-size: 14px;
+      user-select: none;
+    }
+    #legend {
+      max-width: 90vw;
+      margin: 10px auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      font-size: 14px;
+      user-select: none;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .color-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Анимация планет с траекториями и точками</h1>
+
+  <div id="controls">
+    <label><input type="radio" name="frame" value="sun" checked> От Солнца</label>
+    <label><input type="radio" name="frame" value="earth"> От Земли</label>
+  </div>
+
+  <canvas id="orbitCanvas"></canvas>
+
+  <div id="legend"></div>
+
+  <div id="info">Планеты движутся по орбитам. Следы движения отображаются цветом планеты.<br>
+    Используйте колесо мыши или жесты для масштабирования, перетаскивайте для перемещения.
+  </div>
+
+  <script>
+    const canvas = document.getElementById('orbitCanvas');
+    const ctx = canvas.getContext('2d');
+    const legendDiv = document.getElementById('legend');
+
+    function resizeCanvas() {
+      const size = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
+      canvas.width = size;
+      canvas.height = size;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const planets = [
+      {name: 'Меркурий', distance: 0.387, period: 88, color: '#a9a9a9'},
+      {name: 'Венера', distance: 0.723, period: 225, color: '#f5deb3'},
+      {name: 'Земля', distance: 1.000, period: 365, color: '#1e90ff'},
+      {name: 'Марс', distance: 1.524, period: 687, color: '#ff4500'},
+      {name: 'Юпитер', distance: 5.203, period: 4333, color: '#daa520'},
+      {name: 'Сатурн', distance: 9.537, period: 10759, color: '#deb887'},
+      {name: 'Уран', distance: 19.191, period: 30687, color: '#40e0d0'},
+      {name: 'Нептун', distance: 30.068, period: 60190, color: '#4169e1'}
+    ];
+
+    // Создаём легенду
+    function createLegend() {
+      legendDiv.innerHTML = '';
+      planets.forEach(planet => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        const colorBox = document.createElement('div');
+        colorBox.className = 'color-box';
+        colorBox.style.backgroundColor = planet.color;
+        item.appendChild(colorBox);
+        const label = document.createElement('span');
+        label.textContent = planet.name;
+        item.appendChild(label);
+        legendDiv.appendChild(item);
+      });
+    }
+    createLegend();
+
+    const maxDistance = planets[planets.length - 1].distance;
+    const margin = 40;
+    let maxOrbitRadius;
+
+    function orbitRadius(ae) {
+      return (ae / maxDistance) * maxOrbitRadius;
+    }
+
+    function angularVelocity(period) {
+      return 2 * Math.PI / period;
+    }
+
+    let t = 0;
+    const dt = 2;
+
+    let centerX, centerY;
+
+    let frame = 'sun';
+    const earthIndex = planets.findIndex(p => p.name === 'Земля');
+
+    const trajectories = planets.map(() => []);
+
+    // Масштаб и смещение для панорамирования и зума
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    // Сенсорные и мышиные переменные
+    let lastTouchDist = null;
+    let lastTouchCenter = null;
+    let isPanning = false;
+    let lastPanPos = null;
+    let isMouseDown = false;
+    let lastMousePos = null;
+
+    document.getElementById('controls').addEventListener('change', (e) => {
+      if (e.target.name === 'frame') {
+        frame = e.target.value;
+        t = 0;
+        trajectories.forEach(arr => arr.length = 0);
+        offsetX = 0;
+        offsetY = 0;
+        scale = 1;
+      }
+    });
+
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const zoomSpeed = 0.0015;
+      const prevScale = scale;
+      scale += e.deltaY * -zoomSpeed;
+      scale = Math.min(Math.max(0.3, scale), 5);
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      offsetX -= (mouseX - offsetX) * (scale / prevScale - 1);
+      offsetY -= (mouseY - offsetY) * (scale / prevScale - 1);
+
+      trajectories.forEach(arr => arr.length = 0);
+    }, {passive: false});
+
+    canvas.addEventListener('mousedown', e => {
+      isMouseDown = true;
+      lastMousePos = {x: e.clientX, y: e.clientY};
+    });
+
+    window.addEventListener('mouseup', () => {
+      isMouseDown = false;
+      lastMousePos = null;
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!isMouseDown) return;
+      const dx = e.clientX - lastMousePos.x;
+      const dy = e.clientY - lastMousePos.y;
+      offsetX += dx;
+      offsetY += dy;
+      lastMousePos = {x: e.clientX, y: e.clientY};
+      trajectories.forEach(arr => arr.length = 0);
+    });
+
+    canvas.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        lastTouchDist = getTouchDist(e.touches);
+        lastTouchCenter = getTouchCenter(e.touches);
+      } else if (e.touches.length === 1) {
+        isPanning = true;
+        lastPanPos = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+      }
+    });
+
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 2) {
+        const newDist = getTouchDist(e.touches);
+        const newCenter = getTouchCenter(e.touches);
+        if (lastTouchDist && lastTouchCenter) {
+          const zoomFactor = newDist / lastTouchDist;
+          const prevScale = scale;
+          scale *= zoomFactor;
+          scale = Math.min(Math.max(0.3, scale), 5);
+
+          offsetX -= (newCenter.x - offsetX) * (scale / prevScale - 1);
+          offsetY -= (newCenter.y - offsetY) * (scale / prevScale - 1);
+
+          trajectories.forEach(arr => arr.length = 0);
+        }
+        lastTouchDist = newDist;
+        lastTouchCenter = newCenter;
+      } else if (e.touches.length === 1 && isPanning) {
+        const touch = e.touches[0];
+        const dx = touch.clientX - lastPanPos.x;
+        const dy = touch.clientY - lastPanPos.y;
+        offsetX += dx;
+        offsetY += dy;
+        lastPanPos = {x: touch.clientX, y: touch.clientY};
+        trajectories.forEach(arr => arr.length = 0);
+      }
+    }, {passive: false});
+
+    canvas.addEventListener('touchend', e => {
+      if (e.touches.length < 2) {
+        lastTouchDist = null;
+        lastTouchCenter = null;
+      }
+      if (e.touches.length === 0) {
+        isPanning = false;
+        lastPanPos = null;
+      }
+    });
+
+    function getTouchDist(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.hypot(dx, dy);
+    }
+
+    function getTouchCenter(touches) {
+      return {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2
+      };
+    }
+
+    function drawPoint(x, y, color, size=4) {
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      ctx.arc(x, y, size, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    function animate() {
+      maxOrbitRadius = (canvas.width / 2) - margin;
+
+      centerX = canvas.width / 2 + offsetX;
+      centerY = canvas.height / 2 + offsetY;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Позиции планет в системе отсчёта Солнца
+      const positions = planets.map(planet => {
+        const r = orbitRadius(planet.distance);
+        const omega = angularVelocity(planet.period);
+        return {
+          x: centerX + r * Math.cos(omega * t - Math.PI/2) * scale,
+          y: centerY + r * Math.sin(omega * t - Math.PI/2) * scale,
+          color: planet.color,
+          name: planet.name,
+          distance: r * scale
+        };
+      });
+
+      const earthPos = positions[earthIndex];
+
+      // Рисуем орбиты (тонкие линии)
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#444';
+      ctx.setLineDash([4, 6]);
+      planets.forEach(planet => {
+        const r = orbitRadius(planet.distance) * scale;
+        ctx.beginPath();
+        if (frame === 'sun') {
+          ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
+        } else if (frame === 'earth') {
+          ctx.arc(earthPos.x, earthPos.y, r, 0, 2 * Math.PI);
+        }
+        ctx.stroke();
+      });
+      ctx.setLineDash([]);
+
+      // Рисуем Солнце и Землю как точки (ярче)
+      if (frame === 'sun') {
+        drawPoint(centerX, centerY, '#ffff00', 6); // Солнце
+      } else if (frame === 'earth') {
+        drawPoint(centerX, centerY, '#1e90ff', 6); // Земля в центре
+        // Солнце относительно Земли
+        const sunX = centerX - earthPos.x + centerX;
+        const sunY = centerY - earthPos.y + centerY;
+        drawPoint(sunX, sunY, '#ffff00', 6);
+      }
+
+      // Обновляем и рисуем траектории и планеты
+      positions.forEach((pos, i) => {
+        let drawX = pos.x;
+        let drawY = pos.y;
+
+        if (frame === 'earth') {
+          drawX = pos.x - earthPos.x + centerX;
+          drawY = pos.y - earthPos.y + centerY;
+        }
+
+        // Добавляем точку в траекторию
+        trajectories[i].push({x: drawX, y: drawY});
+        if (trajectories[i].length > 500) trajectories[i].shift();
+
+        // Рисуем траекторию
+        ctx.beginPath();
+        ctx.strokeStyle = pos.color;
+        ctx.lineWidth = 1.5;
+        for (let j = 0; j < trajectories[i].length; j++) {
+          const p = trajectories[i][j];
+          if (j === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+
+        // Рисуем планету точкой
+        drawPoint(drawX, drawY, pos.color, 4);
+      });
+
+      // Текущий день и система отсчёта
+      ctx.fillStyle = '#fff';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText(`День: ${t.toFixed(0)}`, 10, canvas.height - 10);
+      ctx.fillText(`Система отсчёта: ${frame === 'sun' ? 'Солнце' : 'Земля'}`, 10, canvas.height - 30);
+
+      t += dt;
+      if (t > 60000) t = 0;
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
