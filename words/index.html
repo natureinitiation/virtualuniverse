@@ -187,7 +187,7 @@ audio.volume = 0; // начать с нулевой громкости
 audio.play().then(() => {
   let volume = 0;
   const fadeIn = setInterval(() => {
-    volume += 0.01;
+    volume += 0.001;
     if (volume >= 0.5) { // максимальная громкость 50%
       volume = 0.5;
       clearInterval(fadeIn);
