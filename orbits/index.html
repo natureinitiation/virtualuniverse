@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
   <title>Анимация планет с траекториями, легендой, масштабированием и перемещением</title>
+      <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
+
   <style>
     body {
       margin: 0;
@@ -99,9 +101,9 @@
     window.addEventListener('resize', resizeCanvas);
 
     const planets = [
-      {name: 'Меркурий', distance: 0.387, period: 88, color: '#a9a9a9'},
-      {name: 'Венера', distance: 0.723, period: 225, color: '#f5deb3'},
-      {name: 'Земля', distance: 1.000, period: 365, color: '#1e90ff'},
+      {name: 'Меркурий', distance: 0.387, period: 88, color: '#1e90ff'},
+      {name: 'Венера', distance: 0.723, period: 225, color: '#8F00FF'},
+      {name: 'Земля', distance: 1.000, period: 365, color: '#008000'},
       {name: 'Марс', distance: 1.524, period: 687, color: '#ff4500'},
       {name: 'Юпитер', distance: 5.203, period: 4333, color: '#daa520'},
       {name: 'Сатурн', distance: 9.537, period: 10759, color: '#deb887'},
@@ -150,7 +152,7 @@
     const trajectories = planets.map(() => []);
 
     // Масштаб и смещение для панорамирования и зума
-    let scale = 1;
+    let scale = 2;
     let offsetX = 0;
     let offsetY = 0;
 
@@ -178,17 +180,19 @@
       const zoomSpeed = 0.0015;
       const prevScale = scale;
       scale += e.deltaY * -zoomSpeed;
-      scale = Math.min(Math.max(0.3, scale), 5);
+      scale = Math.min(Math.max(0.3, scale), 25);
 
       const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
 
       offsetX -= (mouseX - offsetX) * (scale / prevScale - 1);
       offsetY -= (mouseY - offsetY) * (scale / prevScale - 1);
 
       trajectories.forEach(arr => arr.length = 0);
-    }, {passive: false});
+    }, 
+
+{passive: false});
 
     canvas.addEventListener('mousedown', e => {
       isMouseDown = true;
