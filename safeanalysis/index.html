@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">    <meta name="description" content="Lиагностика темперамента">
+  <title>Самоанализ</title>
+      <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      font-size: 18px; 
+      line-height: 1.6; /* для читабельности */
+      font-family: monospace;
+      padding: 0px;
+    }
+    .select-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Равномерные отступы между группами */
+    margin: 10px 0;
+  }
+  
+  .select-group {
+    display: inline-block;
+    min-width: 160px; /* Минимальная ширина для выравнивания */
+  }
+  
+  .select-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+select option {
+  font-size: inherit; /* Наследует от select */
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  font-family: var(--main-font);
+  font-size: calc(16px + 0.5vw);
+  background: #000;
+  color: #fff;
+  border: 1px solid #fff;
+  padding: 10px;
+  margin: 5px 0;
+  font-size: 14px;
+  width: 100%;
+  font-family: monospace; /* Добавлено: явно задаём шрифт */
+}
+
+  
+  select, button {
+    background: #000;
+    color: #fff;
+    border: 1px solid #fff;
+    padding: 10px;
+    margin: 5px 0; /* Единые отступы сверху/снизу */
+    font-size: 14px;
+    width: 100%; /* Растягиваем на всю ширину родителя */
+  }
+  
+  .buttons {
+    margin: 10px 0;
+  }
+button {
+      background: #444; /* Серый фон */
+      color: #fff;
+      border: 0px solid #888; /* Серая рамка */
+      padding: 10px 15px;
+      margin-right: 10px;
+      margin-bottom: 20px;
+      width: auto;
+      min-width: 120px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 0; /* Убираем скругление углов */
+    }
+    button:hover {
+      background: #444; /* Темнее при наведении */
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    td, th {
+      border: 1px solid #888;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    canvas {
+      max-width: 100%;
+      height: 400px;
+      margin-bottom: 40px;
+    }
+    .category-header {
+      font-weight: normal;
+      text-align: left !important;
+    }
+ :root {
+  --main-font: monospace;
+
+      --breath-color: #ffffff; /* Белый цвет для дыхания */
+      --emotion-color: #ff5252;
+      --energy-color: #ff9800;
+      --focus-color: #ffeb3b;
+      --creativity-color: #00ff00;
+      --vision-color: #0000ff;
+      --hearing-color: #9c27b0;
+      --smell-color: #00bcd4;
+    }
+
+    /* Стили для select с цветными рамками */
+    #breath { 
+      border: 1px solid var(--breath-color); /* Рамка для дыхания */
+    } 
+    #emotion {
+      border: 1px solid var(--emotion-color);
+    }
+    #energy {
+      border: 1px solid var(--energy-color);
+    }
+    #focus {
+      border: 1px solid var(--focus-color);
+    }
+    #creativity {
+      border: 1px solid var(--creativity-color);
+    }
+    #vision {
+      border: 1px solid var(--vision-color);
+    }
+    #hearing {
+      border: 1px solid var(--hearing-color);
+    }
+    #smell {
+      border: 1px solid var(--smell-color);
+    }
+
+    /* При наведении делаем рамку ярче */
+    select:hover {
+      filter: brightness(1.2);
+    }
+ /* Добавленные отступы */
+    
+  .select-container {
+    margin-bottom: 50px;
+    gap: 15px;
+  }
+  .select-group {
+    margin-top: 30px;
+
+    gap: 15px;
+  }
+  
+  table {
+    margin: 50px 0;
+  }
+  
+  @media (max-width: 768px) {
+    .select-group {
+      margin-bottom: 10px;
+      width: 100%;
+    }
+  }
+    @supports (-webkit-touch-callout: none) {
+  select, button {
+    min-height: 44px; /* Минимальный размер для iOS */
+  }
+}
+    @media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Улучшенная мобильная таблица */
+  }
+}
+@media (max-width: 768px) {
+  body {
+    font-size: calc(16px + 0.5vw);
+      touch-action: manipulation; /* Улучшает отзывчивость */
+  }
+}
+#helpLink {
+  color: gray;
+  text-decoration: none;
+  padding-bottom: 50px;
+  font-weight: normal;
+  font-size: 16px;
+}
+#helpLink:hover {
+  text-decoration: underline;
+}
+  </style>
+</head>
+<body>
+
+<h1>Самоанализ</h1>
+<p>Диагностика темперамента</p>
+<a id="helpLink" href="https://natureinitiation.github.io/virtualuniverse/words/index.html" target="_blank">Функциональное программирование</a>
+
+<div class="buttons">
+ <button onclick="loadData()">Загрузить предыдущие данные</button> 
+</div> 
+
+<div>
+<div class="select-container">
+  <div class="select-group">
+    <label for="breath" style="color: #ffffff;">Дыхание</label>
+    <select id="breath" onchange="log('breath')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Вдох ртом, выдох носом</option>
+      <option value="2">Вдох и выдох ртом</option>
+      <option value="3">Пытаюсь понять</option>
+      <option value="4">Вдох и выдох носом</option>
+      <option value="5">Вдох носом, выдох ртом</option>
+    </select>
+  </div>
+</div>
+
+  <div class="select-group">
+    <label for="emotion" style="color: #ffffff;">Эмоции</label>
+    <select id="emotion" onchange="log('emotion')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Тревога</option>
+      <option value="2">Гармония</option>
+      <option value="3">Спокойствие</option>
+      <option value="4">Радость</option>
+      <option value="5">Безмятежность</option>
+    </select>
+  </div>
+
+  <div class="select-group">
+    <label for="energy" style="color: #ffffff;">Энергия</label>
+    <select id="energy" onchange="log('energy')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Усталость</option>
+      <option value="2">Низкая</option>
+      <option value="3">Средняя</option>
+      <option value="4">Высокая</option>
+      <option value="5">Пик</option>
+    </select>
+  </div>
+
+  <div class="select-group">
+    <label for="focus" style="color: #ffffff;">Фокус</label>
+    <select id="focus" onchange="log('focus')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Рассеян</option>
+      <option value="2">Периодический</option>
+      <option value="3">Умеренный</option>
+      <option value="4">Сильный</option>
+      <option value="5">Полный</option>
+    </select>
+  </div>
+
+  <div class="select-group">
+    <label for="creativity" style="color: #ffffff;">Творчество</label>
+    <select id="creativity" onchange="log('creativity')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Блок</option>
+      <option value="2">Редко</option>
+      <option value="3">Умеренно</option>
+      <option value="4">Активно</option>
+      <option value="5">Поток</option>
+    </select>
+  </div>
+
+  <div class="select-group">
+    <label for="vision" style="color: #ffffff;">Зрение</label>
+    <select id="vision" onchange="log('vision')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Затуманено</option>
+      <option value="2">Снижение</option>
+      <option value="3">Норма</option>
+      <option value="4">Чётко</option>
+      <option value="5">Очень остро</option>
+    </select>
+  </div>
+
+  <div class="select-group">
+    <label for="hearing" style="color: #ffffff;">Слух</label>
+    <select id="hearing" onchange="log('hearing')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Приглушён</option>
+      <option value="2">Слабый</option>
+      <option value="3">Норма</option>
+      <option value="4">Повышен</option>
+      <option value="5">Очень острый</option>
+    </select>
+  </div>
+
+  <div class="select-group">
+    <label for="smell" style="color: #ffffff;">Обоняние</label>
+    <select id="smell" onchange="log('smell')">
+      <option selected disabled>Выберите значение</option>
+      <option value="1">Отсутствует</option>
+      <option value="2">Слабое</option>
+      <option value="3">Норма</option>
+      <option value="4">Яркое</option>
+      <option value="5">Очень чувствительное</option>
+    </select>
+  </div>
+</div>
+</div>
+
+<table id="table">
+  
+</table>
+
+<div class="chart-container">
+  <canvas id="chart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+
+
+<script>
+// Категории и их настройки
+  const rows = ['breath', 'emotion', 'energy', 'focus', 'creativity', 'vision', 'hearing', 'smell'];
+  const colors = {
+    breath: '#ffffff',
+    emotion: '#ff5252',
+    energy: '#ff9800',
+    focus: '#ffeb3b',
+    creativity: '#00ff00',
+    vision: '#0000ff',
+    hearing: '#9c27b0',
+    smell: '#00bcd4'
+  };
+
+  const categoryNames = {
+    breath: 'Дыхание',
+    emotion: 'Эмоции',
+    energy: 'Энергия',
+    focus: 'Фокус',
+    creativity: 'Творчество',
+    vision: 'Зрение',
+    hearing: 'Слух',
+    smell: 'Обоняние'
+  };
+
+  const valueColors = {
+    1: '#ff0000', // красный
+    2: '#ff9800', // оранжевый
+    3: '#ffeb3b', // жёлтый
+    4: '#00ff00', // зелёный
+    5: '#0000ff'  // синий
+  };
+
+  const table = document.getElementById('table');
+  if (!table) console.error("Таблица не найдена!");
+
+  // Инициализация таблицы
+  table.innerHTML = '';
+  rows.forEach(key => {
+    const row = table.insertRow(-1);
+    const cell = row.insertCell(0);
+    cell.textContent = categoryNames[key];
+    cell.className = 'category-header';
+    cell.style.color = colors[key];
+    cell.dataset.fixed = 'true';
+  });
+
+  // Инициализация графика
+  const chart = new Chart(document.getElementById('chart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: rows.map(key => ({
+        label: categoryNames[key],
+        data: [],
+        borderColor: colors[key],
+        borderWidth: 1,
+        fill: false,
+        tension: 0.1
+      }))
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          min: 0.5,
+          max: 5.5,
+          grace: '10%',
+          ticks: {
+            stepSize: 1,
+            callback: v => Number.isInteger(v) ? v : ''
+          }
+        }
+      }
+    }
+  });
+
+  // Добавление данных
+  function log(key) {
+    const val = +document.getElementById(key).value;
+    if (isNaN(val)) return console.warn(`Невалидное значение для ${key}: ${val}`);
+
+    let col = chart.data.labels.length;
+    // Проверяем, заполнен ли текущий столбец
+    const nonNullValues = col > 0 ? chart.data.datasets.reduce((count, dataset) => {
+      const value = dataset.data[col - 1];
+      return count + (value !== null && value !== undefined ? 1 : 0);
+    }, 0) : 0;
+
+    if (nonNullValues >= rows.length || col === 0) {
+      chart.data.labels.push(col + 1);
+      col = chart.data.labels.length;
+      // Инициализируем новый столбец
+      rows.forEach(r => {
+        const row = table.rows[rows.indexOf(r)];
+        if (row.cells.length < col + 1) {
+          row.insertCell(-1).textContent = '';
+        }
+      });
+    }
+
+    const dataset = chart.data.datasets[rows.indexOf(key)];
+    const row = table.rows[rows.indexOf(key)];
+    const cell = row.cells[col];
+    
+    dataset.data[col - 1] = val;
+    cell.textContent = val;
+    cell.style.color = valueColors[val] || '#000000';
+
+    chart.update();
+  }
+
+  const STORAGE_KEY = "self_analysis_data";
+  const fieldIDs = ["breath", "emotion", "energy", "focus", "creativity", "vision", "hearing", "smell"];
+
+  // Сохранение данных
+  function saveData() {
+    const data = {};
+    fieldIDs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) data[id] = el.value;
+    });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error("❌ Ошибка сохранения:", e);
+    }
+  }
+
+  // Загрузка данных
+  function loadData() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!data) return;
+
+      // Очищаем
+      chart.data.labels = [];
+      chart.data.datasets.forEach(dataset => dataset.data = []);
+      rows.forEach((_, i) => {
+        const row = table.rows[i];
+        while (row.cells.length > 1) {
+          row.deleteCell(-1);
+        }
+      });
+
+      // Загружаем данные
+      let hasData = false;
+      fieldIDs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && data[id] && data[id] !== "" && !isNaN(+data[id])) {
+          el.value = data[id];
+          hasData = true;
+        }
+      });
+
+      if (hasData) {
+        chart.data.labels.push(1);
+        rows.forEach(r => {
+          const dataset = chart.data.datasets[rows.indexOf(r)];
+          const row = table.rows[rows.indexOf(r)];
+          const cell = row.insertCell(-1);
+          const val = data[r] && !isNaN(+data[r]) ? +data[r] : null;
+
+          if (val) {
+            dataset.data.push(val);
+            cell.textContent = val;
+            cell.style.color = valueColors[val] || '#000000';
+          } else {
+            cell.textContent = '';
+          }
+        });
+      }
+
+      chart.update();
+    } catch (e) {
+      console.error("❌ Ошибка загрузки:", e);
+    }
+  }
+
+  // Инициализация автосохранения
+  function initAutoSave() {
+    fieldIDs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.removeEventListener('change', handleChange);
+        el.addEventListener('change', handleChange);
+      }
+    });
+  }
+
+  function handleChange(event) {
+    const id = event.target.id;
+    log(id);
+    saveData();
+  }
+
+  // Показ сохранённых данных
+  function showSavedData() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    const pre = document.getElementById("savedDataView");
+    pre.textContent = data ? JSON.stringify(JSON.parse(data), null, 2) : "Нет данных.";
+  }
+
+  // Инициализация
+  window.addEventListener("DOMContentLoaded", () => {
+    loadData();
+    initAutoSave();
+  });
+</script>
+<div class="buttons">
+<button onclick="saveData()">Сохранить текущие данные</button>
+  <button onclick="showSavedData()">Показать сохранённые данные</button>
+
+</div> 
+
+<pre id="savedDataView" style="background:#111; color:#0f0; padding:10px; white-space:pre-wrap;"></pre>
+
+<a id="helpLink" href="https://t.me/eugenebox" target="_blank">Help</a>
+</body>
+</html>
