@@ -373,7 +373,7 @@ canvas.addEventListener('touchend', () => {
       ctx.font = '14px Arial';
       ctx.textAlign = 'center'; // Выравнивание по центру
       const infoText = `День: ${Math.floor(t)} | Масштаб: ${scale.toFixed(2)}x`;
-      ctx.fillText(infoText, canvas.width / 2, 20);
+      ctx.fillText(infoText, canvas.width / 2, 12);
       
       t += dt;
       if (t > 100000) t = 0;
