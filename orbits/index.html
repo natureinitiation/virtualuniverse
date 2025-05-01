@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Анимация планет</title>
+  <title>Анимация траекторий орбит в Солнечной системе</title>
+  <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
+
   <style>
     * {
       box-sizing: border-box;
@@ -78,7 +80,7 @@
   </style>
 </head>
 <body>
-  <h1>Анимация планет с траекториями</h1>
+  <h1>Анимация траекторий орбит в Солнечной системе</h1>
   
   <div id="controls">
     <label><input type="radio" name="frame" value="sun" checked> От Солнца</label>
@@ -91,10 +93,7 @@
   
   <div id="legend"></div>
   
-  <div id="info">
-    Планеты движутся по орбитам. Следы движения отображаются цветом планеты.<br>
-    Используйте колесо мыши или жесты для масштабирования, перетаскивайте для перемещения.
-  </div>
+  <div id="info"></div>
 
   <script>
     const canvas = document.getElementById('orbitCanvas');
