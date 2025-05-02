@@ -99,6 +99,9 @@
       text-decoration: none;
       font-family: monospace;
     }
+    .hidden-planet {
+      opacity: 0.3;
+    }
   </style>
 </head>
 <body>
@@ -108,7 +111,7 @@
     <label><input type="radio" name="frame" value="sun" checked> Sun</label>
     <label><input type="radio" name="frame" value="earth"> Earth</label>
   </div>
-   <a href="https://t.me/hobbyandlobby/244" class="help-link" target="_blank">Donate</a>
+   <a href="https://t.me/hobbyandlobby/246" class="help-link" target="_blank">Donate</a>
   <div id="canvas-wrapper">
     <canvas id="orbitCanvas"></canvas>
   </div>
@@ -116,7 +119,6 @@
   <div id="legend"></div>
   
   <div id="info"></div>
-
 
   <script>
     const canvas = document.getElementById('orbitCanvas');
@@ -144,32 +146,65 @@
     
     // Данные планет
     const planets = [
-      {name: 'Mercury', distance: 0.387, period: 88, color: '#1e90ff', visible: true},
-      {name: 'Venus', distance: 0.723, period: 225, color: '#8F00FF', visible: true},
-      {name: 'Earth', distance: 1.000, period: 365, color: '#008000', visible: true},
-      {name: 'Mars', distance: 1.524, period: 687, color: '#ff4500', visible: true},
-      {name: 'Jupiter', distance: 5.203, period: 4333, color: '#daa520', visible: true},
-      {name: 'Saturn', distance: 9.537, period: 10759, color: '#deb887', visible: true},
-      {name: 'Uranus', distance: 19.191, period: 30687, color: '#40e0d0', visible: true},
-      {name: 'Neptune', distance: 30.068, period: 60190, color: '#4169e1', visible: true}
+      {name: 'Mercury', distance: 0.387, period: 88, color: '#1e90ff'},
+      {name: 'Venus', distance: 0.723, period: 225, color: '#8F00FF'},
+      {name: 'Earth', distance: 1.000, period: 365, color: '#008000'},
+      {name: 'Mars', distance: 1.524, period: 687, color: '#ff4500'},
+      {name: 'Jupiter', distance: 5.203, period: 4333, color: '#daa520'},
+      {name: 'Saturn', distance: 9.537, period: 10759, color: '#deb887'},
+      {name: 'Uranus', distance: 19.191, period: 30687, color: '#40e0d0'},
+      {name: 'Neptune', distance: 30.068, period: 60190, color: '#4169e1'}
     ];
+    
+    // Массив для хранения видимости планет (по умолчанию все видимы)
+    let planetVisibility = planets.map(() => true);
     
     // Создание легенды
     function createLegend() {
       legendDiv.innerHTML = '';
-      planets.forEach(planet => {
+      planets.forEach((planet, index) => {
         const item = document.createElement('div');
         item.className = 'legend-item';
         
         const colorBox = document.createElement('div');
         colorBox.className = 'color-box';
         colorBox.style.backgroundColor = planet.color;
+        if (!planetVisibility[index]) {
+          colorBox.classList.add('hidden-planet');
+        }
         
         const label = document.createElement('span');
         label.textContent = planet.name;
+        if (!planetVisibility[index]) {
+          label.classList.add('hidden-planet');
+        }
         
         item.append(colorBox, label);
         legendDiv.appendChild(item);
+        
+        // Обработчик клика по элементу легенды
+        item.addEventListener('click', () => {
+          // Переключаем видимость планеты
+          planetVisibility[index] = !planetVisibility[index];
+          
+          // Обновляем стили элемента легенды
+          if (planetVisibility[index]) {
+            colorBox.classList.remove('hidden-planet');
+            label.classList.remove('hidden-planet');
+          } else {
+            colorBox.classList.add('hidden-planet');
+            label.classList.add('hidden-planet');
+          }
+          
+          // Если скрыли Землю и текущий фрейм - Earth, переключаем на Sun
+          if (planet.name === 'Earth' && !planetVisibility[index] && frame === 'earth') {
+            document.querySelector('input[name="frame"][value="sun"]').checked = true;
+            frame = 'sun';
+          }
+          
+          // Очищаем траектории
+          trajectories.forEach(arr => arr.length = 0);
+        });
       });
     }
     
@@ -193,7 +228,7 @@
     const dt = 2;
     
     let frame = 'sun';
-    const earthIndex = planets.findIndex(p => p.name === 'Земля');
+    const earthIndex = planets.findIndex(p => p.name === 'Earth');
     const trajectories = planets.map(() => []);
     
     // Масштаб и смещение (по умолчанию масштаб 10x)
@@ -325,12 +360,14 @@ canvas.addEventListener('touchend', () => {
       
       const earthPos = positions[earthIndex];
       
-      // Рисование орбит
+      // Рисование орбит (только для видимых планет)
       ctx.strokeStyle = '#333';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       
-      planets.forEach(planet => {
+      planets.forEach((planet, i) => {
+        if (!planetVisibility[i]) return;
+        
         const r = orbitRadius(planet.distance) * scale;
         ctx.beginPath();
         
@@ -356,8 +393,10 @@ canvas.addEventListener('touchend', () => {
         drawPoint(sunX, sunY, '#ffff00', 6);
       }
       
-      // Рисование траекторий и планет
+      // Рисование траекторий и планет (только для видимых планет)
       positions.forEach((pos, i) => {
+        if (!planetVisibility[i]) return;
+        
         let drawX = pos.x;
         let drawY = pos.y;
         
@@ -396,7 +435,8 @@ canvas.addEventListener('touchend', () => {
       ctx.font = '14px Arial';
       ctx.textAlign = 'center'; // Выравнивание по центру
       const infoText = `Days: ${Math.floor(t)} | Scale: ${scale.toFixed(2)}x`;
-      ctx.fillText(infoText, canvas.width / 2, 10);
+
+      ctx.fillText(infoText, canvas.width / 2, 12);
       
       t += dt;
       if (t > 100000) t = 0;
