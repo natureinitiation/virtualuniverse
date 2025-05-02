@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Анимация траекторий орбит в Солнечной системе</title>
+  <title>Solar System Orbital Trajectories Animation</title>
       <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
 
   <style>
@@ -117,6 +117,7 @@
   
   <div id="info"></div>
 
+
   <script>
     const canvas = document.getElementById('orbitCanvas');
     const ctx = canvas.getContext('2d');
@@ -156,7 +157,7 @@
     // Создание легенды
     function createLegend() {
       legendDiv.innerHTML = '';
-      planets.forEach((planet, index) => {
+      planets.forEach(planet => {
         const item = document.createElement('div');
         item.className = 'legend-item';
         
@@ -164,29 +165,10 @@
         colorBox.className = 'color-box';
         colorBox.style.backgroundColor = planet.color;
         
-        // Добавляем radio input внутрь color-box
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'planet-filter';
-        radio.value = index;
-        radio.checked = planet.visible;
-        radio.addEventListener('change', () => {
-          planets[index].visible = radio.checked;
-          trajectories.forEach(arr => arr.length = 0);
-        });
-        
-        colorBox.appendChild(radio);
-        
         const label = document.createElement('span');
         label.textContent = planet.name;
         
         item.append(colorBox, label);
-        item.addEventListener('click', () => {
-          radio.checked = !radio.checked;
-          planets[index].visible = radio.checked;
-          trajectories.forEach(arr => arr.length = 0);
-        });
-        
         legendDiv.appendChild(item);
       });
     }
@@ -211,7 +193,7 @@
     const dt = 2;
     
     let frame = 'sun';
-    const earthIndex = planets.findIndex(p => p.name === 'Earth');
+    const earthIndex = planets.findIndex(p => p.name === 'Земля');
     const trajectories = planets.map(() => []);
     
     // Масштаб и смещение (по умолчанию масштаб 10x)
@@ -280,41 +262,34 @@
       isDragging = false;
     });
     
-    // Обработка касаний для мобильных устройств (только масштабирование одним пальцем по вертикали)
-    let touchStartY = null;
-    let touchStartScale = 1;
-    let lastTouchY = 0;
-    
-    canvas.addEventListener('touchstart', e => {
-      if (e.touches.length === 1) {
-        touchStartY = e.touches[0].clientY;
-        touchStartScale = scale;
-        lastTouchY = touchStartY;
-      }
-      e.preventDefault();
-    }, {passive: false});
-    
-    canvas.addEventListener('touchmove', e => {
-      if (e.touches.length === 1 && touchStartY !== null) {
-        const touchY = e.touches[0].clientY;
-        const deltaY = touchY - lastTouchY;
-        lastTouchY = touchY;
-        
-        // Изменяем масштаб только при значительном вертикальном движении
-        if (Math.abs(deltaY) > 2) {
-          const zoomSpeed = 0.01;
-          const newScale = touchStartScale * (1 - deltaY * zoomSpeed);
-          scale = Math.max(0.1, Math.min(newScale, 50));
-          
-          trajectories.forEach(arr => arr.length = 0);
-        }
-      }
-      e.preventDefault();
-    }, {passive: false});
-    
-    canvas.addEventListener('touchend', () => {
-      touchStartY = null;
-    });
+  let lastTouchDistance = null;
+
+canvas.addEventListener('touchmove', function (e) {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+
+    // Вычисление расстояния между пальцами
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (lastTouchDistance !== null) {
+      const zoomIntensity = 0.005;
+      const delta = distance - lastTouchDistance;
+      scale *= (1 + zoomIntensity * delta);  // Масштабируем
+
+      resetTransform();  // Центрируем и применяем масштаб
+      draw();  // Перерисовываем канвас
+    }
+
+    lastTouchDistance = distance;  // Обновляем расстояние для следующего шага
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+  lastTouchDistance = null;
+});
+
     
     function drawPoint(x, y, color, size = 4) {
       ctx.beginPath();
@@ -344,8 +319,7 @@
           x: centerX + r * Math.cos(omega * t - Math.PI/2) * scale,
           y: centerY + r * Math.sin(omega * t - Math.PI/2) * scale,
           color: planet.color,
-          name: planet.name,
-          visible: planet.visible
+          name: planet.name
         };
       });
       
@@ -356,9 +330,7 @@
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       
-      planets.forEach((planet, i) => {
-        if (!planet.visible) return;
-        
+      planets.forEach(planet => {
         const r = orbitRadius(planet.distance) * scale;
         ctx.beginPath();
         
@@ -386,8 +358,6 @@
       
       // Рисование траекторий и планет
       positions.forEach((pos, i) => {
-        if (!pos.visible) return;
-        
         let drawX = pos.x;
         let drawY = pos.y;
         
