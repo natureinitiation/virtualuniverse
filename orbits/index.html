@@ -108,7 +108,7 @@
     <label><input type="radio" name="frame" value="sun" checked> Sun</label>
     <label><input type="radio" name="frame" value="earth"> Earth</label>
   </div>
-   <a href="https://t.me/hobbyandlobby/246" class="help-link" target="_blank">Donate</a>
+   <a href="https://t.me/hobbyandlobby/244" class="help-link" target="_blank">Donate</a>
   <div id="canvas-wrapper">
     <canvas id="orbitCanvas"></canvas>
   </div>
@@ -280,72 +280,41 @@
       isDragging = false;
     });
     
-    // Обработка касаний для мобильных устройств
-    let touchStartDistance = null;
+    // Обработка касаний для мобильных устройств (только масштабирование одним пальцем по вертикали)
+    let touchStartY = null;
     let touchStartScale = 1;
-    let isTouchDragging = false;
-    let lastTouchX, lastTouchY;
+    let lastTouchY = 0;
     
     canvas.addEventListener('touchstart', e => {
-      if (e.touches.length === 2) {
-        // Масштабирование двумя пальцами
-        touchStartDistance = getDistance(e.touches[0], e.touches[1]);
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
         touchStartScale = scale;
-      } else if (e.touches.length === 1) {
-        // Перемещение одним пальцем
-        isTouchDragging = true;
-        lastTouchX = e.touches[0].clientX;
-        lastTouchY = e.touches[0].clientY;
+        lastTouchY = touchStartY;
       }
+      e.preventDefault();
     }, {passive: false});
     
     canvas.addEventListener('touchmove', e => {
-      e.preventDefault();
-      
-      if (e.touches.length === 2) {
-        // Масштабирование по центру между двумя пальцами
-        const currentDistance = getDistance(e.touches[0], e.touches[1]);
-        if (touchStartDistance) {
-          const newScale = touchStartScale * (currentDistance / touchStartDistance);
+      if (e.touches.length === 1 && touchStartY !== null) {
+        const touchY = e.touches[0].clientY;
+        const deltaY = touchY - lastTouchY;
+        lastTouchY = touchY;
+        
+        // Изменяем масштаб только при значительном вертикальном движении
+        if (Math.abs(deltaY) > 2) {
+          const zoomSpeed = 0.01;
+          const newScale = touchStartScale * (1 - deltaY * zoomSpeed);
           scale = Math.max(0.1, Math.min(newScale, 50));
-          
-          // Корректировка смещения для масштабирования по центру
-          const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-          const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-          const rect = canvas.getBoundingClientRect();
-          const canvasCenterX = rect.left + canvas.width / 2;
-          const canvasCenterY = rect.top + canvas.height / 2;
-          
-          offsetX += (canvasCenterX - centerX) * (scale / touchStartScale - 1);
-          offsetY += (canvasCenterY - centerY) * (scale / touchStartScale - 1);
           
           trajectories.forEach(arr => arr.length = 0);
         }
-      } else if (e.touches.length === 1 && isTouchDragging) {
-        // Перемещение одним пальцем
-        const dx = e.touches[0].clientX - lastTouchX;
-        const dy = e.touches[0].clientY - lastTouchY;
-        
-        offsetX += dx;
-        offsetY += dy;
-        
-        lastTouchX = e.touches[0].clientX;
-        lastTouchY = e.touches[0].clientY;
-        
-        trajectories.forEach(arr => arr.length = 0);
       }
+      e.preventDefault();
     }, {passive: false});
     
     canvas.addEventListener('touchend', () => {
-      touchStartDistance = null;
-      isTouchDragging = false;
+      touchStartY = null;
     });
-    
-    function getDistance(touch1, touch2) {
-      const dx = touch1.clientX - touch2.clientX;
-      const dy = touch1.clientY - touch2.clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    }
     
     function drawPoint(x, y, color, size = 4) {
       ctx.beginPath();
