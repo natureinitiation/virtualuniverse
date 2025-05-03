@@ -110,11 +110,14 @@
       });
     }
 
+    let time = 0; // глобальная переменная для отслеживания времени
+
     function drawOrbits() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const sunX = canvas.width / 2;
       const sunY = canvas.height / 2;
-      const time = Date.now() * 0.0001;
+
+      time += 0.01; // обновляем время для анимации
 
       planets.forEach((planet, i) => {
         const orbitRadius = planet.distance * 150;
@@ -130,20 +133,18 @@
 
         // Рисуем планету
         ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
         ctx.fillStyle = planet.color;
         ctx.fill();
       });
+
+      requestAnimationFrame(drawOrbits); // повторяем анимацию
     }
 
-    function animate() {
-      drawOrbits();
-      requestAnimationFrame(animate);
-    }
-
-    createLegend();
+    // Начальная инициализация
     initCanvas();
-    animate();
+    createLegend();
+    drawOrbits();
   </script>
 </body>
 </html>
