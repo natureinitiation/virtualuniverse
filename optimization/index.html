@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Solar System Orbital Trajectories Animation</title>
-  <link rel="manifest" href="manifest.json">
-
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
     body {
       margin: 0;
       padding: 0;
@@ -19,9 +19,24 @@
       display: flex;
       flex-direction: column;
     }
-    h1 { margin: 15px; font-size: 1.2rem; text-align: center; }
-    #controls { display: flex; justify-content: center; gap: 15px; padding-bottom: 5px; }
-    #controls label { font-size: 0.9rem; }
+    h1 {
+      margin: 15px;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+    #controls {
+      display: flex;
+      font-family: monospace;
+      justify-content: center;
+      gap: 15px;
+      padding-bottom: 5px;
+    }
+    #controls label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.9rem;
+    }
     #canvas-wrapper {
       flex: 1;
       display: flex;
@@ -38,16 +53,52 @@
       max-height: 100%;
       touch-action: none;
     }
-    #legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 0.8rem; }
-    .legend-item { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+    #legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 10px;
+      font-size: 0.8rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
     .color-box {
       width: 12px;
       height: 12px;
       border-radius: 50%;
+      position: relative;
     }
-    #info { text-align: center; font-size: 0.8rem; margin: 10px; padding: 0 10px; }
-    .help-link { text-align: center; margin-top: 10px; color: #777; font-size: 18px; text-decoration: none; font-family: monospace; }
-    .hidden-planet { opacity: 0.3; }
+    .color-box input {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    #info {
+      text-align: center;
+      font-size: 0.8rem;
+      margin: 10px;
+      padding: 0 10px;
+    }
+    .help-link {
+      position: center;
+      text-align: center;
+      margin-top: 10px;
+      top: 70px;
+      color: #777;
+      font-size: 18px;
+      text-decoration: none;
+      font-family: monospace;
+    }
+    .hidden-planet {
+      opacity: 0.3;
+    }
   </style>
 </head>
 <body>
@@ -63,6 +114,7 @@
   </div>
   
   <div id="legend"></div>
+  
   <div id="info"></div>
 
   <script>
@@ -70,110 +122,289 @@
     const ctx = canvas.getContext('2d');
     const legendDiv = document.getElementById('legend');
     
-    const planets = [
-      { name: 'Mercury', distance: 0.387, period: 88, color: '#1e90ff' },
-      { name: 'Venus', distance: 0.723, period: 225, color: '#8F00FF' },
-      { name: 'Earth', distance: 1.000, period: 365, color: '#008000' },
-      { name: 'Mars', distance: 1.524, period: 687, color: '#ff4500' },
-      { name: 'Jupiter', distance: 5.203, period: 4333, color: '#daa520' },
-      { name: 'Saturn', distance: 9.537, period: 10759, color: '#deb887' },
-      { name: 'Uranus', distance: 19.191, period: 30687, color: '#40e0d0' },
-      { name: 'Neptune', distance: 30.068, period: 60190, color: '#4169e1' }
-    ];
-
-    let planetVisibility = new Array(planets.length).fill(true);
-
-    // Масштабирование для сенсорного экрана
-    let scale = 1;
-    canvas.addEventListener('wheel', (e) => {
-      if (e.deltaY > 0) {
-        scale *= 0.9; // уменьшение
-      } else {
-        scale *= 1.1; // увеличение
-      }
-    });
-
     function initCanvas() {
-      const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+      const wrapper = document.getElementById('canvas-wrapper');
+      const size = Math.min(wrapper.clientWidth, wrapper.clientHeight) * 0.9;
       canvas.width = size;
       canvas.height = size;
       canvas.style.width = `${size}px`;
       canvas.style.height = `${size}px`;
     }
-
-    window.addEventListener('resize', initCanvas);
-
+    
+    window.addEventListener('resize', () => {
+      initCanvas();
+      trajectories.forEach(arr => arr.length = 0);
+    });
+    
+    const planets = [
+      {name: 'Mercury', distance: 0.387, period: 88, color: '#1e90ff'},
+      {name: 'Venus', distance: 0.723, period: 225, color: '#8F00FF'},
+      {name: 'Earth', distance: 1.000, period: 365, color: '#008000'},
+      {name: 'Mars', distance: 1.524, period: 687, color: '#ff4500'},
+      {name: 'Jupiter', distance: 5.203, period: 4333, color: '#daa520'},
+      {name: 'Saturn', distance: 9.537, period: 10759, color: '#deb887'},
+      {name: 'Uranus', distance: 19.191, period: 30687, color: '#40e0d0'},
+      {name: 'Neptune', distance: 30.068, period: 60190, color: '#4169e1'}
+    ];
+    
+    let planetVisibility = planets.map(() => true);
+    
     function createLegend() {
       legendDiv.innerHTML = '';
       planets.forEach((planet, index) => {
         const item = document.createElement('div');
         item.className = 'legend-item';
-
+        
         const colorBox = document.createElement('div');
         colorBox.className = 'color-box';
         colorBox.style.backgroundColor = planet.color;
-        if (!planetVisibility[index]) colorBox.classList.add('hidden-planet');
-
-        item.appendChild(colorBox);
-        item.appendChild(document.createTextNode(planet.name));
+        if (!planetVisibility[index]) {
+          colorBox.classList.add('hidden-planet');
+        }
+        
+        const label = document.createElement('span');
+        label.textContent = planet.name;
+        if (!planetVisibility[index]) {
+          label.classList.add('hidden-planet');
+        }
+        
+        item.append(colorBox, label);
         legendDiv.appendChild(item);
+        
+        item.addEventListener('click', () => {
+          planetVisibility[index] = !planetVisibility[index];
+          if (planetVisibility[index]) {
+            colorBox.classList.remove('hidden-planet');
+            label.classList.remove('hidden-planet');
+          } else {
+            colorBox.classList.add('hidden-planet');
+            label.classList.add('hidden-planet');
+          }
+          if (planet.name === 'Earth' && !planetVisibility[index] && frame === 'earth') {
+            document.querySelector('input[name="frame"][value="sun"]').checked = true;
+            frame = 'sun';
+          }
+          trajectories.forEach(arr => arr.length = 0);
+        });
       });
     }
-
-    let time = 0; // глобальная переменная для отслеживания времени
-
-    // Переключение между режимами Earth и Sun
-    let currentFrame = 'sun';
-    document.querySelectorAll('input[name="frame"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        currentFrame = e.target.value;
-      });
-    });
-
-    function drawOrbits() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const sunX = canvas.width / 2;
-      const sunY = canvas.height / 2;
-
-      time += 0.01;
-
-      if (currentFrame === 'sun') {
-        ctx.beginPath();
-        ctx.arc(sunX, sunY, 10 * scale, 0, 2 * Math.PI);
-        ctx.fillStyle = '#FFFF00';
-        ctx.fill();
+    
+    initCanvas();
+    createLegend();
+    
+    const maxDistance = planets[planets.length - 1].distance;
+    const margin = 40;
+    let maxOrbitRadius;
+    
+    function orbitRadius(ae) {
+      return (ae / maxDistance) * maxOrbitRadius;
+    }
+    
+    function angularVelocity(period) {
+      return 2 * Math.PI / period;
+    }
+    
+    let t = 0;
+    const dt = 2;
+    
+    let frame = 'sun';
+    const earthIndex = 2;
+    const trajectories = planets.map(() => []);
+    
+    let scale = 10;
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    document.getElementById('controls').addEventListener('change', (e) => {
+      if (e.target.name === 'frame') {
+        frame = e.target.value;
+        t = 0;
+        trajectories.forEach(arr => arr.length = 0);
+        offsetX = 0;
+        offsetY = 0;
+        scale = 10;
       }
+    });
+    
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const zoomSpeed = 0.001;
+      const prevScale = scale;
+      scale += e.deltaY * -zoomSpeed * scale;
+      scale = Math.max(0.1, Math.min(scale, 50));
+      const scaleChange = scale / prevScale;
+      offsetX = offsetX * scaleChange;
+      offsetY = offsetY * scaleChange;
+      trajectories.forEach(arr => arr.length = 0);
+    }, {passive: false});
+    
+    let isDragging = false;
+    let lastX, lastY;
+    
+    canvas.addEventListener('mousedown', e => {
+      if (e.button === 0) {
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      }
+    });
+    
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      offsetX += dx;
+      offsetY += dy;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      trajectories.forEach(arr => arr.length = 0);
+    });
+    
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+    
+    let lastTouchDistance = null;
 
-      planets.forEach((planet, i) => {
-        const orbitRadius = planet.distance * 150 * scale; // Умножаем на масштаб
-        const angle = (time / planet.period) * 2 * Math.PI;
+    canvas.addEventListener('touchmove', function (e) {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        const x = sunX + orbitRadius * Math.cos(angle);
-        const y = sunY + orbitRadius * Math.sin(angle);
-
-        // В режиме "Earth" отображаем орбиту относительно Земли
-        if (currentFrame === 'earth') {
-          const earthOrbitRadius = planets[2].distance * 150 * scale; // Радиус орбиты Земли
-          ctx.beginPath();
-          ctx.arc(sunX + earthOrbitRadius, sunY, orbitRadius, 0, 2 * Math.PI);
-          ctx.strokeStyle = planet.color;
-          ctx.stroke();
+        if (lastTouchDistance !== null) {
+          const zoomIntensity = 0.005;
+          const delta = distance - lastTouchDistance;
+          scale *= (1 + zoomIntensity * delta);
         }
 
-        // Отображаем планету
-        ctx.beginPath();
-        ctx.arc(x, y, 5 * scale, 0, 2 * Math.PI);
-        ctx.fillStyle = planet.color;
-        ctx.fill();
-      });
+        lastTouchDistance = distance;
+      }
+    }, { passive: false });
 
-      requestAnimationFrame(drawOrbits);
+    canvas.addEventListener('touchend', () => {
+      lastTouchDistance = null;
+    });
+
+    function drawPoint(x, y, color, size = 4) {
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
     }
-
-    createLegend();
-    initCanvas();
-    drawOrbits();
-
+    
+    function animate() {
+      maxOrbitRadius = (canvas.width / 2) - margin;
+      const centerX = canvas.width / 2 + offsetX;
+      const centerY = canvas.height / 2 + offsetY;
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const positions = planets.map((planet, i) => {
+        const r = orbitRadius(planet.distance);
+        const omega = angularVelocity(planet.period);
+        return {
+          x: centerX + r * Math.cos(omega * t - Math.PI/2) * scale,
+          y: centerY + r * Math.sin(omega * t - Math.PI/2) * scale,
+          color: planet.color,
+          name: planet.name,
+          omega: omega
+        };
+      });
+      
+      const earthPos = positions[earthIndex];
+      
+      // Рисование орбит
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      
+      planets.forEach((planet, i) => {
+        if (!planetVisibility[i]) return;
+        const r = orbitRadius(planet.distance) * scale;
+        ctx.beginPath();
+        if (frame === 'sun') {
+          ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        } else {
+          ctx.arc(earthPos.x, earthPos.y, r, 0, Math.PI * 2);
+        }
+        ctx.stroke();
+      });
+      
+      ctx.setLineDash([]);
+      
+      // Рисование центрального объекта
+      if (frame === 'sun') {
+        drawPoint(centerX, centerY, '#ffff00', 6);
+      } else {
+        drawPoint(centerX, centerY, '#008000', 6);
+        const sunX = centerX - (earthPos.x - centerX);
+        const sunY = centerY - (earthPos.y - centerY);
+        drawPoint(sunX, sunY, '#ffff00', 6);
+      }
+      
+      // Рисование траекторий и планет
+      positions.forEach((pos, i) => {
+        if (!planetVisibility[i]) return;
+        
+        let drawX = pos.x;
+        let drawY = pos.y;
+        
+        if (frame === 'earth') {
+          if (i >= 3) { // Для внешних планет (Mars и далее)
+            // Относительное движение с учетом разных угловых скоростей
+            const earthOmega = angularVelocity(planets[2].period);
+            const planetOmega = angularVelocity(planets[i].period);
+            const angleDiff = (planetOmega - earthOmega) * t;
+            const r = orbitRadius(planets[i].distance - planets[2].distance) * scale * 0.5;
+            
+            drawX = centerX + r * Math.cos(angleDiff - Math.PI/2);
+            drawY = centerY + r * Math.sin(angleDiff - Math.PI/2);
+          } else {
+            // Для внутренних планет (Mercury, Venus)
+            drawX = centerX + (pos.x - earthPos.x);
+            drawY = centerY + (pos.y - earthPos.y);
+          }
+        }
+        
+        trajectories[i].push({x: drawX, y: drawY});
+        if (trajectories[i].length > 300) {
+          trajectories[i].shift();
+        }
+        
+        if (trajectories[i].length > 1) {
+          ctx.beginPath();
+          ctx.strokeStyle = pos.color;
+          ctx.lineWidth = 1.5;
+          for (let j = 0; j < trajectories[i].length; j++) {
+            const p = trajectories[i][j];
+            if (j === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+          }
+          ctx.stroke();
+        }
+        
+        drawPoint(drawX, drawY, pos.color, 3);
+      });
+      
+      ctx.fillStyle = '#fff';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      const infoText = `Days: ${Math.floor(t)} | Scale: ${scale.toFixed(2)}x`;
+      ctx.fillText(infoText, canvas.width / 2, 12);
+      
+      t += dt;
+      if (t > 100000) t = 0;
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
   </script>
 </body>
 </html>
