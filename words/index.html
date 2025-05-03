@@ -33,27 +33,50 @@
       opacity: 0.85;
       touch-action: none;
     }
-    .secret {
-      position: absolute;
-      color: #fff;
-      font-size: 16px;
-      opacity: 0;
-      transition: opacity 8s ease-out, transform 1s ease-out;
-      pointer-events: auto;
-      white-space: nowrap;
-      font-family: monospace;
-    }
-    .help-link {
-      position: absolute;
-      bottom: 100px;
-      color: #FFF;
-      font-size: 18px;
-      text-decoration: none;
-      font-family: monospace;
-    }
-    .help-link:hover {
-      color: #FFD700;
-    }
+.secret {
+  position: absolute;
+  color: #fff;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 8s ease-out, transform 1s ease-out;
+  pointer-events: auto;
+  white-space: nowrap;
+  font-family: monospace;
+  text-decoration: none; /* Убираем подчёркивание по умолчанию */
+  cursor: pointer;
+}
+
+.secret[href="#"] {
+  text-decoration: none; /* Убедимся, что заглушки без подчёркивания и рамки */
+}
+.secret:hover {
+  color: #FFD700; /* Эффект наведения */
+}
+.secret:not([href="#"]) {
+  border: 1px solid #fff; /* Рамка со всех сторон */
+padding: 4px 8px 4px 8px; /* Разные отступы: верх 4px, право 8px, низ 2px, лево 6px */
+}
+.secret:not([href="#"]):hover {
+  border: 1px solid #FFD700;
+}
+.secret[href="#"]:hover {
+  color: #fff; /* Без изменения цвета */
+}
+.help-link {
+  position: absolute;
+  bottom: 100px;
+  color: #FFF;
+  font-size: 18px;
+  font-family: monospace;
+  text-decoration: none;
+  border: 1px solid #fff;
+  padding: 4px 8px 4px 8px;
+  cursor: pointer;
+}
+.help-link:hover {
+  color: #FFD700;
+  border: 1px solid #FFD700;
+}
   </style>
 </head>
 <body>
@@ -68,9 +91,49 @@
     let isGathered = false;
 
     const colors = ['#e3342f', '#f6993f', '#ffed4a', '#38c172', '#4dc0b5', '#3490dc', '#6574cd', '#9561e2', '#f66d9b'];
-    const secrets = ['function', 'const', 'let', 'var', 'return', 'if', 'else', 'switch', 'case', 'break', 'continue', 'while', 'for', 'do', 'try', 'catch', 'finally', 'throw', 'new', 'class', 'extends', 'super', 'import', 'export', 'default', 'null', 'true', 'false', 'undefined', 'this'];
+    const secrets = ['function', 'const', 'let', 'var', 'return', 'if', 'else', 'switch', 'case', 'break', 'continue', 'while', 'for', 'do', 'try', 'catch', 'finally', 'throw', 'new', 'class', 'extends', 'super', 'import', 'export', 'default', 'null', 'true', 'false', 'undefined', 'this', 'focus', 'самоанализ', 'image_resizer', 'orbits','fb2reader', 'peer', 'code_viewer'];
 
-    function createBlocks() {
+const secretLinks = {
+  function: '#',
+  const: '#',
+  let: '#',
+  var: '#',
+  return: '#',
+  if: '#',
+  else: '#',
+  switch: '#',
+  case: '#',
+  break: '#',
+  continue: '#',
+  while: '#',
+  for: '#',
+  do: '#',
+  try: '#',
+  catch: '#',
+  finally: '#',
+  throw: '#',
+  new: '#',
+  class: '#',
+  extends: '#',
+  super: '#',
+  import: '#',
+  export: '#',
+  default: '#',
+  null: '#',
+  true: '#',
+  false: '#',
+  undefined: '#',
+  this: '#',
+  focus: 'https://natureinitiation.github.io/virtualuniverse/focus/index.html',
+  самоанализ: 'https://natureinitiation.github.io/virtualuniverse/safeanalysis/index.html',
+  fb2reader: 'https://natureinitiation.github.io/virtualuniverse/fb2reader/index.html',
+  orbits: 'https://natureinitiation.github.io/virtualuniverse/orbits/index.html',
+  image_resizer: 'https://natureinitiation.github.io/virtualuniverse/image_resizer/index.html',
+  peer: 'https://natureinitiation.github.io/virtualuniverse/peer/index.html',
+  code_viewer: 'https://natureinitiation.github.io/virtualuniverse/code_viewer/index.html'
+};
+ 
+ function createBlocks() {
       for (let i = 0; i < 9; i++) {
         const block = document.createElement('div');
         block.className = 'block';
@@ -148,33 +211,44 @@
         pulse();
       });
     }
+    
 
-    function createSecret(x, y) {
-      const secret = document.createElement('div');
-      secret.className = 'secret';
-      secret.textContent = secrets[Math.floor(Math.random() * secrets.length)];
-      secret.style.left = `${x}px`;
-      secret.style.top = `${y}px`;
-      container.appendChild(secret);
 
-      requestAnimationFrame(() => {
-        secret.style.opacity = 1;
-        secret.style.transform = 'scale(1)';
-      });
+function createSecret(x, y) {
+  const secret = document.createElement('a');
+  secret.className = 'secret';
+  const word = secrets[Math.floor(Math.random() * secrets.length)];
+  secret.textContent = word;
+  secret.href = secretLinks[word]; // Устанавливаем ссылку из secretLinks
+  secret.target = '_blank'; // Открывать в новой вкладке
+  secret.style.left = `${x}px`;
+  secret.style.top = `${y}px`;
+  container.appendChild(secret);
 
-      setTimeout(() => {
-        secret.style.opacity = 0;
-      }, 0);
+  requestAnimationFrame(() => {
+    secret.style.opacity = 1;
+    secret.style.transform = 'scale(1)';
+  });
 
-      setTimeout(() => {
-        secret.remove();
-      }, 8000);
+  setTimeout(() => {
+    secret.style.opacity = 0;
+  }, 0);
 
-      secret.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-        secret.remove();
-      });
+  setTimeout(() => {
+    secret.remove();
+  }, 8000);
+
+  // Удаление при клике, но не блокируем переход
+  secret.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    // Удаляем только если это заглушка '#'
+    if (!e.ctrlKey && !e.metaKey && secret.href === window.location.href + '#') {
+      secret.remove();
     }
+  });
+}
+
+
 
     createBlocks();
     gather();
