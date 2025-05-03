@@ -122,23 +122,28 @@
         const x = sunX + Math.cos(angle) * orbitRadius;
         const y = sunY + Math.sin(angle) * orbitRadius;
 
-        if (planetVisibility[i]) {
-          ctx.beginPath();
-          ctx.arc(x, y, 5, 0, Math.PI * 2);
-          ctx.fillStyle = planet.color;
-          ctx.fill();
-        }
+        // Рисуем орбиту
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, orbitRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fff';
+        ctx.stroke();
+
+        // Рисуем планету
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = planet.color;
+        ctx.fill();
       });
     }
 
-    function update() {
+    function animate() {
       drawOrbits();
-      requestAnimationFrame(update);
+      requestAnimationFrame(animate);
     }
 
     createLegend();
     initCanvas();
-    update();
+    animate();
   </script>
 </body>
 </html>
