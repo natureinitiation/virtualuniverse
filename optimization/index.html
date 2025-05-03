@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Solar System Orbital Trajectories Animation</title>
+  <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: monospace;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    h1 { margin: 15px; font-size: 1.2rem; text-align: center; }
+    #controls { display: flex; justify-content: center; gap: 15px; padding-bottom: 5px; }
+    #controls label { font-size: 0.9rem; }
+    #canvas-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: hidden;
+      position: relative;
+      margin-top: 25px;
+    }
+    #orbitCanvas {
+      background-color: #000;
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      touch-action: none;
+    }
+    #legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 0.8rem; }
+    .legend-item { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+    .color-box {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    #info { text-align: center; font-size: 0.8rem; margin: 10px; padding: 0 10px; }
+    .help-link { text-align: center; margin-top: 10px; color: #777; font-size: 18px; text-decoration: none; font-family: monospace; }
+    .hidden-planet { opacity: 0.3; }
+  </style>
+</head>
+<body>
+  <h1>Solar System Orbital Trajectories Animation</h1>
+  
+  <div id="controls">
+    <label><input type="radio" name="frame" value="sun" checked> Sun</label>
+    <label><input type="radio" name="frame" value="earth"> Earth</label>
+  </div>
+  <a href="https://t.me/hobbyandlobby/246" class="help-link" target="_blank">Donate</a>
+  <div id="canvas-wrapper">
+    <canvas id="orbitCanvas"></canvas>
+  </div>
+  
+  <div id="legend"></div>
+  <div id="info"></div>
+
+  <script>
+    const canvas = document.getElementById('orbitCanvas');
+    const ctx = canvas.getContext('2d');
+    const legendDiv = document.getElementById('legend');
+    
+    const planets = [
+      { name: 'Mercury', distance: 0.387, period: 88, color: '#1e90ff' },
+      { name: 'Venus', distance: 0.723, period: 225, color: '#8F00FF' },
+      { name: 'Earth', distance: 1.000, period: 365, color: '#008000' },
+      { name: 'Mars', distance: 1.524, period: 687, color: '#ff4500' },
+      { name: 'Jupiter', distance: 5.203, period: 4333, color: '#daa520' },
+      { name: 'Saturn', distance: 9.537, period: 10759, color: '#deb887' },
+      { name: 'Uranus', distance: 19.191, period: 30687, color: '#40e0d0' },
+      { name: 'Neptune', distance: 30.068, period: 60190, color: '#4169e1' }
+    ];
+
+    let planetVisibility = new Array(planets.length).fill(true);
+
+    function initCanvas() {
+      const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+      canvas.width = size;
+      canvas.height = size;
+      canvas.style.width = `${size}px`;
+      canvas.style.height = `${size}px`;
+    }
+
+    window.addEventListener('resize', initCanvas);
+
+    function createLegend() {
+      legendDiv.innerHTML = '';
+      planets.forEach((planet, index) => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+
+        const colorBox = document.createElement('div');
+        colorBox.className = 'color-box';
+        colorBox.style.backgroundColor = planet.color;
+        if (!planetVisibility[index]) colorBox.classList.add('hidden-planet');
+
+        item.appendChild(colorBox);
+        item.appendChild(document.createTextNode(planet.name));
+        legendDiv.appendChild(item);
+      });
+    }
+
+    function drawOrbits() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const sunX = canvas.width / 2;
+      const sunY = canvas.height / 2;
+      const time = Date.now() * 0.0001;
+
+      planets.forEach((planet, i) => {
+        const orbitRadius = planet.distance * 150;
+        const angle = (time / planet.period) * 2 * Math.PI;
+        const x = sunX + Math.cos(angle) * orbitRadius;
+        const y = sunY + Math.sin(angle) * orbitRadius;
+
+        if (planetVisibility[i]) {
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
+          ctx.fillStyle = planet.color;
+          ctx.fill();
+        }
+      });
+    }
+
+    function update() {
+      drawOrbits();
+      requestAnimationFrame(update);
+    }
+
+    createLegend();
+    initCanvas();
+    update();
+  </script>
+</body>
+</html>
