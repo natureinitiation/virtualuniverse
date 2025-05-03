@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Solar System Orbital Trajectories Animation</title>
-  <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
+  <link rel="manifest" href="manifest.json">
 
   <style>
     * { box-sizing: border-box; }
@@ -83,6 +83,16 @@
 
     let planetVisibility = new Array(planets.length).fill(true);
 
+    // Масштабирование для сенсорного экрана
+    let scale = 1;
+    canvas.addEventListener('wheel', (e) => {
+      if (e.deltaY > 0) {
+        scale *= 0.9; // уменьшение
+      } else {
+        scale *= 1.1; // увеличение
+      }
+    });
+
     function initCanvas() {
       const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
       canvas.width = size;
@@ -112,39 +122,58 @@
 
     let time = 0; // глобальная переменная для отслеживания времени
 
+    // Переключение между режимами Earth и Sun
+    let currentFrame = 'sun';
+    document.querySelectorAll('input[name="frame"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        currentFrame = e.target.value;
+      });
+    });
+
     function drawOrbits() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const sunX = canvas.width / 2;
       const sunY = canvas.height / 2;
 
-      time += 0.01; // обновляем время для анимации
+      time += 0.01;
+
+      if (currentFrame === 'sun') {
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, 10 * scale, 0, 2 * Math.PI);
+        ctx.fillStyle = '#FFFF00';
+        ctx.fill();
+      }
 
       planets.forEach((planet, i) => {
-        const orbitRadius = planet.distance * 150;
+        const orbitRadius = planet.distance * 150 * scale; // Умножаем на масштаб
         const angle = (time / planet.period) * 2 * Math.PI;
-        const x = sunX + Math.cos(angle) * orbitRadius;
-        const y = sunY + Math.sin(angle) * orbitRadius;
 
-        // Рисуем орбиту
-        ctx.beginPath();
-        ctx.arc(sunX, sunY, orbitRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = '#fff';
-        ctx.stroke();
+        const x = sunX + orbitRadius * Math.cos(angle);
+        const y = sunY + orbitRadius * Math.sin(angle);
 
-        // Рисуем планету
+        // В режиме "Earth" отображаем орбиту относительно Земли
+        if (currentFrame === 'earth') {
+          const earthOrbitRadius = planets[2].distance * 150 * scale; // Радиус орбиты Земли
+          ctx.beginPath();
+          ctx.arc(sunX + earthOrbitRadius, sunY, orbitRadius, 0, 2 * Math.PI);
+          ctx.strokeStyle = planet.color;
+          ctx.stroke();
+        }
+
+        // Отображаем планету
         ctx.beginPath();
-        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.arc(x, y, 5 * scale, 0, 2 * Math.PI);
         ctx.fillStyle = planet.color;
         ctx.fill();
       });
 
-      requestAnimationFrame(drawOrbits); // повторяем анимацию
+      requestAnimationFrame(drawOrbits);
     }
 
-    // Начальная инициализация
-    initCanvas();
     createLegend();
+    initCanvas();
     drawOrbits();
+
   </script>
 </body>
 </html>
