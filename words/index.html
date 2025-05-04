@@ -263,12 +263,12 @@ audio.play().then(() => {
   let volume = 0;
   const fadeIn = setInterval(() => {
     volume += 0.001;
-    if (volume >= 0.1) { // максимальная громкость 50%
-      volume = 0.1;
+    if (volume >= 0.5) { // максимальная громкость 50%
+      volume = 0.5;
       clearInterval(fadeIn);
     }
     audio.volume = volume;
-  }, 1); // каждые 100мс прибавлять громкость
+  }, 100); // каждые 100мс прибавлять громкость
 }).catch((e) => {
   console.log('Audio play error:', e);
 });
