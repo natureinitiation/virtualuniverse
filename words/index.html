@@ -1,3 +1,4 @@
+Надо сделать так, чтобы слова появлялись строго посередине промежуточного следа блока не раньше, чем блок побывал там. Очень коротко. Полностью обнови код.
 
 <!DOCTYPE html>
 <html lang="ru">
@@ -5,7 +6,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Words</title>
-  <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
+  <link rel="manifest" href="manifest.json">
   <style>
     body {
       margin: 0;
@@ -33,50 +34,47 @@
       opacity: 0.85;
       touch-action: none;
     }
-.secret {
-  position: absolute;
-  color: #fff;
-  font-size: 16px;
-  opacity: 0;
-  transition: opacity 8s ease-out, transform 1s ease-out;
-  pointer-events: auto;
-  white-space: nowrap;
-  font-family: monospace;
-  text-decoration: none; /* Убираем подчёркивание по умолчанию */
-  cursor: pointer;
-}
-
-.secret[href="#"] {
-  text-decoration: none; /* Убедимся, что заглушки без подчёркивания и рамки */
-}
-.secret:hover {
-  color: #FFD700; /* Эффект наведения */
-}
-.secret:not([href="#"]) {
-  border: 1px solid #fff; /* Рамка со всех сторон */
-padding: 4px 8px 4px 8px; /* Разные отступы: верх 4px, право 8px, низ 2px, лево 6px */
-}
-.secret:not([href="#"]):hover {
-  border: 1px solid #FFD700;
-}
-.secret[href="#"]:hover {
-  color: #fff; /* Без изменения цвета */
-}
-.help-link {
-  position: absolute;
-  bottom: 100px;
-  color: #FFF;
-  font-size: 18px;
-  font-family: monospace;
-  text-decoration: underline;
-  /* border: 1px solid #fff; */
-  /* padding: 4px 8px 4px 8px; */
-  cursor: pointer;
-}
-.help-link:hover {
-  color: #FFD700;
-  border: 1px solid #FFD700;
-}
+    .secret {
+      position: absolute;
+      color: #fff;
+      font-size: 16px;
+      opacity: 0;
+      transition: opacity 8s ease-out, transform 1s ease-out;
+      pointer-events: auto;
+      white-space: nowrap;
+      font-family: monospace;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .secret[href="#"] {
+      text-decoration: none;
+    }
+    .secret:hover {
+      color: #FFD700;
+    }
+    .secret:not([href="#"]) {
+      border: 1px solid #fff;
+      padding: 4px 8px;
+    }
+    .secret:not([href="#"]):hover {
+      border: 1px solid #FFD700;
+    }
+    .secret[href="#"]:hover {
+      color: #fff;
+    }
+    .help-link {
+      position: absolute;
+      bottom: 100px;
+      color: #FFF;
+      font-size: 18px;
+      font-family: monospace;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .help-link:hover {
+      color: #FFD700;
+      border: 1px solid #FFD700;
+    }
   </style>
 </head>
 <body>
@@ -88,53 +86,23 @@ padding: 4px 8px 4px 8px; /* Разные отступы: верх 4px, прав
     const container = document.getElementById('scene');
     const size = 60;
     const blocks = [];
-    let isGathered = false;
+    let isGathered = true;
 
     const colors = ['#e3342f', '#f6993f', '#ffed4a', '#38c172', '#4dc0b5', '#3490dc', '#6574cd', '#9561e2', '#f66d9b'];
-    const secrets = ['function', 'const', 'let', 'var', 'return', 'if', 'else', 'switch', 'case', 'break', 'continue', 'while', 'for', 'do', 'try', 'catch', 'finally', 'throw', 'new', 'class', 'extends', 'super', 'import', 'export', 'default', 'null', 'true', 'false', 'undefined', 'this', 'focus', 'самоанализ', 'image_resizer', 'orbits','fb2reader', 'peer', 'code_viewer', 'virtual_universe'];
+    const secrets = ['function', 'const', 'let', 'var', 'return', 'if', 'else', 'switch', 'case', 'break', 'continue', 'while', 'for', 'do', 'try', 'catch', 'finally', 'throw', 'new', 'class', 'extends', 'super', 'import', 'export', 'default', 'null', 'true', 'false', 'undefined', 'this', 'focus', 'самоанализ', 'image_resizer', 'orbits', 'fb2reader', 'peer', 'code_viewer', 'virtual_universe'];
+    const secretLinks = {
+      function: '#', const: '#', let: '#', var: '#', return: '#', if: '#', else: '#', switch: '#', case: '#', break: '#', continue: '#', while: '#', for: '#', do: '#', try: '#', catch: '#', finally: '#', throw: '#', new: '#', class: '#', extends: '#', super: '#', import: '#', export: '#', default: '#', null: '#', true: '#', false: '#', undefined: '#', this: '#',
+      focus: 'https://natureinitiation.github.io/virtualuniverse/focus/index.html',
+      самоанализ: 'https://natureinitiation.github.io/virtualuniverse/safeanalysis/index.html',
+      fb2reader: 'https://natureinitiation.github.io/virtualuniverse/fb2reader/index.html',
+      orbits: 'https://natureinitiation.github.io/virtualuniverse/orbits/index.html',
+      image_resizer: 'https://natureinitiation.github.io/virtualuniverse/image_resizer/index.html',
+      peer: 'https://natureinitiation.github.io/virtualuniverse/peer/index.html',
+      code_viewer: 'https://natureinitiation.github.io/virtualuniverse/code_viewer/index.html',
+      virtual_universe: 'https://natureinitiation.github.io/virtualuniverse/index.html'
+    };
 
-const secretLinks = {
-  function: '#',
-  const: '#',
-  let: '#',
-  var: '#',
-  return: '#',
-  if: '#',
-  else: '#',
-  switch: '#',
-  case: '#',
-  break: '#',
-  continue: '#',
-  while: '#',
-  for: '#',
-  do: '#',
-  try: '#',
-  catch: '#',
-  finally: '#',
-  throw: '#',
-  new: '#',
-  class: '#',
-  extends: '#',
-  super: '#',
-  import: '#',
-  export: '#',
-  default: '#',
-  null: '#',
-  true: '#',
-  false: '#',
-  undefined: '#',
-  this: '#',
-  focus: 'https://natureinitiation.github.io/virtualuniverse/focus/index.html',
-  самоанализ: 'https://natureinitiation.github.io/virtualuniverse/safeanalysis/index.html',
-  fb2reader: 'https://natureinitiation.github.io/virtualuniverse/fb2reader/index.html',
-  orbits: 'https://natureinitiation.github.io/virtualuniverse/orbits/index.html',
-  image_resizer: 'https://natureinitiation.github.io/virtualuniverse/image_resizer/index.html',
-  peer: 'https://natureinitiation.github.io/virtualuniverse/peer/index.html',
-  code_viewer: 'https://natureinitiation.github.io/virtualuniverse/code_viewer/index.html',
-  virtual_universe: 'https://natureinitiation.github.io/virtualuniverse/index.html'
-};
- 
- function createBlocks() {
+    function createBlocks() {
       for (let i = 0; i < 9; i++) {
         const block = document.createElement('div');
         block.className = 'block';
@@ -158,7 +126,6 @@ const secretLinks = {
             const yOffset = Math.floor(index / 3) * (size + 10);
             block.style.transition = 'transform 0.8s ease';
             block.style.transform = `translate(${centerX + xOffset}px, ${centerY + yOffset}px) scale(1)`;
-
             createSecret(tempX, tempY);
           }, 300);
         });
@@ -168,7 +135,6 @@ const secretLinks = {
     function scatter() {
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
-
       blocks.forEach((block) => {
         const randX = centerX + (Math.random() - 0.5) * window.innerWidth - size / 2;
         const randY = centerY + (Math.random() - 0.5) * window.innerHeight - size / 2;
@@ -179,7 +145,6 @@ const secretLinks = {
     function gather() {
       const centerX = (window.innerWidth - (size * 3 + 10 * 2)) / 2;
       const centerY = (window.innerHeight - (size * 3 + 10 * 2)) / 2 - 50;
-
       blocks.forEach((block, i) => {
         const xOffset = (i % 3) * (size + 10);
         const yOffset = Math.floor(i / 3) * (size + 10);
@@ -187,13 +152,14 @@ const secretLinks = {
       });
     }
 
-    function toggleGatherScatter() {
-      if (isGathered) {
-        scatter();
-      } else {
-        gather();
-      }
+    function toggleGatherScatter(e) {
+      e.stopPropagation();
       isGathered = !isGathered;
+      if (isGathered) {
+        gather();
+      } else {
+        scatter();
+      }
     }
 
     function startPulse() {
@@ -203,7 +169,6 @@ const secretLinks = {
           const duration = 1000 + Math.random() * 2000;
           block.style.transition = `transform ${duration}ms ease-in-out`;
           block.style.transform += ` scale(${scale})`;
-
           setTimeout(() => {
             block.style.transform = block.style.transform.replace(/scale\([^\)]+\)/, 'scale(1)');
             setTimeout(pulse, Math.random() * 3000);
@@ -212,66 +177,60 @@ const secretLinks = {
         pulse();
       });
     }
-    
 
+    function createSecret(x, y) {
+      const secret = document.createElement('a');
+      secret.className = 'secret';
+      const word = secrets[Math.floor(Math.random() * secrets.length)];
+      secret.textContent = word;
+      secret.href = secretLinks[word];
+      secret.target = '_blank';
+      secret.style.left = `${x}px`;
+      secret.style.top = `${y}px`;
+      container.appendChild(secret);
 
-function createSecret(x, y) {
-  const secret = document.createElement('a');
-  secret.className = 'secret';
-  const word = secrets[Math.floor(Math.random() * secrets.length)];
-  secret.textContent = word;
-  secret.href = secretLinks[word]; // Устанавливаем ссылку из secretLinks
-  secret.target = '_blank'; // Открывать в новой вкладке
-  secret.style.left = `${x}px`;
-  secret.style.top = `${y}px`;
-  container.appendChild(secret);
+      requestAnimationFrame(() => {
+        secret.style.opacity = 1;
+        secret.style.transform = 'scale(1)';
+      });
 
-  requestAnimationFrame(() => {
-    secret.style.opacity = 1;
-    secret.style.transform = 'scale(1)';
-  });
+      setTimeout(() => {
+        secret.style.opacity = 0;
+      }, 0);
 
-  setTimeout(() => {
-    secret.style.opacity = 0;
-  }, 0);
+      setTimeout(() => {
+        secret.remove();
+      }, 8000);
 
-  setTimeout(() => {
-    secret.remove();
-  }, 8000);
-
-  // Удаление при клике, но не блокируем переход
-  secret.addEventListener('pointerdown', (e) => {
-    e.stopPropagation();
-    // Удаляем только если это заглушка '#'
-    if (!e.ctrlKey && !e.metaKey && secret.href === window.location.href + '#') {
-      secret.remove();
+      secret.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (!e.ctrlKey && !e.metaKey && secret.href === window.location.href + '#') {
+          secret.remove();
+        }
+      });
     }
-  });
-}
-
-
 
     createBlocks();
     gather();
     startPulse();
 
     document.body.addEventListener('pointerdown', toggleGatherScatter);
-const audio = document.getElementById('background-audio');
 
-audio.volume = 0; // начать с нулевой громкости
-audio.play().then(() => {
-  let volume = 0;
-  const fadeIn = setInterval(() => {
-    volume += 0.001;
-    if (volume >= 0.5) { // максимальная громкость 50%
-      volume = 0.5;
-      clearInterval(fadeIn);
-    }
-    audio.volume = volume;
-  }, 100); // каждые 100мс прибавлять громкость
-}).catch((e) => {
-  console.log('Audio play error:', e);
-});
-    </script>
+    const audio = document.getElementById('background-audio');
+    audio.volume = 0;
+    audio.play().then(() => {
+      let volume = 0;
+      const fadeIn = setInterval(() => {
+        volume += 0.001;
+        if (volume >= 0.5) {
+          volume = 0.5;
+          clearInterval(fadeIn);
+        }
+        audio.volume = volume;
+      }, 100);
+    }).catch((e) => {
+      console.log('Audio play error:', e);
+    });
+  </script>
 </body>
 </html>
