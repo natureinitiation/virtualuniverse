@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Focus</title>
-  <link rel="manifest" href="manifest.json"> <!-- Ссылка на манифест -->
   <style>
     body {
       margin: 0;
@@ -58,10 +57,15 @@
     const colors = ['#e3342f', '#f6993f', '#ffed4a', '#38c172', '#4dc0b5', '#3490dc', '#6574cd', '#9561e2', '#f66d9b'];
 
     function createBlocks() {
+      const centerX = window.innerWidth / 2 - size / 2;
+      const centerY = window.innerHeight / 2 - size / 2;
+
       for (let i = 0; i < 9; i++) {
         const block = document.createElement('div');
         block.className = 'block';
         block.style.backgroundColor = colors[i % colors.length];
+        block.style.transform = `translate(${centerX}px, ${centerY}px)`;
+        block.style.zIndex = i;
         container.appendChild(block);
         blocks.push(block);
       }
@@ -142,7 +146,6 @@
           block.style.transition = 'transform 0.4s ease';
           block.style.transform += ` translate(${dx}px, ${dy}px)`;
 
-          // Переключаем gather/scatter через 300мс
           setTimeout(() => {
             toggleGatherScatter();
           }, 300);
@@ -152,7 +155,6 @@
 
     // Инициализация
     createBlocks();
-    scatter();
     startPulse();
     startBlinking();
     enableEscapeEffect();
