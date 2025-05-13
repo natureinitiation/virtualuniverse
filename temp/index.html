@@ -40,15 +40,17 @@
       gap: 5px;
       font-size: 0.9rem;
     }
-    #canvas-wrapper {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      overflow: hidden;
-      position: relative;
-      margin: 5px;
-    }
+#canvas-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
     #orbitCanvas {
       background-color: #000;
       display: block;
@@ -171,13 +173,14 @@
     
 function initCanvas() {
   const wrapper = document.getElementById('canvas-wrapper');
-  const dpr = window.devicePixelRatio || 1; // Учитываем плотность пикселей
+  const dpr = window.devicePixelRatio || 1;
   const size = Math.min(wrapper.clientWidth, wrapper.clientHeight) * 0.9;
   canvas.width = size * dpr;
   canvas.height = size * dpr;
   canvas.style.width = `${size}px`;
   canvas.style.height = `${size}px`;
-  ctx.scale(dpr, dpr); // Масштабируем контекст для чёткости
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // Сбрасываем трансформации
+  ctx.scale(dpr, dpr); // Применяем масштаб один раз
 }
     
     window.addEventListener('resize', () => {
@@ -384,10 +387,12 @@ datePicker.addEventListener('change', (e) => {
     }
     
 function animate() {
-  initCanvas(); // Пересчитываем размеры канваса на каждом кадре
-  maxOrbitRadius = (canvas.width / 2) * 0.9 - margin;
-  const centerX = canvas.width / 2 + offsetX;
-  const centerY = canvas.height / 2 + offsetY;
+  initCanvas();
+  const cssWidth = parseFloat(canvas.style.width);
+  const cssHeight = parseFloat(canvas.style.height);
+  maxOrbitRadius = (Math.min(cssWidth, cssHeight) / 2) * 0.9 - margin;
+  const centerX = cssWidth / 2 + offsetX;
+  const centerY = cssHeight / 2 + offsetY;
       
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
