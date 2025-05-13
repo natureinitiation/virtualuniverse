@@ -25,7 +25,6 @@
       font-size: 1.2rem;
       text-align: center;
     }
-
     #controls {
       display: flex;
       font-family: monospace;
@@ -33,7 +32,7 @@
       gap: 15px;
       padding-bottom: 5px;
       flex-wrap: wrap;
-            margin-bottom: 5px;
+      margin-bottom: 5px;
     }
     #controls label {
       display: flex;
@@ -48,7 +47,7 @@
       align-items: flex-start;
       overflow: hidden;
       position: relative;
-      margin-top: 25px;
+      margin-top: 5px;
     }
     #orbitCanvas {
       background-color: #000;
@@ -117,7 +116,7 @@
       width: 80%;
       margin-bottom: 0px;
     }
-    #pause-btn, #reset-btn {
+    #pause-btn {
       margin-bottom: 5px;
       padding: 5px 10px;
       background: #333;
@@ -126,33 +125,44 @@
       border-radius: 0px;
       cursor: pointer;
     }
+    #date-picker {
+      margin: 5px 5px;
+      background: #333;
+      color: white;
+      border: none;
+      padding: 5px;
+      font-family: monospace;
+    }
+    .date-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      margin: 5px auto;
+    }
   </style>
 </head>
 <body>
   <h1>Solar System</h1>
-  
-
-
- <div class="speed-control">
+  <div class="speed-control">
     <div style="width: 100%; text-align: center;">
       <button id="pause-btn">Pause</button>
-      <button id="reset-btn">Reset</button>
     </div>
-      <input type="range" id="speed-slider" class="speed-slider" min="0.1" max="1" step="0.1" value="0.3">
+    <input type="range" id="speed-slider" class="speed-slider" min="0.1" max="1" step="0.1" value="0.3">
+    <div class="date-container">
+      <label for="date-picker">Date:</label>
+      <input type="date" id="date-picker" value="2000-01-01">
     </div>
-    
-
+  </div>
   <div id="canvas-wrapper">
     <canvas id="orbitCanvas"></canvas>
   </div>
-    <div id="controls">
+  <div id="controls">
     <label><input type="radio" name="frame" value="sun" checked> Sun</label>
     <label><input type="radio" name="frame" value="earth"> Earth</label>
-         
   </div>
-
   <div id="legend"></div>
-   <a href="https://t.me/hobbyandlobby/246" class="help-link" target="_blank">Donate</a>
+  <a href="https://t.me/hobbyandlobby/246" class="help-link" target="_blank">Donate</a>
   <div id="info"></div>
 
   <script>
@@ -160,69 +170,53 @@
     const ctx = canvas.getContext('2d');
     const legendDiv = document.getElementById('legend');
     
-    // Инициализация размеров canvas
     function initCanvas() {
       const wrapper = document.getElementById('canvas-wrapper');
       const size = Math.min(wrapper.clientWidth, wrapper.clientHeight) * 0.9;
-      
       canvas.width = size;
       canvas.height = size;
-      
-      // Центрируем canvas
       canvas.style.width = `${size}px`;
       canvas.style.height = `${size}px`;
     }
     
-    // Обработчик изменения размера окна
     window.addEventListener('resize', () => {
       initCanvas();
       trajectories.forEach(arr => arr.length = 0);
     });
     
-    // Данные планет
     const planets = [
-      {name: 'Mercury', distance: 0.387, period: 88, color: '#1e90ff'},
-      {name: 'Venus', distance: 0.723, period: 225, color: '#8F00FF'},
-      {name: 'Earth', distance: 1.000, period: 365, color: '#008000'},
-      {name: 'Mars', distance: 1.524, period: 687, color: '#ff4500'},
-      {name: 'Jupiter', distance: 5.203, period: 4333, color: '#daa520'},
-      {name: 'Saturn', distance: 9.537, period: 10759, color: '#deb887'},
-      {name: 'Uranus', distance: 19.191, period: 30687, color: '#40e0d0'},
-      {name: 'Neptune', distance: 30.068, period: 60190, color: '#4169e1'}
+      {name: 'Mercury', distance: 0.387, period: 88, color: '#1e90ff', eccentricity: 0.2056, inclination: 0.1222},
+      {name: 'Venus', distance: 0.723, period: 225, color: '#8F00FF', eccentricity: 0.0068, inclination: 0.0593},
+      {name: 'Earth', distance: 1.000, period: 365.25, color: '#008000', eccentricity: 0.0167, inclination: 0},
+      {name: 'Mars', distance: 1.524, period: 687, color: '#ff4500', eccentricity: 0.0934, inclination: 0.0323},
+      {name: 'Jupiter', distance: 5.203, period: 4333, color: '#daa520', eccentricity: 0.0489, inclination: 0.0228},
+      {name: 'Saturn', distance: 9.537, period: 10759, color: '#deb887', eccentricity: 0.0565, inclination: 0.0436},
+      {name: 'Uranus', distance: 19.191, period: 30687, color: '#40e0d0', eccentricity: 0.0464, inclination: 0.0135},
+      {name: 'Neptune', distance: 30.068, period: 60190, color: '#4169e1', eccentricity: 0.0095, inclination: 0.0309}
     ];
     
-    // Массив для хранения видимости планет (по умолчанию все видимы)
     let planetVisibility = planets.map(() => true);
     
-    // Создание легенды
     function createLegend() {
       legendDiv.innerHTML = '';
       planets.forEach((planet, index) => {
         const item = document.createElement('div');
         item.className = 'legend-item';
-        
         const colorBox = document.createElement('div');
         colorBox.className = 'color-box';
-        colorBox.style.backgroundColor = planet.color;
+        colorBox.style.backgroundColor = planet.color 
         if (!planetVisibility[index]) {
           colorBox.classList.add('hidden-planet');
         }
-        
         const label = document.createElement('span');
         label.textContent = planet.name;
         if (!planetVisibility[index]) {
           label.classList.add('hidden-planet');
         }
-        
         item.append(colorBox, label);
         legendDiv.appendChild(item);
-        
-        // Обработчик клика по элементу легенды
         item.addEventListener('click', () => {
-          // Переключаем видимость планеты
           planetVisibility[index] = !planetVisibility[index];
-          
-          // Обновляем стили элемента легенды
           if (planetVisibility[index]) {
             colorBox.classList.remove('hidden-planet');
             label.classList.remove('hidden-planet');
@@ -230,20 +224,15 @@
             colorBox.classList.add('hidden-planet');
             label.classList.add('hidden-planet');
           }
-          
-          // Если скрыли Землю и текущий фрейм - Earth, переключаем на Sun
           if (planet.name === 'Earth' && !planetVisibility[index] && frame === 'earth') {
             document.querySelector('input[name="frame"][value="sun"]').checked = true;
             frame = 'sun';
           }
-          
-          // Очищаем траектории
           trajectories.forEach(arr => arr.length = 0);
         });
       });
     }
     
-    // Инициализация
     initCanvas();
     createLegend();
     
@@ -255,47 +244,43 @@
       return (ae / maxDistance) * maxOrbitRadius;
     }
     
-    function angularVelocity(period) {
-      return 2 * Math.PI / period;
-    }
-    
+    const J2000 = new Date('2000-01-01T12:00:00Z');
     let t = 0;
-    let dt = 0.1; // Начальная скорость (дней за кадр)
+    let dt = 0.3;
     
     let frame = 'sun';
     const earthIndex = planets.findIndex(p => p.name === 'Earth');
     const trajectories = planets.map(() => []);
     
-    // Масштаб и смещение (по умолчанию масштаб 10x)
     let scale = 10;
     let offsetX = 0;
     let offsetY = 0;
     
-    // Обработчики событий
     document.getElementById('controls').addEventListener('change', (e) => {
       if (e.target.name === 'frame') {
         frame = e.target.value;
-        t = 0;
         trajectories.forEach(arr => arr.length = 0);
         offsetX = 0;
         offsetY = 0;
-        scale = 10; // Возвращаем масштаб к 10x при смене системы отсчета
+        scale = 10;
       }
     });
     
-    // Управление скоростью
     const speedSlider = document.getElementById('speed-slider');
-    const speedValue = document.getElementById('speed-value');
-    
     speedSlider.addEventListener('input', (e) => {
       dt = parseFloat(e.target.value);
-      speedValue.textContent = dt.toFixed(1);
     });
     
-    // Управление паузой/возобновлением
+    const datePicker = document.getElementById('date-picker');
+    datePicker.addEventListener('change', (e) => {
+      const selectedDate = new Date(e.target.value);
+      const msInDay = 86400000;
+      t = (selectedDate.getTime() - J2000.getTime()) / msInDay;
+      trajectories.forEach(arr => arr.length = 0);
+    });
+    
     let isPaused = false;
     const pauseBtn = document.getElementById('pause-btn');
-    
     pauseBtn.addEventListener('click', () => {
       isPaused = !isPaused;
       pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
@@ -304,93 +289,62 @@
       }
     });
     
-    // Кнопка сброса
-    document.getElementById('reset-btn').addEventListener('click', () => {
-      t = 0;
-      trajectories.forEach(arr => arr.length = 0);
-      offsetX = 0;
-      offsetY = 0;
-      scale = 10;
-      if (isPaused) {
-        isPaused = false;
-        pauseBtn.textContent = 'Pause';
-        animate();
-      }
-    });
-    
-    // Обработка масштабирования колесом мыши
     canvas.addEventListener('wheel', e => {
       e.preventDefault();
       const zoomSpeed = 0.001;
       const prevScale = scale;
-      
-      // Изменение масштаба
       scale += e.deltaY * -zoomSpeed * scale;
       scale = Math.max(0.1, Math.min(scale, 50));
-      
-      // Корректировка смещения для масштабирования по центру
       const scaleChange = scale / prevScale;
       offsetX = offsetX * scaleChange;
       offsetY = offsetY * scaleChange;
-      
       trajectories.forEach(arr => arr.length = 0);
     }, {passive: false});
     
-    // Обработка перетаскивания (левой кнопкой мыши)
     let isDragging = false;
     let lastX, lastY;
-    
     canvas.addEventListener('mousedown', e => {
-      if (e.button === 0) { // Только левая кнопка мыши
+      if (e.button === 0) {
         isDragging = true;
         lastX = e.clientX;
         lastY = e.clientY;
       }
     });
-    
     window.addEventListener('mousemove', e => {
       if (!isDragging) return;
-      
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
-      
       offsetX += dx;
       offsetY += dy;
-      
       lastX = e.clientX;
       lastY = e.clientY;
-      
       trajectories.forEach(arr => arr.length = 0);
     });
-    
     window.addEventListener('mouseup', () => {
       isDragging = false;
     });
     
     let lastTouchDistance = null;
-
     canvas.addEventListener('touchmove', function (e) {
       if (e.touches.length === 2) {
         e.preventDefault();
-
-        // Вычисление расстояния между пальцами
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-
         if (lastTouchDistance !== null) {
-          const zoomIntensity = 0.00005;
+          const zoomIntensity = 0.0002;
           const delta = distance - lastTouchDistance;
-          scale *= (0 + zoomIntensity * delta);
-
-          resetTransform();
-          draw();
+          const prevScale = scale;
+          scale *= (1 + zoomIntensity * delta);
+          scale = Math.max(0.1, Math.min(scale, 50));
+          const scaleChange = scale / prevScale;
+          offsetX = offsetX * scaleChange;
+          offsetY = offsetY * scaleChange;
+          trajectories.forEach(arr => arr.length = 0);
         }
-
         lastTouchDistance = distance;
       }
     }, { passive: false });
-
     canvas.addEventListener('touchend', () => {
       lastTouchDistance = null;
     });
@@ -405,23 +359,50 @@
       ctx.shadowBlur = 0;
     }
     
+    function getCurrentDate() {
+      const msInDay = 86400000;
+      const currentDate = new Date(J2000.getTime() + t * msInDay);
+      return currentDate.toISOString().split('T')[0];
+    }
+    
+    function solveKepler(M, e, tolerance = 1e-6) {
+      let E = M;
+      let delta;
+      do {
+        delta = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+        E -= delta;
+      } while (Math.abs(delta) > tolerance);
+      return E;
+    }
+    
+    function getTrueAnomaly(E, e) {
+      const cosTheta = (Math.cos(E) - e) / (1 - e * Math.cos(E));
+      const sinTheta = Math.sqrt(1 - e * e) * Math.sin(E) / (1 - e * Math.cos(E));
+      return Math.atan2(sinTheta, cosTheta);
+    }
+    
     function animate() {
       maxOrbitRadius = (canvas.width / 2) - margin;
-      
       const centerX = canvas.width / 2 + offsetX;
       const centerY = canvas.height / 2 + offsetY;
       
-      // Очистка с эффектом шлейфа
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Расчет позиций планет
       const positions = planets.map(planet => {
-        const r = orbitRadius(planet.distance);
-        const omega = angularVelocity(planet.period);
+        const a = orbitRadius(planet.distance);
+        const e = planet.eccentricity;
+        const M = (2 * Math.PI * t) / planet.period;
+        const E = solveKepler(M, e);
+        const theta = getTrueAnomaly(E, e);
+        const r = a * (1 - e * e) / (1 + e * Math.cos(theta));
+        let x = r * Math.cos(theta);
+        let y = r * Math.sin(theta);
+        const inclination = planet.inclination;
+        y *= Math.cos(inclination);
         return {
-          x: centerX + r * Math.cos(omega * t - Math.PI/2) * scale,
-          y: centerY + r * Math.sin(omega * t - Math.PI/2) * scale,
+          x: centerX + x * scale,
+          y: centerY + y * scale,
           color: planet.color,
           name: planet.name
         };
@@ -429,85 +410,73 @@
       
       const earthPos = positions[earthIndex];
       
-      // Рисование орбит (только для видимых планет)
       ctx.strokeStyle = '#333';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       
       planets.forEach((planet, i) => {
         if (!planetVisibility[i]) return;
-        
-        const r = orbitRadius(planet.distance) * scale;
+        const a = orbitRadius(planet.distance) * scale;
+        const e = planet.eccentricity;
+        const b = a * Math.sqrt(1 - e * e);
+        const inclination = planet.inclination;
+        const scaledB = b * Math.cos(inclination);
         ctx.beginPath();
-        
         if (frame === 'sun') {
-          ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+          const focusOffset = a * e;
+          ctx.ellipse(centerX + focusOffset, centerY, a, scaledB, 0, 0, Math.PI * 2);
         } else {
-          ctx.arc(earthPos.x, earthPos.y, r, 0, Math.PI * 2);
+          ctx.ellipse(earthPos.x, earthPos.y, a, scaledB, 0, 0, Math.PI * 2);
         }
-        
         ctx.stroke();
       });
       
       ctx.setLineDash([]);
       
-      // Рисование центрального объекта
       if (frame === 'sun') {
-        drawPoint(centerX, centerY, '#ffff00', 6); // Солнце
+        drawPoint(centerX, centerY, '#ffff00', 6);
       } else {
-        drawPoint(centerX, centerY, '#008000', 6); // Земля
-        // Солнце относительно Земли
+        drawPoint(centerX, centerY, '#008000', 6);
         const sunX = centerX - (earthPos.x - centerX);
         const sunY = centerY - (earthPos.y - centerY);
         drawPoint(sunX, sunY, '#ffff00', 6);
       }
       
-      // Рисование траекторий и планет (только для видимых планет)
       positions.forEach((pos, i) => {
         if (!planetVisibility[i]) return;
-        
         let drawX = pos.x;
         let drawY = pos.y;
-        
         if (frame === 'earth') {
           drawX = centerX + (pos.x - earthPos.x);
           drawY = centerY + (pos.y - earthPos.y);
         }
-        
-        // Добавление точки в траекторию
         trajectories[i].push({x: drawX, y: drawY});
         if (trajectories[i].length > 300) {
           trajectories[i].shift();
         }
-        
-        // Рисование траектории
         if (trajectories[i].length > 1) {
           ctx.beginPath();
           ctx.strokeStyle = pos.color;
           ctx.lineWidth = 1.5;
-          
           for (let j = 0; j < trajectories[i].length; j++) {
             const p = trajectories[i][j];
             if (j === 0) ctx.moveTo(p.x, p.y);
             else ctx.lineTo(p.x, p.y);
           }
-          
           ctx.stroke();
         }
-        
-        // Рисование планеты
         drawPoint(drawX, drawY, pos.color, 3);
       });
       
-      // Отображение информации по центру
       ctx.fillStyle = '#fff';
       ctx.font = '14px monospace';
       ctx.textAlign = 'center';
-      const infoText = `Days: ${Math.floor(t)} | Scale: ${scale.toFixed(2)}x | Speed: ${dt.toFixed(1)} days/frame`;
+      const infoText = `Scale: ${scale.toFixed(2)}x | Speed: ${dt.toFixed(1)}dpf`;
       ctx.fillText(infoText, canvas.width / 2, 12);
       
       if (!isPaused) {
         t += dt;
+        datePicker.value = getCurrentDate();
         if (t > 100000) t = 0;
         requestAnimationFrame(animate);
       }
