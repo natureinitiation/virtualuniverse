@@ -146,10 +146,10 @@
   <h1>Solar System</h1>
   <div class="speed-control">
     <div class="control-container">
-      <button id="pause-btn">Pause</button>
       <label for="date-picker">Date:</label>
-      <input type="date" id="date-picker" value="2000-01-01">
-    </div>
+<input type="date" id="date-picker" value="2000-01-01">
+      <button id="pause-btn">Pause</button>
+</div>
     <input type="range" id="speed-slider" class="speed-slider" min="0.1" max="1" step="0.1" value="0.3">
   </div>
   <div id="canvas-wrapper">
@@ -270,12 +270,13 @@
     });
     
     const datePicker = document.getElementById('date-picker');
-    datePicker.addEventListener('change', (e) => {
-      const selectedDate = new Date(e.target.value);
-      const msInDay = 86400000;
-      t = (selectedDate.getTime() - J2000.getTime()) / msInDay;
-      trajectories.forEach(arr => arr.length = 0);
-    });
+datePicker.addEventListener('change', (e) => {
+  const selectedDate = new Date(e.target.value + 'T12:00:00Z');
+  const msInDay = 86400000;
+  t = (selectedDate.getTime() - J2000.getTime()) / msInDay;
+  isPaused = true; // Автоматически ставим на паузу
+  pauseBtn.textContent = 'Resume'; // Обновляем текст кнопки
+});
     
     let isPaused = false;
     const pauseBtn = document.getElementById('pause-btn');
