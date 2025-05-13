@@ -379,7 +379,7 @@
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (lastTouchDistance !== null) {
-          const zoomIntensity = 0.0005;
+          const zoomIntensity = 0.00005;
           const delta = distance - lastTouchDistance;
           scale *= (1 + zoomIntensity * delta);
 
