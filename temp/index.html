@@ -33,7 +33,7 @@
       gap: 15px;
       padding-bottom: 5px;
       flex-wrap: wrap;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
     }
     #controls label {
       display: flex;
@@ -62,7 +62,7 @@
       flex-wrap: wrap;
       justify-content: center;
       gap: 10px;
-      margin: 10px;
+      margin: 5px;
       font-size: 0.8rem;
     }
     .legend-item {
@@ -93,7 +93,7 @@
     .help-link {
       position: center;
       text-align: center;
-      margin: 10px;
+      margin: 5px;
       top: 70px;
       color: #777;
       font-size: 18px;
@@ -105,8 +105,8 @@
     }
     .speed-control {
       width: 100%;
-      padding: 0 20px;
-      margin-top: 10px;
+      padding: 0 0px;
+      margin-top: 5px;
       text-align: center;
     }
     .speed-control label {
@@ -118,7 +118,7 @@
       margin-bottom: 0px;
     }
     #pause-btn, #reset-btn {
-      margin-bottom: 20px;
+      margin-bottom: 5px;
       padding: 5px 10px;
       background: #333;
       color: white;
@@ -129,7 +129,7 @@
   </style>
 </head>
 <body>
-  <h1>Solar System Orbital Trajectories Animation</h1>
+  <h1>Solar System</h1>
   
 
 
@@ -381,7 +381,7 @@
         if (lastTouchDistance !== null) {
           const zoomIntensity = 0.00005;
           const delta = distance - lastTouchDistance;
-          scale *= (1 + zoomIntensity * delta);
+          scale *= (0 + zoomIntensity * delta);
 
           resetTransform();
           draw();
