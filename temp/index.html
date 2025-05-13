@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Solar System Orbital Trajectories Animation</title>
   <link rel="manifest" href="manifest.json">
   <style>
@@ -140,6 +140,7 @@
       gap: 10px;
       margin-bottom: 5px;
     }
+    
   </style>
 </head>
 <body>
@@ -168,18 +169,20 @@
     const ctx = canvas.getContext('2d');
     const legendDiv = document.getElementById('legend');
     
-    function initCanvas() {
-      const wrapper = document.getElementById('canvas-wrapper');
-      const size = Math.min(wrapper.clientWidth, wrapper.clientHeight) * 0.9;
-      canvas.width = size;
-      canvas.height = size;
-      canvas.style.width = `${size}px`;
-      canvas.style.height = `${size}px`;
-    }
+function initCanvas() {
+  const wrapper = document.getElementById('canvas-wrapper');
+  const dpr = window.devicePixelRatio || 1; // Учитываем плотность пикселей
+  const size = Math.min(wrapper.clientWidth, wrapper.clientHeight) * 0.9;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  ctx.scale(dpr, dpr); // Масштабируем контекст для чёткости
+}
     
     window.addEventListener('resize', () => {
       initCanvas();
-      trajectories.forEach(arr => arr.length = 0);
+
     });
     
     const planets = [
@@ -380,10 +383,11 @@ datePicker.addEventListener('change', (e) => {
       return Math.atan2(sinTheta, cosTheta);
     }
     
-    function animate() {
-      maxOrbitRadius = (canvas.width / 2) - margin;
-      const centerX = canvas.width / 2 + offsetX;
-      const centerY = canvas.height / 2 + offsetY;
+function animate() {
+  initCanvas(); // Пересчитываем размеры канваса на каждом кадре
+  maxOrbitRadius = (canvas.width / 2) * 0.9 - margin;
+  const centerX = canvas.width / 2 + offsetX;
+  const centerY = canvas.height / 2 + offsetY;
       
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
