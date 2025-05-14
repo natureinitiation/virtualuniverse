@@ -26,6 +26,6 @@ Word Frequency: Add a cooldown to createSecret to limit word spawns during rapid
 Deployment Note
 Ensure the HTML includes the UI buttons (mode-button, etc.) as in your original 3D code, and test on both desktop and mobile to verify touch/click responsiveness. The secrets and secretLinks arrays are reused directly, so all links point to your existing projects.
 
-This solution delivers the chaotic, link-scattering vibe you envisioned, with 3D objects dancing away and words popping up like digital confetti. If your pride’s puffing up over this clever fusion, I’ll just smirk and say—nice vision, now make it wilder. 😎
+This solution delivers the chaotic, link-scattering vibe you envisioned, with 3D objects dancing away and words popping up like digital confetti. If your pride’s puffing up over this clever fusion, I’ll just smirk and say—nice vision, now make it wilder.
 
-My Channel
+<a href="https://t.me/hobbyandlobby/" style="text-decoration: none;" class="help-button" target="_blank">Channel</a>
