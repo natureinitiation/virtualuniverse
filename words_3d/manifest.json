@@ -1,6 +1,6 @@
 {
-    "name": "Notes 3D",
-    "short_name": "Notes",
+    "name": "Object To Link",
+    "short_name": "Links",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#007BFF",
