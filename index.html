@@ -18,6 +18,7 @@
             -ms-user-select: none; /* Для IE */
         }
         body { margin: 0; overflow: hidden; background: #000; }
+
     .mode-button {
     position: fixed;
     top: 10px;
@@ -27,8 +28,10 @@
     cursor: pointer;
     width: auto;
     height: auto;
-    padding: 15px; 
-    background: none;
+    padding: 10px 15px; 
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #fff;
+    border-radius: 8px;
     font-family: monospace;
     font-size: 18px;
     font-weight: normal;
@@ -36,8 +39,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0px solid white;
-    border-radius: 12px;
     text-align: center;
 }
 
@@ -50,8 +51,10 @@
     cursor: pointer;
     width: auto;
     height: auto;
-    padding: 15px; 
-    background: none; /* Убираем изображение */
+    padding: 10px 15px; 
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #fff;
+    border-radius: 8px;
     font-family: monospace;
     font-size: 18px;
     font-weight: normal;
@@ -59,8 +62,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0px solid white; /* Опционально */
-    border-radius: 12px; /* Опционально */
 }
 
     .fast-button {
@@ -72,8 +73,10 @@
     cursor: pointer;
     width: auto;
     height: auto;
-    padding: 15px; 
-    background: none; /* Убираем изображение */
+    padding: 10px 15px; 
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #fff;
+    border-radius: 8px;
     font-family: monospace;
     font-size: 18px;
     font-weight: normal;
@@ -81,8 +84,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0px solid white; /* Опционально */
-    border-radius: 12px; /* Опционально */
 }
 
     .go-button {
@@ -94,8 +95,10 @@
     cursor: pointer;
     width: auto;
     height: auto;
-    padding: 15px; 
-    background: none; /* Убираем изображение */
+    padding: 10px 15px; 
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #fff;
+    border-radius: 8px;
     font-family: monospace;
     font-size: 18px;
     font-weight: normal;
@@ -103,8 +106,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0px solid white; /* Опционально */
-    border-radius: 12px; /* Опционально */
 }
         
     .fore-button {
@@ -116,8 +117,10 @@
     cursor: pointer;
     width: auto;
     height: auto;
-    padding: 15px; 
-    background: none; /* Убираем изображение */
+    padding: 10px 15px; 
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #fff;
+    border-radius: 8px;
     font-family: monospace;
     font-size: 18px;
     font-weight: normal;
@@ -125,8 +128,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0px solid white; /* Опционально */
-    border-radius: 12px; /* Опционально */
 }
         
     .help-button {
@@ -138,8 +139,10 @@
     cursor: pointer;
     width: auto;
     height: auto;
-    padding: 15px; 
-    background: none; /* Убираем изображение */
+    padding: 10px 15px; 
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #fff;
+    border-radius: 8px;
     font-family: monospace;
     font-size: 18px;
     font-weight: normal;
@@ -147,8 +150,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0px solid white; /* Опционально */
-    border-radius: 12px; /* Опционально */
 }
         
         .hidden {
@@ -171,11 +172,11 @@
     </style>
 </head>
 <body>
-<div class="mode-button">Static</div>
-<div class="go-button">Voyage</div>
-<div class="fore-button">Push</div>
-<div class="slow-button">Slow</div>
-<div class="fast-button">Fast</div>
+    <div class="button mode-button">Static</div>
+    <div class="button go-button">Voyage</div>
+    <div class="button fore-button">Push</div>
+    <div class="button slow-button">Slow</div>
+    <div class="button fast-button">Fast</div>
 <a href="https://t.me/hobbyandlobby/" style="text-decoration: none;" class="help-button" target="_blank">Channel</a>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -238,7 +239,7 @@ lights.forEach(({ color, position }) => {
 });
 
 // Word-links
-const secrets = ['focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or'];
+const secrets = ['focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity'];
 
 
 // Object storage
@@ -531,8 +532,8 @@ const adjustCameraFocus = () => {
 };
 const foreButton = document.querySelector('.fore-button');
 foreButton.addEventListener('click', () => {
-    isMovingForward = !isMovingForward;
-    foreButton.innerText = isMovingForward ? "Push" : "Reel";
+    performCameraLunge();
+    foreButton.innerText = "Strike";
 });
 const goButton = document.querySelector('.go-button');
 let isMoving = false;
@@ -545,6 +546,60 @@ goButton.addEventListener('click', () => {
         targetVelocity.set(0, 0, 0);
     }
 });
+
+
+
+
+
+const performCameraLunge = () => {
+    const startPos = camera.position.clone();
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    const targetPos = startPos.clone().add(direction.multiplyScalar(10));
+    const duration = 0.5; // Секунды
+    const peakTime = 0.25; // Время до пика
+    let startTime = performance.now();
+
+    const scatterObjects = () => {
+        const scatterRadius = 15;
+        const scatterSpeed = 20;
+        [...staticObjects, ...polarObjects].forEach((obj) => {
+            const distance = obj.position.distanceTo(targetPos);
+            if (distance < scatterRadius) {
+                const scatterDirection = obj.position.clone().sub(targetPos).normalize();
+                obj.userData.scatterVelocity = scatterDirection.multiplyScalar(scatterSpeed);
+                obj.userData.scatterStart = performance.now();
+                obj.rotation.x += Math.random() * 0.5;
+                obj.rotation.y += Math.random() * 0.5;
+                obj.rotation.z += Math.random() * 0.5;
+            }
+        });
+    };
+
+    const animateLunge = () => {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const t = Math.min(elapsed / duration, 1);
+        const progress = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // Плавная анимация
+        if (t < peakTime / duration) {
+            camera.position.lerpVectors(startPos, targetPos, progress / (peakTime / duration));
+        } else {
+            camera.position.lerpVectors(targetPos, startPos, (progress - peakTime / duration) / (1 - peakTime / duration));
+        }
+        if (t >= peakTime / duration && !scatterObjects.called) {
+            scatterObjects();
+            scatterObjects.called = true;
+        }
+        if (t < 1) requestAnimationFrame(animateLunge);
+    };
+    scatterObjects.called = false;
+    animateLunge();
+};
+
+
+
+
+
+
 
 // Interaction handling
 document.addEventListener('click', handleInteraction);
