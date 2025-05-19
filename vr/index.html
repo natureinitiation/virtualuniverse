@@ -61,9 +61,9 @@
   <div class="button fore-button">Push</div>
   <div class="button slow-button">Slow</div>
   <div class="button fast-button">Fast</div>
-  <a href="https://t.me/hobbyandlobby/" class="button help-button" target="_blank">Fuse</a>
+  <a href="https://t.me/hobbyandlobby/" class="button help-button" target="_blank">Channel</a>
 
-  <a-scene vr-mode-ui="enabled: true">
+  <a-scene vr-mode-ui="enabled: true" raycaster="objects: [data-clickable]">
     <!-- Небо с анимацией цвета -->
     <a-sky id="sky" color="#007bff" animation__color="property: color; to: #7058a8; dur: 100000; loop: true; dir: alternate"></a-sky>
 
@@ -75,10 +75,14 @@
     <a-entity light="type: directional; color: #00ff00; intensity: 0.8; position: 0 10 0"></a-entity>
     <a-entity light="type: directional; color: #0000ff; intensity: 0.8; position: 0 0 10"></a-entity>
 
-    <!-- Камера с курсором -->
+    <!-- Камера с контроллером и курсором -->
     <a-camera position="0 1.6 0">
-      <a-cursor id="cursor"></a-cursor>
+      <a-cursor id="cursor" fuse="true" fuse-timeout="1000" raycaster="objects: [data-clickable]"></a-cursor>
+      <a-entity id="controller" laser-controls="hand: right" raycaster="objects: [data-clickable]" line="color: #FF0000; opacity: 0.5"></a-entity>
     </a-camera>
+
+    <!-- Невидимая плоскость для создания объектов -->
+    <a-plane id="creation-plane" position="0 1.6 -10" width="100" height="100" rotation="0 0 0" material="visible: false" data-clickable></a-plane>
   </a-scene>
 
   <script>
@@ -95,6 +99,7 @@
         scatterDeceleration: { type: 'float', default: 0.05 }
       },
       init: function () {
+        this.el.setAttribute('data-clickable', '');
         this.el.addEventListener('click', () => this.scatter());
         polarObjects.push(this.el);
       },
@@ -102,7 +107,6 @@
         const deltaS = delta / 1000;
         const obj = this.el.object3D;
 
-        // Обработка рассеивания
         if (this.data.scatterVelocity) {
           const elapsed = (time - this.data.scatterStart) / 1000;
           const sv = new THREE.Vector3().copy(this.data.scatterVelocity);
@@ -120,7 +124,6 @@
           }
         }
 
-        // Движение и вращение
         obj.position.add(new THREE.Vector3().copy(this.data.velocity).multiplyScalar(deltaS));
         obj.rotation.x += this.data.rotationSpeed.x * deltaS;
         obj.rotation.y += this.data.rotationSpeed.y * deltaS;
@@ -153,6 +156,7 @@
         scatterDeceleration: { type: 'float', default: 0.05 }
       },
       init: function () {
+        this.el.setAttribute('data-clickable', '');
         this.el.addEventListener('click', () => this.scatter());
         staticObjects.push(this.el);
       },
@@ -222,7 +226,7 @@
       return geometries[Math.floor(Math.random() * geometries.length)];
     }
 
-    function createFixObject() {
+    function createFixObject(position) {
       const size = Math.random() * 1 + 2;
       const geometry = createGeometry();
       const entity = document.createElement('a-entity');
@@ -234,9 +238,7 @@
         opacity: Math.random() * 0.8 + 0.4,
         transparent: true
       });
-      const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(document.querySelector('a-camera').object3D.quaternion);
-      const pos = new THREE.Vector3(0, 1.6, 0).add(direction.multiplyScalar(10));
-      entity.setAttribute('position', pos);
+      entity.setAttribute('position', position);
       entity.setAttribute('rotation', {
         x: Math.random() * 360,
         y: Math.random() * 360,
@@ -246,7 +248,7 @@
       document.querySelector('a-scene').appendChild(entity);
     }
 
-    function createPolarObject() {
+    function createPolarObject(position) {
       const size = Math.random() * 1 + 2;
       const geometry = createGeometry();
       const entity = document.createElement('a-entity');
@@ -258,9 +260,7 @@
         opacity: Math.random() * 0.5 + 0.5,
         transparent: true
       });
-      const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(document.querySelector('a-camera').object3D.quaternion);
-      const pos = new THREE.Vector3(0, 1.6, 0).add(direction.multiplyScalar(10));
-      entity.setAttribute('position', pos);
+      entity.setAttribute('position', position);
       entity.setAttribute('polar-object', {
         rotationSpeed: {
           x: (Math.random() - 0.5) * 0.05,
@@ -478,23 +478,33 @@
       cameraVelocity.multiplyScalar(1.5);
     });
 
-    // Обработка кликов для создания/удаления объектов
-    document.querySelector('a-scene').addEventListener('click', (event) => {
+    // Обработка взаимодействий
+    function handleInteraction(event) {
+      // Пропускаем, если клик по UI
       if (event.target.closest('.button')) return;
-      if (mode === 'Delete') {
-        const cursor = document.querySelector('#cursor');
-        const intersected = cursor.components.raycaster.intersectedEls[0];
-        if (intersected) {
-          intersected.remove();
-          staticObjects.splice(staticObjects.indexOf(intersected), 1);
-          polarObjects.splice(polarObjects.indexOf(intersected), 1);
+
+      const cursor = document.querySelector('#cursor');
+      const controller = document.querySelector('#controller');
+      const intersected = cursor.components.raycaster.intersectedEls[0] || controller.components.raycaster.intersectedEls[0];
+
+      if (mode === 'Delete' && intersected) {
+        intersected.remove();
+        staticObjects.splice(staticObjects.indexOf(intersected), 1);
+        polarObjects.splice(polarObjects.indexOf(intersected), 1);
+      } else if ((mode === 'Fix' || mode === 'Polar') && intersected && intersected.id === 'creation-plane') {
+        const point = intersected.components.raycaster.getIntersection(cursor || controller).point;
+        if (mode === 'Fix') {
+          createFixObject(point);
+        } else {
+          createPolarObject(point);
         }
-      } else if (mode === 'Fix') {
-        createFixObject();
-      } else if (mode === 'Polar') {
-        createPolarObject();
       }
-    });
+    }
+
+    // События для мыши, касаний и контроллера
+    document.querySelector('a-scene').addEventListener('click', handleInteraction);
+    document.querySelector('a-scene').addEventListener('touchstart', handleInteraction);
+    document.querySelector('#controller').addEventListener('triggerdown', handleInteraction);
 
     // Движение камеры
     AFRAME.registerComponent('camera-movement', {
