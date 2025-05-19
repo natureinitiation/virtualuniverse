@@ -4,6 +4,16 @@
   <meta charset="utf-8">
   <title>VR Scene for Oculus Go</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <style>
+    /* Центрирование кнопки Enter VR */
+    .a-enter-vr {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+    }
+  </style>
 </head>
 <body>
   <a-scene vr-mode-ui="enabled: true">
@@ -33,11 +43,22 @@
     <!-- Камера с курсором и контроллером -->
     <a-camera position="0 1.6 0">
       <a-cursor fuse="true" fuse-timeout="1000"></a-cursor>
-      <a-entity id="controller" laser-controls="hand: right" raycaster="objects: .clickable" line="color: #FF0000; opacity: 0.5"></a-entity>
+      <a-entity id="controller" laser-controls="hand: right"></a-entity>
     </a-camera>
   </a-scene>
 
   <script>
+    // Лог загрузки сцены
+    document.addEventListener('DOMContentLoaded', () => {
+      const scene = document.querySelector('a-scene');
+      scene.addEventListener('loaded', () => {
+        console.log('Scene loaded');
+      });
+      scene.addEventListener('enter-vr', () => {
+        console.log('Entered VR mode');
+      });
+    });
+
     // Создание нового объекта (куб или сфера) по триггеру
     function createObject() {
       const isCube = Math.random() < 0.5;
