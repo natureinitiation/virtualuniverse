@@ -1,542 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Space Polarity</title>
-  <link rel="manifest" href="manifest.json">
+  <meta charset="utf-8">
+  <title>VR Scene for Oculus Go</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <style>
-    body {
-      user-select: none;
-      margin: 0;
-      overflow: hidden;
-      background: #000;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-    }
-
-    .secret {
-      position: fixed;
-      transform: translate(-50%, -50%);
-      font-family: monospace;
-      font-size: 18px;
-      color: white;
-      text-decoration: none;
-      padding: 10px;
-      border-radius: 8px;
-      pointer-events: auto;
-      z-index: 1000;
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-  </style>
 </head>
 <body>
-  <a-scene vr-mode-ui="enabled: true" raycaster="objects: [data-clickable]">
-    <!-- Небо с анимацией цвета -->
-    <a-sky id="sky" color="#007bff" animation__color="property: color; to: #7058a8; dur: 100000; loop: true; dir: alternate"></a-sky>
+  <a-scene vr-mode-ui="enabled: true">
+    <!-- Небо как фон -->
+    <a-sky color="#87CEEB"></a-sky>
+
+    <!-- Начальный вращающийся куб -->
+    <a-box
+      position="0 1.5 -3"
+      color="#FF6347"
+      depth="1" height="1" width="1"
+      animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear">
+    </a-box>
+
+    <!-- Начальная сфера с анимацией цвета -->
+    <a-sphere
+      position="2 1 -4"
+      radius="0.5"
+      color="#FFD700"
+      animation__color="property: color; to: #00CED1; dur: 2000; loop: true; dir: alternate; easing: easeInOutSine">
+    </a-sphere>
 
     <!-- Освещение -->
-    <a-entity light="type: ambient; color: #FFF; intensity: 0.5"></a-entity>
-    <a-entity light="type: directional; color: #FFF; intensity: 1; position: 10 10 10"></a-entity>
-    <a-entity light="type: directional; color: #3f00ff; intensity: 0.8; position: -10 -10 -10"></a-entity>
-    <a-entity light="type: directional; color: #ff0000; intensity: 0.8; position: 10 0 0"></a-entity>
-    <a-entity light="type: directional; color: #00ff00; intensity: 0.8; position: 0 10 0"></a-entity>
-    <a-entity light="type: directional; color: #0000ff; intensity: 0.8; position: 0 0 10"></a-entity>
+    <a-light type="ambient" color="#FFF" intensity="0.5"></a-light>
+    <a-light type="directional" color="#FFF" intensity="0.5" position="1 1 1"></a-light>
 
-    <!-- Камера с контроллером и курсором -->
+    <!-- Камера с курсором и контроллером -->
     <a-camera position="0 1.6 0">
-      <a-cursor id="cursor" fuse="true" fuse-timeout="1000" raycaster="objects: [data-clickable]"></a-cursor>
-      <a-entity id="controller" laser-controls="hand: right" raycaster="objects: [data-clickable]" line="color: #FF0000; opacity: 0.5"></a-entity>
+      <a-cursor fuse="true" fuse-timeout="1000"></a-cursor>
+      <a-entity id="controller" laser-controls="hand: right" raycaster="objects: .clickable" line="color: #FF0000; opacity: 0.5"></a-entity>
     </a-camera>
-
-    <!-- 3D UI -->
-    <a-entity id="ui" position="0 1.6 -3">
-      <a-entity id="mode-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Static; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="-1.2 0.4 0"></a-entity>
-      <a-entity id="go-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Voyage; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="0 0 0"></a-entity>
-      <a-entity id="fore-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Push; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="1.2 0.4 0"></a-entity>
-      <a-entity id="slow-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Slow; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="-1.2 -0.4 0"></a-entity>
-      <a-entity id="fast-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Fast; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="1.2 -0.4 0"></a-entity>
-      <a-entity id="help-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Channel; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="0 0.4 0"></a-entity>
-    </a-entity>
   </a-scene>
 
   <script>
-    // Регистрация компонентов A-Frame
-    AFRAME.registerComponent('polar-object', {
-      schema: {
-        velocity: { type: 'vec3', default: { x: 0, y: 0, z: 0 } },
-        rotationSpeed: { type: 'vec3', default: { x: 0, y: 0, z: 0 } },
-        mass: { type: 'float', default: 1 },
-        polarity: { type: 'int', default: 1 },
-        scatterVelocity: { type: 'vec3', default: null },
-        scatterStart: { type: 'float', default: null },
-        scatterDuration: { type: 'float', default: 1.0 },
-        scatterDeceleration: { type: 'float', default: 0.05 }
-      },
-      init: function () {
-        this.el.setAttribute('data-clickable', '');
-        this.el.addEventListener('click', () => this.scatter());
-        polarObjects.push(this.el);
-      },
-      tick: function (time, delta) {
-        const deltaS = delta / 1000;
-        const obj = this.el.object3D;
-
-        if (this.data.scatterVelocity) {
-          const elapsed = (time - this.data.scatterStart) / 1000;
-          const sv = new THREE.Vector3().copy(this.data.scatterVelocity);
-          if (elapsed < this.data.scatterDuration) {
-            obj.position.add(sv.multiplyScalar(deltaS));
-          } else {
-            sv.multiplyScalar(1 - this.data.scatterDeceleration);
-            if (sv.length() < 0.01) {
-              this.data.scatterVelocity = null;
-              this.data.scatterStart = null;
-            } else {
-              obj.position.add(sv.multiplyScalar(deltaS));
-              this.data.scatterVelocity = sv;
-            }
-          }
-        }
-
-        obj.position.add(new THREE.Vector3().copy(this.data.velocity).multiplyScalar(deltaS));
-        obj.rotation.x += this.data.rotationSpeed.x * deltaS;
-        obj.rotation.y += this.data.rotationSpeed.y * deltaS;
-        obj.rotation.z += this.data.rotationSpeed.z * deltaS;
-      },
-      scatter: function () {
-        console.log('Scattering object:', this.el);
-        const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
-        const speed = 15 + Math.random() * 10;
-        this.data.scatterVelocity = direction.multiplyScalar(speed);
-        this.data.scatterStart = performance.now();
-        this.el.object3D.rotation.x += Math.random() * 0.5;
-        this.el.object3D.rotation.y += Math.random() * 0.5;
-        this.el.object3D.rotation.z += Math.random() * 0.5;
-
-        if (Math.random() < 0.3) {
-          const pos = this.el.object3D.position.clone();
-          const pos2D = pos.project(this.el.sceneEl.camera);
-          const wordX = (pos2D.x * 0.5 + 0.5) * window.innerWidth;
-          const wordY = (-pos2D.y * 0.5 + 0.5) * window.innerHeight;
-          createSecret(wordX, wordY);
-        }
-      }
-    });
-
-    AFRAME.registerComponent('static-object', {
-      schema: {
-        scatterVelocity: { type: 'vec3', default: null },
-        scatterStart: { type: 'float', default: null },
-        scatterDuration: { type: 'float', default: 1.0 },
-        scatterDeceleration: { type: 'float', default: 0.05 }
-      },
-      init: function () {
-        this.el.setAttribute('data-clickable', '');
-        this.el.addEventListener('click', () => this.scatter());
-        staticObjects.push(this.el);
-      },
-      tick: function (time, delta) {
-        const deltaS = delta / 1000;
-        const obj = this.el.object3D;
-
-        if (this.data.scatterVelocity) {
-          const elapsed = (time - this.data.scatterStart) / 1000;
-          const sv = new THREE.Vector3().copy(this.data.scatterVelocity);
-          if (elapsed < this.data.scatterDuration) {
-            obj.position.add(sv.multiplyScalar(deltaS));
-          } else {
-            sv.multiplyScalar(1 - this.data.scatterDeceleration);
-            if (sv.length() < 0.01) {
-              this.data.scatterVelocity = null;
-              this.data.scatterStart = null;
-            } else {
-              obj.position.add(sv.multiplyScalar(deltaS));
-              this.data.scatterVelocity = sv;
-            }
-          }
-        }
-      },
-      scatter: function () {
-        console.log('Scattering object:', this.el);
-        const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
-        const speed = 15 + Math.random() * 10;
-        this.data.scatterVelocity = direction.multiplyScalar(speed);
-        this.data.scatterStart = performance.now();
-        this.el.object3D.rotation.x += Math.random() * 0.5;
-        this.el.object3D.rotation.y += Math.random() * 0.5;
-        this.el.object3D.rotation.z += Math.random() * 0.5;
-
-        if (Math.random() < 0.3) {
-          const pos = this.el.object3D.position.clone();
-          const pos2D = pos.project(this.el.sceneEl.camera);
-          const wordX = (pos2D.x * 0.5 + 0.5) * window.innerWidth;
-          const wordY = (-pos2D.y * 0.5 + 0.5) * window.innerHeight;
-          createSecret(wordX, wordY);
-        }
-      }
-    });
-
-    AFRAME.registerComponent('physics-manager', {
-      tick: function () {
-        applyCameraRepulsion();
-        if (mode === 'Polar') handlePolarInteractions();
-        handlePolarAndStaticInteractions();
-        applyDeceleration();
-      }
-    });
-
-    // Глобальные переменные и функции
-    const staticObjects = [];
-    const polarObjects = [];
-    const activePoints = [];
-    const secrets = ['focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity'];
-    let mode = 'Fix';
-    let isMoving = false;
-    let cameraVelocity = new THREE.Vector3();
-    let targetVelocity = new THREE.Vector3();
-    const acceleration = 0.001;
-    const deceleration = 0.01;
-
-    function createGeometry() {
-      const geometries = ['box', 'tetrahedron', 'icosahedron', 'octahedron', 'dodecahedron'];
-      return geometries[Math.floor(Math.random() * geometries.length)];
-    }
-
-    function createFixObject() {
-      const size = Math.random() * 1 + 2;
-      const geometry = createGeometry();
-      const entity = document.createElement('a-entity');
-      entity.setAttribute('geometry', `primitive: ${geometry}; size: ${size}`);
-      entity.setAttribute('material', {
-        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        roughness: Math.random() * 0.8 + 0.1,
-        metalness: Math.random() * 0.8 + 0.2,
-        opacity: Math.random() * 0.8 + 0.4,
-        transparent: true
-      });
+    // Создание нового объекта (куб или сфера) по триггеру
+    function createObject() {
+      const isCube = Math.random() < 0.5;
+      const entity = document.createElement(isCube ? 'a-box' : 'a-sphere');
+      
+      // Позиция: 3 метра впереди камеры
       const camera = document.querySelector('a-camera').object3D;
       const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-      const position = camera.position.clone().add(direction.multiplyScalar(10));
-      entity.setAttribute('position', position);
-      entity.setAttribute('rotation', {
-        x: Math.random() * 360,
-        y: Math.random() * 360,
-        z: Math.random() * 360
-      });
-      entity.setAttribute('static-object', '');
-      entity.setAttribute('data-clickable', '');
-      document.querySelector('a-scene').appendChild(entity);
-      console.log('Created Fix object at:', position);
-    }
+      const position = camera.position.clone().add(direction.multiplyScalar(3));
 
-    function createPolarObject() {
-      const size = Math.random() * 1 + 2;
-      const geometry = createGeometry();
-      const entity = document.createElement('a-entity');
-      entity.setAttribute('geometry', `primitive: ${geometry}; size: ${size}`);
-      entity.setAttribute('material', {
-        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        roughness: Math.random(),
-        metalness: Math.random(),
-        opacity: Math.random() * 0.5 + 0.5,
-        transparent: true
-      });
-      const camera = document.querySelector('a-camera').object3D;
-      const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-      const position = camera.position.clone().add(direction.multiplyScalar(10));
-      entity.setAttribute('position', position);
-      entity.setAttribute('polar-object', {
-        rotationSpeed: {
-          x: (Math.random() - 0.5) * 0.05,
-          y: (Math.random() - 0.5) * 0.05,
-          z: (Math.random() - 0.5) * 0.05
-        },
-        mass: Math.random() * 5 + 1,
-        polarity: Math.random() < 0.5 ? 1 : -1
-      });
-      entity.setAttribute('data-clickable', '');
-      document.querySelector('a-scene').appendChild(entity);
-      console.log('Created Polar object at:', position);
-    }
-
-    function createSecret(x, y) {
-      const secret = document.createElement('a');
-      secret.className = 'secret';
-      const word = secrets[Math.floor(Math.random() * secrets.length)];
-      secret.textContent = word;
-      secret.style.cssText = `
-        position: fixed; left: ${x}px; top: ${y}px; transform: translate(-50%, -50%); opacity: 0;
-        font-family: monospace; font-size: 18px; color: white; text-decoration: none;
-        padding: 10px; border-radius: 8px; pointer-events: auto; z-index: 1000;
-      `;
-      document.body.appendChild(secret);
-
-      const rect = secret.getBoundingClientRect();
-      const minWordDistance = Math.max(rect.width, rect.height) + 20;
-      if (isWordOccupied(x, y, minWordDistance)) {
-        secret.remove();
-        return;
-      }
-
-      activePoints.push({ x, y, timestamp: Date.now(), isWord: true });
-
-      setTimeout(() => {
-        secret.style.opacity = 1;
-        secret.style.transform = 'translate(-50%, -50%) scale(1)';
-      }, 10);
-
-      setTimeout(() => {
-        secret.style.opacity = 0;
-        secret.style.transform = 'translate(-50%, -50%) scale(0.8)';
-      }, 8000);
-
-      setTimeout(() => {
-        secret.remove();
-        const index = activePoints.findIndex(p => p.x === x && p.y === y && p.isWord);
-        if (index !== -1) activePoints.splice(index, 1);
-      }, 8500);
-    }
-
-    function isWordOccupied(x, y, minDistance) {
-      return activePoints.some(point => {
-        if (!point.isWord) return false;
-        const dx = point.x - x;
-        const dy = point.y - y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        return distance < minDistance;
-      });
-    }
-
-    function applyCameraRepulsion() {
-      const repulsionDistance = 15;
-      const repulsionStrength = 0.05;
-      const cameraPos = document.querySelector('a-camera').object3D.position;
-      [...staticObjects, ...polarObjects].forEach((el) => {
-        const objPos = el.object3D.position;
-        const distance = cameraPos.distanceTo(objPos);
-        if (distance < repulsionDistance) {
-          const direction = objPos.clone().sub(cameraPos).normalize();
-          const force = direction.multiplyScalar((repulsionDistance - distance) * repulsionStrength);
-          if (el.components['polar-object']) {
-            el.components['polar-object'].data.velocity.add(force);
-          } else if (!el.components['static-object'].data.scatterVelocity) {
-            objPos.add(force);
-          }
-        }
-      });
-    }
-
-    function handlePolarInteractions() {
-      for (let i = 0; i < polarObjects.length; i++) {
-        for (let j = i + 1; j < polarObjects.length; j++) {
-          const objA = polarObjects[i].object3D;
-          const objB = polarObjects[j].object3D;
-          const distance = objA.position.distanceTo(objB.position);
-          if (distance < 1) {
-            const direction = objB.position.clone().sub(objA.position).normalize();
-            const polarityEffect = polarObjects[i].components['polar-object'].data.polarity * polarObjects[j].components['polar-object'].data.polarity;
-            const force = direction.multiplyScalar(polarityEffect * 0.05);
-            polarObjects[i].components['polar-object'].data.velocity.add(force.clone().multiplyScalar(-1 / polarObjects[i].components['polar-object'].data.mass));
-            polarObjects[j].components['polar-object'].data.velocity.add(force.clone().multiplyScalar(1 / polarObjects[j].components['polar-object'].data.mass));
-          }
-        }
-      }
-    }
-
-    function handlePolarAndStaticInteractions() {
-      polarObjects.forEach((polarEl) => {
-        staticObjects.forEach((staticEl) => {
-          const polarPos = polarEl.object3D.position;
-          const staticPos = staticEl.object3D.position;
-          const distance = polarPos.distanceTo(staticPos);
-          if (distance < 15) {
-            const direction = staticPos.clone().sub(polarPos).normalize();
-            const repulsionForce = direction.multiplyScalar(0.005 * (8 - distance));
-            if (!staticEl.components['static-object'].data.scatterVelocity) {
-              staticPos.add(repulsionForce);
-            }
-            polarEl.components['polar-object'].data.velocity.add(repulsionForce.clone().multiplyScalar(-1 / polarEl.components['polar-object'].data.mass));
-          }
+      if (isCube) {
+        entity.setAttribute('depth', '1');
+        entity.setAttribute('height', '1');
+        entity.setAttribute('width', '1');
+        entity.setAttribute('color', '#FF6347');
+        entity.setAttribute('animation', {
+          property: 'rotation',
+          to: '0 360 0',
+          loop: true,
+          dur: 4000,
+          easing: 'linear'
         });
-      });
-    }
-
-    function applyDeceleration() {
-      polarObjects.forEach((el) => {
-        const comp = el.components['polar-object'];
-        if (comp.data.scatterVelocity) return;
-        const vel = new THREE.Vector3().copy(comp.data.velocity);
-        if (vel.length() > 0) {
-          vel.multiplyScalar(1 - 0.003);
-          if (vel.length() < 0.001) {
-            comp.data.velocity.set(0, 0, 0);
-          } else {
-            comp.data.velocity.copy(vel);
-          }
-        }
-      });
-    }
-
-    function performCameraLunge() {
-      const camera = document.querySelector('a-camera').object3D;
-      const startPos = camera.position.clone();
-      const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-      const targetPos = startPos.clone().add(direction.multiplyScalar(10));
-      const duration = 0.5;
-      const peakTime = 0.25;
-      let startTime = performance.now();
-
-      const scatterObjects = () => {
-        const scatterRadius = 15;
-        const scatterSpeed = 20;
-        [...staticObjects, ...polarObjects].forEach((el) => {
-          const distance = el.object3D.position.distanceTo(targetPos);
-          if (distance < scatterRadius) {
-            const scatterDirection = el.object3D.position.clone().sub(targetPos).normalize();
-            const comp = el.components['static-object'] || el.components['polar-object'];
-            comp.data.scatterVelocity = scatterDirection.multiplyScalar(scatterSpeed);
-            comp.data.scatterStart = performance.now();
-            el.object3D.rotation.x += Math.random() * 0.5;
-            el.object3D.rotation.y += Math.random() * 0.5;
-            el.object3D.rotation.z += Math.random() * 0.5;
-          }
+      } else {
+        entity.setAttribute('radius', '0.5');
+        entity.setAttribute('color', '#FFD700');
+        entity.setAttribute('animation__color', {
+          property: 'color',
+          to: '#00CED1',
+          dur: 2000,
+          loop: true,
+          dir: 'alternate',
+          easing: 'easeInOutSine'
         });
-      };
+      }
 
-      const animateLunge = () => {
-        const elapsed = (performance.now() - startTime) / 1000;
-        const t = Math.min(elapsed / duration, 1);
-        const progress = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-        if (t < peakTime / duration) {
-          camera.position.lerpVectors(startPos, targetPos, progress / (peakTime / duration));
-        } else {
-          camera.position.lerpVectors(targetPos, startPos, (progress - peakTime / duration) / (1 - peakTime / duration));
-        }
-        if (t >= peakTime / duration && !animateLunge.called) {
-          scatterObjects();
-          animateLunge.called = true;
-        }
-        if (t < 1) requestAnimationFrame(animateLunge);
-      };
-      animateLunge.called = false;
-      animateLunge();
+      entity.setAttribute('position', position);
+      document.querySelector('a-scene').appendChild(entity);
+      console.log(`Created ${isCube ? 'cube' : 'sphere'} at:`, position);
     }
 
-    // Обработчики 3D UI
-    const modeButton = document.querySelector('#mode-button');
-    modeButton.addEventListener('click', () => {
-      if (mode === 'Fix') {
-        mode = 'Polar';
-        modeButton.setAttribute('text', 'value: Dynamic');
-      } else if (mode === 'Polar') {
-        mode = 'Delete';
-        modeButton.setAttribute('text', 'value: Delete');
-      } else {
-        mode = 'Fix';
-        modeButton.setAttribute('text', 'value: Static');
-      }
-      console.log('Mode changed to:', mode);
-    });
-
-    const goButton = document.querySelector('#go-button');
-    goButton.addEventListener('click', () => {
-      isMoving = !isMoving;
-      goButton.setAttribute('text', `value: ${isMoving ? 'Stop' : 'Voyage'}`);
-      if (isMoving) {
-        const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(document.querySelector('a-camera').object3D.quaternion);
-        targetVelocity.copy(direction);
-      } else {
-        targetVelocity.set(0, 0, 0);
-      }
-      console.log('Movement:', isMoving);
-    });
-
-    const foreButton = document.querySelector('#fore-button');
-    foreButton.addEventListener('click', () => {
-      performCameraLunge();
-      foreButton.setAttribute('text', 'value: Strike');
-      console.log('Lunge triggered');
-    });
-
-    const slowButton = document.querySelector('#slow-button');
-    slowButton.addEventListener('click', () => {
-      cameraVelocity.multiplyScalar(0.5);
-      console.log('Slowed camera velocity:', cameraVelocity);
-    });
-
-    const fastButton = document.querySelector('#fast-button');
-    fastButton.addEventListener('click', () => {
-      cameraVelocity.multiplyScalar(1.5);
-      console.log('Increased camera velocity:', cameraVelocity);
-    });
-
-    const helpButton = document.querySelector('#help-button');
-    helpButton.addEventListener('click', () => {
-      window.open('https://t.me/hobbyandlobby/', '_blank');
-      console.log('Opened Telegram channel');
-    });
-
-    // Обработка взаимодействий сцены
-    function handleSceneInteraction(event) {
-      console.log('Scene interaction triggered:', event.type);
-      const cursor = document.querySelector('#cursor');
-      const controller = document.querySelector('#controller');
-      const intersected = (cursor.components.raycaster.intersectedEls[0] || controller.components.raycaster.intersectedEls[0]);
-
-      if (intersected && (intersected.components['static-object'] || intersected.components['polar-object'])) {
-        if (mode === 'Delete') {
-          console.log('Deleting object:', intersected);
-          intersected.remove();
-          const index = staticObjects.indexOf(intersected);
-          if (index !== -1) staticObjects.splice(index, 1);
-          else polarObjects.splice(polarObjects.indexOf(intersected), 1);
-        }
-      } else if (mode === 'Fix' || mode === 'Polar') {
-        console.log('Creating object in mode:', mode);
-        if (mode === 'Fix') {
-          createFixObject();
-        } else {
-          createPolarObject();
-        }
-      }
-    }
-
-    // Привязка событий
-    const scene = document.querySelector('a-scene');
+    // Обработка нажатия триггера
     const controller = document.querySelector('#controller');
-
-    // Сцена: триггер, взгляд, мышь, касания
-    scene.addEventListener('click', handleSceneInteraction);
-    scene.addEventListener('touchstart', handleSceneInteraction);
-    controller.addEventListener('triggerdown', handleSceneInteraction);
-
-    // UI: тачпад
-    controller.addEventListener('trackpadtouched', (event) => {
-      console.log('Trackpad touched');
-      const intersected = controller.components.raycaster.intersectedEls[0];
-      if (intersected && intersected.id.includes('button')) {
-        intersected.dispatchEvent(new Event('click'));
-      }
+    controller.addEventListener('triggerdown', () => {
+      console.log('Trigger pressed');
+      createObject();
     });
-
-    // Движение камеры
-    AFRAME.registerComponent('camera-movement', {
-      tick: function (time, delta) {
-        const deltaS = delta / 1000;
-        if (isMoving) {
-          cameraVelocity.lerp(targetVelocity, acceleration);
-        } else {
-          cameraVelocity.lerp(new THREE.Vector3(), deceleration);
-        }
-        this.el.object3D.position.add(cameraVelocity.clone().multiplyScalar(deltaS));
-      }
-    });
-
-    document.querySelector('a-camera').setAttribute('camera-movement', '');
-    document.querySelector('a-scene').setAttribute('physics-manager', '');
   </script>
 </body>
 </html>
