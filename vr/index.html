@@ -17,29 +17,6 @@
       -ms-user-select: none;
     }
 
-    .mode-button, .go-button, .fore-button, .slow-button, .fast-button, .help-button {
-      position: fixed;
-      z-index: 1000;
-      cursor: pointer;
-      padding: 10px 15px;
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid #fff;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 18px;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .mode-button { top: 10px; left: 20%; transform: translateX(-50%); }
-    .go-button { bottom: 10px; left: 50%; transform: translateX(-50%); }
-    .fore-button { top: 10px; left: 80%; transform: translateX(-50%); }
-    .slow-button { bottom: 10px; left: 20%; transform: translateX(-50%); }
-    .fast-button { bottom: 10px; left: 80%; transform: translateX(-50%); }
-    .help-button { top: 10px; left: 50%; transform: translateX(-50%); }
-
     .secret {
       position: fixed;
       transform: translate(-50%, -50%);
@@ -56,13 +33,6 @@
   </style>
 </head>
 <body>
-  <div class="button mode-button">Static</div>
-  <div class="button go-button">Voyage</div>
-  <div class="button fore-button">Push</div>
-  <div class="button slow-button">Slow</div>
-  <div class="button fast-button">Fast</div>
-  <a href="https://t.me/hobbyandlobby/" class="button help-button" target="_blank">Channel</a>
-
   <a-scene vr-mode-ui="enabled: true" raycaster="objects: [data-clickable]">
     <!-- Небо с анимацией цвета -->
     <a-sky id="sky" color="#007bff" animation__color="property: color; to: #7058a8; dur: 100000; loop: true; dir: alternate"></a-sky>
@@ -81,8 +51,15 @@
       <a-entity id="controller" laser-controls="hand: right" raycaster="objects: [data-clickable]" line="color: #FF0000; opacity: 0.5"></a-entity>
     </a-camera>
 
-    <!-- Плоскость для создания объектов (полупрозрачная для отладки) -->
-    <a-plane id="creation-plane" position="0 1.6 -10" width="100" height="100" rotation="0 0 0" material="color: #FFFFFF; opacity: 0.1" data-clickable></a-plane>
+    <!-- 3D UI -->
+    <a-entity id="ui" position="0 1.6 -3">
+      <a-entity id="mode-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Static; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="-1.2 0.4 0"></a-entity>
+      <a-entity id="go-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Voyage; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="0 0 0"></a-entity>
+      <a-entity id="fore-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Push; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="1.2 0.4 0"></a-entity>
+      <a-entity id="slow-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Slow; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="-1.2 -0.4 0"></a-entity>
+      <a-entity id="fast-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Fast; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="1.2 -0.4 0"></a-entity>
+      <a-entity id="help-button" geometry="primitive: plane; width: 0.5; height: 0.2" material="color: #000; opacity: 0.4" text="value: Channel; align: center; color: #FFF; font: monoid; width: 1" data-clickable position="0 0.4 0"></a-entity>
+    </a-entity>
   </a-scene>
 
   <script>
@@ -130,6 +107,7 @@
         obj.rotation.z += this.data.rotationSpeed.z * deltaS;
       },
       scatter: function () {
+        console.log('Scattering object:', this.el);
         const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
         const speed = 15 + Math.random() * 10;
         this.data.scatterVelocity = direction.multiplyScalar(speed);
@@ -182,6 +160,7 @@
         }
       },
       scatter: function () {
+        console.log('Scattering object:', this.el);
         const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
         const speed = 15 + Math.random() * 10;
         this.data.scatterVelocity = direction.multiplyScalar(speed);
@@ -226,7 +205,7 @@
       return geometries[Math.floor(Math.random() * geometries.length)];
     }
 
-    function createFixObject(position) {
+    function createFixObject() {
       const size = Math.random() * 1 + 2;
       const geometry = createGeometry();
       const entity = document.createElement('a-entity');
@@ -238,6 +217,9 @@
         opacity: Math.random() * 0.8 + 0.4,
         transparent: true
       });
+      const camera = document.querySelector('a-camera').object3D;
+      const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+      const position = camera.position.clone().add(direction.multiplyScalar(10));
       entity.setAttribute('position', position);
       entity.setAttribute('rotation', {
         x: Math.random() * 360,
@@ -247,9 +229,10 @@
       entity.setAttribute('static-object', '');
       entity.setAttribute('data-clickable', '');
       document.querySelector('a-scene').appendChild(entity);
+      console.log('Created Fix object at:', position);
     }
 
-    function createPolarObject(position) {
+    function createPolarObject() {
       const size = Math.random() * 1 + 2;
       const geometry = createGeometry();
       const entity = document.createElement('a-entity');
@@ -261,6 +244,9 @@
         opacity: Math.random() * 0.5 + 0.5,
         transparent: true
       });
+      const camera = document.querySelector('a-camera').object3D;
+      const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+      const position = camera.position.clone().add(direction.multiplyScalar(10));
       entity.setAttribute('position', position);
       entity.setAttribute('polar-object', {
         rotationSpeed: {
@@ -273,6 +259,7 @@
       });
       entity.setAttribute('data-clickable', '');
       document.querySelector('a-scene').appendChild(entity);
+      console.log('Created Polar object at:', position);
     }
 
     function createSecret(x, y) {
@@ -438,76 +425,82 @@
       animateLunge();
     }
 
-    // Обработчики кнопок (навигация через тачпад)
-    const modeButton = document.querySelector('.mode-button');
+    // Обработчики 3D UI
+    const modeButton = document.querySelector('#mode-button');
     modeButton.addEventListener('click', () => {
       if (mode === 'Fix') {
         mode = 'Polar';
-        modeButton.innerText = 'Dynamic';
+        modeButton.setAttribute('text', 'value: Dynamic');
       } else if (mode === 'Polar') {
         mode = 'Delete';
-        modeButton.innerText = 'Delete';
+        modeButton.setAttribute('text', 'value: Delete');
       } else {
         mode = 'Fix';
-        modeButton.innerText = 'Static';
+        modeButton.setAttribute('text', 'value: Static');
       }
+      console.log('Mode changed to:', mode);
     });
 
-    const goButton = document.querySelector('.go-button');
+    const goButton = document.querySelector('#go-button');
     goButton.addEventListener('click', () => {
       isMoving = !isMoving;
-      goButton.innerText = isMoving ? 'Stop' : 'Voyage';
+      goButton.setAttribute('text', `value: ${isMoving ? 'Stop' : 'Voyage'}`);
       if (isMoving) {
         const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(document.querySelector('a-camera').object3D.quaternion);
         targetVelocity.copy(direction);
       } else {
         targetVelocity.set(0, 0, 0);
       }
+      console.log('Movement:', isMoving);
     });
 
-    const foreButton = document.querySelector('.fore-button');
+    const foreButton = document.querySelector('#fore-button');
     foreButton.addEventListener('click', () => {
       performCameraLunge();
-      foreButton.innerText = 'Strike';
+      foreButton.setAttribute('text', 'value: Strike');
+      console.log('Lunge triggered');
     });
 
-    const slowButton = document.querySelector('.slow-button');
-    const fastButton = document.querySelector('.fast-button');
+    const slowButton = document.querySelector('#slow-button');
     slowButton.addEventListener('click', () => {
       cameraVelocity.multiplyScalar(0.5);
-    });
-    fastButton.addEventListener('click', () => {
-      cameraVelocity.multiplyScalar(1.5);
+      console.log('Slowed camera velocity:', cameraVelocity);
     });
 
-    // Обработка взаимодействий сцены (триггер, взгляд, мышь, касания)
+    const fastButton = document.querySelector('#fast-button');
+    fastButton.addEventListener('click', () => {
+      cameraVelocity.multiplyScalar(1.5);
+      console.log('Increased camera velocity:', cameraVelocity);
+    });
+
+    const helpButton = document.querySelector('#help-button');
+    helpButton.addEventListener('click', () => {
+      window.open('https://t.me/hobbyandlobby/', '_blank');
+      console.log('Opened Telegram channel');
+    });
+
+    // Обработка взаимодействий сцены
     function handleSceneInteraction(event) {
+      console.log('Scene interaction triggered:', event.type);
       const cursor = document.querySelector('#cursor');
       const controller = document.querySelector('#controller');
       const intersected = (cursor.components.raycaster.intersectedEls[0] || controller.components.raycaster.intersectedEls[0]);
 
-      if (intersected) {
-        if (mode === 'Delete' && (intersected.components['static-object'] || intersected.components['polar-object'])) {
+      if (intersected && (intersected.components['static-object'] || intersected.components['polar-object'])) {
+        if (mode === 'Delete') {
+          console.log('Deleting object:', intersected);
           intersected.remove();
           const index = staticObjects.indexOf(intersected);
           if (index !== -1) staticObjects.splice(index, 1);
           else polarObjects.splice(polarObjects.indexOf(intersected), 1);
-        } else if ((mode === 'Fix' || mode === 'Polar') && intersected.id === 'creation-plane') {
-          const point = intersected.components.raycaster.getIntersection(cursor || controller).point;
-          if (mode === 'Fix') {
-            createFixObject(point);
-          } else {
-            createPolarObject(point);
-          }
         }
-      }
-    }
-
-    // Обработка UI взаимодействий (тачпад)
-    function handleUIInteraction(event) {
-      const target = event.target.closest('.button');
-      if (target) {
-        target.dispatchEvent(new Event('click')); // Симулируем клик по кнопке
+      } else if (mode === 'Fix' || mode === 'Polar') {
+        console.log('Creating object in mode:', mode);
+        if (mode === 'Fix') {
+          createFixObject();
+        } else {
+          createPolarObject();
+        }
       }
     }
 
@@ -516,13 +509,18 @@
     const controller = document.querySelector('#controller');
 
     // Сцена: триггер, взгляд, мышь, касания
-    scene.addEventListener('click', handleSceneInteraction); // Мышь
-    scene.addEventListener('touchstart', handleSceneInteraction); // Касания
-    controller.addEventListener('triggerdown', handleSceneInteraction); // Триггер
+    scene.addEventListener('click', handleSceneInteraction);
+    scene.addEventListener('touchstart', handleSceneInteraction);
+    controller.addEventListener('triggerdown', handleSceneInteraction);
 
     // UI: тачпад
-    controller.addEventListener('trackpadclicked', handleUIInteraction); // Кнопка тачпада
-    controller.addEventListener('thumbstickdown', handleUIInteraction); // Альтернатива для тачпада
+    controller.addEventListener('trackpadtouched', (event) => {
+      console.log('Trackpad touched');
+      const intersected = controller.components.raycaster.intersectedEls[0];
+      if (intersected && intersected.id.includes('button')) {
+        intersected.dispatchEvent(new Event('click'));
+      }
+    });
 
     // Движение камеры
     AFRAME.registerComponent('camera-movement', {
