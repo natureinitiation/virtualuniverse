@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Dense Shooter</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            user-select: none;
+            margin: 0;
+            overflow: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            background: #000;
+        }
+        .mode-button {
+            position: fixed;
+            top: 10px;
+            left: 20%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            padding: 15px;
+            background: none;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0px solid white;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .slow-button {
+            position: fixed;
+            bottom: 10px;
+            left: 20%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            padding: 15px;
+            background: none;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0px solid white;
+            border-radius: 12px;
+        }
+        .fast-button {
+            position: fixed;
+            bottom: 10px;
+            left: 80%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            padding: 15px;
+            background: none;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0px solid white;
+            border-radius: 12px;
+        }
+        .go-button {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            padding: 15px;
+            background: none;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0px solid white;
+            border-radius: 12px;
+        }
+        .fore-button {
+            position: fixed;
+            top: 10px;
+            left: 80%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            padding: 15px;
+            background: none;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0px solid white;
+            border-radius: 12px;
+        }
+        .help-button {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            padding: 15px;
+            background: none;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0px solid white;
+            border-radius: 12px;
+        }
+        .hidden {
+            display: none;
+        }
+        .secret {
+            position: fixed;
+            transform: translate(-50%, -50%);
+            font-family: monospace;
+            font-size: 18px;
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            pointer-events: auto;
+            z-index: 1000;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="mode-button">Static</div>
+    <div class="go-button">Voyage</div>
+    <div class="fore-button">Push</div>
+    <div class="slow-button">Slow</div>
+    <div class="fast-button">Fast</div>
+    <a href="https://t.me/hobbyandlobby/" style="text-decoration: none;" class="help-button" target="_blank">Channel</a>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x007bff);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const colors = ['#007bff', '#7058a8', '#000033', '#f48474'];
+        let currentColorIndex = 0;
+        function changeBackgroundColor() {
+            currentColorIndex = (currentColorIndex + 1) % colors.length;
+            const targetColor = new THREE.Color(colors[currentColorIndex]);
+            animateBackgroundColor(targetColor);
+        }
+        function animateBackgroundColor(targetColor) {
+            const startColor = scene.background.clone();
+            const duration = 5;
+            const startTime = performance.now();
+            function updateBackgroundColor() {
+                const elapsed = (performance.now() - startTime) / 1000;
+                const progress = Math.min(elapsed / duration, 1);
+                scene.background.lerpColors(startColor, targetColor, progress);
+                if (progress < 1) requestAnimationFrame(updateBackgroundColor);
+            }
+            updateBackgroundColor();
+        }
+        setInterval(changeBackgroundColor, 100000);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.005;
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 10, 10);
+        scene.add(directionalLight);
+        const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 0.8);
+        ultramarineLight.position.set(-10, -10, -10);
+        scene.add(ultramarineLight);
+        const lights = [
+            { color: 0xff0000, position: [10, 0, 0] },
+            { color: 0x00ff00, position: [0, 10, 0] },
+            { color: 0x0000ff, position: [0, 0, 10] },
+            { color: 0x3f00ff, position: [-10, -10, -10] },
+        ];
+        lights.forEach(({ color, position }) => {
+            const light = new THREE.DirectionalLight(color, 0.8);
+            light.position.set(...position);
+            scene.add(light);
+        });
+
+        const secrets = ['focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity'];
+
+        const staticObjects = [];
+        const polarObjects = [];
+        const denseObjects = [];
+        const activePoints = [];
+
+        const createGeometry = (size) => {
+            const geometries = [
+                new THREE.BoxGeometry(size, size, size),
+                new THREE.TetrahedronGeometry(size),
+                new THREE.IcosahedronGeometry(size, 0),
+                new THREE.IcosahedronGeometry(size, 2),
+                new THREE.OctahedronGeometry(size),
+                new THREE.DodecahedronGeometry(size),
+            ];
+            return geometries[Math.floor(Math.random() * geometries.length)];
+        };
+
+        const isPositionValid = (position, size) => {
+            const minDistance = size * 2;
+            for (const obj of [...staticObjects, ...polarObjects, ...denseObjects]) {
+                if (position.distanceTo(obj.position) < minDistance) return false;
+            }
+            return true;
+        };
+
+        const createFixObject = () => {
+            const size = Math.random() * 1 + 2;
+            const geometry = createGeometry(size);
+            const material = new THREE.MeshStandardMaterial({
+                color: Math.random() * 0xffffff,
+                roughness: Math.random() * 0.8 + 0.1,
+                metalness: Math.random() * 0.8 + 0.2,
+                opacity: Math.random() * 0.8 + 0.4,
+                transparent: true,
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10)));
+            mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+            mesh.userData = { scatterVelocity: null, scatterStart: null, scatterDuration: 1.0, scatterDeceleration: 0.05 };
+            scene.add(mesh);
+            staticObjects.push(mesh);
+        };
+
+        const createPolarObject = () => {
+            const size = Math.random() * 1.0 + 2.0;
+            const geometry = createGeometry(size);
+            const material = new THREE.MeshStandardMaterial({
+                color: Math.random() * 0xffffff,
+                roughness: Math.random(),
+                metalness: Math.random(),
+                opacity: Math.random() * 0.5 + 0.5,
+                transparent: true,
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10)));
+            mesh.userData = {
+                velocity: new THREE.Vector3(0, 0, 0),
+                rotationSpeed: new THREE.Vector3((Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05),
+                mass: Math.random() * 5 + 1,
+                polarity: Math.random() < 0.5 ? 1 : -1,
+                scatterVelocity: null,
+                scatterStart: null,
+                scatterDuration: 1.0,
+                scatterDeceleration: 0.05
+            };
+            scene.add(mesh);
+            polarObjects.push(mesh);
+        };
+
+        const createDenseObject = () => {
+            const size = Math.random() * 1.0 + 2.0;
+            const geometry = createGeometry(size);
+            const material = new THREE.MeshStandardMaterial({
+                color: Math.random() * 0xffffff,
+                roughness: 0.2,
+                metalness: 0.8,
+                opacity: 0.9,
+                transparent: true,
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10)));
+            if (!isPositionValid(mesh.position, size)) return;
+            const speed = 15 + Math.random() * 10;
+            mesh.userData = {
+                scatterVelocity: direction.multiplyScalar(speed),
+                scatterStart: performance.now(),
+                scatterDuration: 5.0,
+                scatterDeceleration: 0.02 / (Math.random() * 5 + 5),
+                mass: Math.random() * 5 + 5,
+            };
+            scene.add(mesh);
+            denseObjects.push(mesh);
+        };
+
+        const handleInteraction = (event) => {
+            if (event.target.closest('.mode-button, .go-button, .fore-button, .slow-button, .fast-button, .help-button')) return;
+
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+            const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            const allObjects = [...staticObjects, ...polarObjects, ...denseObjects];
+            const intersects = raycaster.intersectObjects(allObjects);
+            const wordSpawnProbability = 0.3;
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                const direction = denseObjects.includes(obj) ?
+                    camera.getWorldDirection(new THREE.Vector3()) :
+                    new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
+                const speed = 15 + Math.random() * 10;
+                obj.userData.scatterVelocity = direction.multiplyScalar(speed);
+                obj.userData.scatterStart = performance.now();
+                obj.rotation.x += Math.random() * 0.5;
+                obj.rotation.y += Math.random() * 0.5;
+                obj.rotation.z += Math.random() * 0.5;
+
+                if (Math.random() < wordSpawnProbability) {
+                    const t = 0.5;
+                    const wordPos3D = obj.position.clone().add(obj.userData.scatterVelocity.clone().multiplyScalar(t));
+                    const wordPos2D = wordPos3D.project(camera);
+                    const wordX = (wordPos2D.x * 0.5 + 0.5) * window.innerWidth;
+                    const wordY = (-wordPos2D.y * 0.5 + 0.5) * window.innerHeight;
+                    createSecret(wordX, wordY);
+                }
+            } else {
+                if (mode === 'Fix') createFixObject();
+                else if (mode === 'Polar') createPolarObject();
+                else if (mode === 'Dense') createDenseObject();
+            }
+        };
+
+        function createSecret(x, y) {
+            const secret = document.createElement('a');
+            secret.className = 'secret';
+            const word = secrets[Math.floor(Math.random() * secrets.length)];
+            secret.textContent = word;
+
+            secret.target = '_blank';
+            secret.style.cssText = `
+                position: fixed; left: ${x}px; top: ${y}px; transform: translate(-50%, -50%); opacity: 0;
+                font-family: monospace; font-size: 18px; color: white; text-decoration: none;
+                padding: 10px; border-radius: 8px; pointer-events: auto; z-index: 1000;
+            `;
+            document.body.appendChild(secret);
+
+            const rect = secret.getBoundingClientRect();
+            const minWordDistance = Math.max(rect.width, rect.height) + 20;
+            if (isWordOccupied(x, y, minWordDistance)) {
+                secret.remove();
+                return;
+            }
+
+            activePoints.push({ x, y, timestamp: Date.now(), isWord: true });
+
+            setTimeout(() => {
+                secret.style.opacity = 1;
+                secret.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 10);
+
+            setTimeout(() => {
+                secret.style.opacity = 0;
+                secret.style.transform = 'translate(-50%, -50%) scale(0.8)';
+            }, 8000);
+
+            setTimeout(() => {
+                secret.remove();
+                const index = activePoints.findIndex(p => p.x === x && p.y === y && p.isWord);
+                if (index !== -1) activePoints.splice(index, 1);
+            }, 8500);
+
+            secret.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                if (!e.ctrlKey && !e.metaKey && secret.href === window.location.href + '#') {
+                    secret.remove();
+                }
+            });
+        }
+
+        function isWordOccupied(x, y, minDistance) {
+            return activePoints.some(point => {
+                if (!point.isWord) return false;
+                const dx = point.x - x;
+                const dy = point.y - y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance < minDistance;
+            });
+        }
+
+        const applyCameraRepulsion = () => {
+            const repulsionDistance = 15;
+            const repulsionStrength = 0.05;
+            [...staticObjects, ...polarObjects].forEach((obj) => {
+                const distance = camera.position.distanceTo(obj.position);
+                if (distance < repulsionDistance) {
+                    const direction = obj.position.clone().sub(camera.position).normalize();
+                    const force = direction.multiplyScalar((repulsionDistance - distance) * repulsionStrength);
+                    if (obj.userData.velocity) {
+                        obj.userData.velocity.add(force);
+                    } else if (!obj.userData.scatterVelocity) {
+                        obj.position.add(force);
+                    }
+                }
+            });
+        };
+
+        const applyDenseRepulsion = () => {
+            const repulsionDistance = 15;
+            const repulsionStrength = 0.05;
+            denseObjects.forEach((denseObj) => {
+                if (!denseObj.userData.scatterVelocity) return;
+                [...staticObjects, ...polarObjects].forEach((obj) => {
+                    const distance = denseObj.position.distanceTo(obj.position);
+                    if (distance < repulsionDistance && distance > 0) {
+                        const direction = obj.position.clone().sub(denseObj.position).normalize();
+                        const force = direction.multiplyScalar((repulsionDistance - distance) * repulsionStrength);
+                        if (obj.userData.velocity) {
+                            obj.userData.velocity.add(force.clone().multiplyScalar(1 / obj.userData.mass));
+                        } else if (!obj.userData.scatterVelocity) {
+                            obj.userData.scatterVelocity = force.clone().multiplyScalar(10);
+                            obj.userData.scatterStart = performance.now();
+                        }
+                    }
+                });
+            });
+        };
+
+        const handleDenseCollisions = () => {
+            for (let i = 0; i < denseObjects.length; i++) {
+                for (let j = i + 1; j < denseObjects.length; j++) {
+                    const objA = denseObjects[i];
+                    const objB = denseObjects[j];
+                    const distance = objA.position.distanceTo(objB.position);
+                    const minDistance = 3;
+                    if (distance < minDistance && distance > 0) {
+                        const direction = objB.position.clone().sub(objA.position).normalize();
+                        const v1 = objA.userData.scatterVelocity || new THREE.Vector3();
+                        const v2 = objB.userData.scatterVelocity || new THREE.Vector3();
+                        const m1 = objA.userData.mass || 7.5;
+                        const m2 = objB.userData.mass || 7.5;
+                        const v1Final = v1.clone().multiplyScalar((m1 - m2) / (m1 + m2)).add(v2.clone().multiplyScalar((2 * m2) / (m1 + m2)));
+                        const v2Final = v2.clone().multiplyScalar((m2 - m1) / (m1 + m2)).add(v1.clone().multiplyScalar((2 * m1) / (m1 + m2)));
+                        objA.userData.scatterVelocity = v1Final;
+                        objB.userData.scatterVelocity = v2Final;
+                        objA.userData.scatterStart = performance.now();
+                        objB.userData.scatterStart = performance.now();
+                        const overlap = minDistance - distance;
+                        const correction = direction.multiplyScalar(overlap / 2);
+                        objA.position.sub(correction);
+                        objB.position.add(correction);
+                    }
+                }
+            }
+        };
+
+        const handlePolarInteractions = () => {
+            for (let i = 0; i < polarObjects.length; i++) {
+                for (let j = i + 1; j < polarObjects.length; j++) {
+                    const objA = polarObjects[i];
+                    const objB = polarObjects[j];
+                    const distance = objA.position.distanceTo(objB.position);
+                    if (distance < 1) {
+                        const direction = objB.position.clone().sub(objA.position).normalize();
+                        const polarityEffect = objA.userData.polarity * objB.userData.polarity;
+                        const force = direction.multiplyScalar(polarityEffect * 0.05);
+                        objA.userData.velocity.add(force.clone().multiplyScalar(-1 / objA.userData.mass));
+                        objB.userData.velocity.add(force.clone().multiplyScalar(1 / objB.userData.mass));
+                    }
+                }
+            }
+        };
+
+        const handlePolarAndStaticInteractions = () => {
+            polarObjects.forEach((polarObj) => {
+                staticObjects.forEach((staticObj) => {
+                    const distance = polarObj.position.distanceTo(staticObj.position);
+                    if (distance < 15) {
+                        const direction = staticObj.position.clone().sub(polarObj.position).normalize();
+                        const repulsionForce = direction.multiplyScalar(0.005 * (8 - distance));
+                        if (!staticObj.userData.scatterVelocity) {
+                            staticObj.position.add(repulsionForce);
+                        }
+                        polarObj.userData.velocity.add(repulsionForce.clone().multiplyScalar(-1 / polarObj.userData.mass));
+                        polarObj.userData.isRotating = true;
+                    } else {
+                        polarObj.userData.isRotating = false;
+                    }
+                });
+            });
+        };
+
+        const applyDeceleration = () => {
+            polarObjects.forEach((obj) => {
+                if (obj.userData.scatterVelocity) return;
+                if (obj.userData.velocity.length() > 0) {
+                    const deceleration = 0.003;
+                    obj.userData.velocity.multiplyScalar(1 - deceleration);
+                    if (obj.userData.velocity.length() < 0.001) {
+                        obj.userData.velocity.set(0, 0, 0);
+                    }
+                }
+            });
+            denseObjects.forEach((obj) => {
+                if (obj.userData.scatterVelocity) {
+                    obj.userData.scatterVelocity.multiplyScalar(1 - obj.userData.scatterDeceleration);
+                    if (obj.userData.scatterVelocity.length() < 0.01) {
+                        obj.userData.scatterVelocity = null;
+                        obj.userData.scatterStart = null;
+                    }
+                }
+            });
+        };
+
+        let mode = 'Fix';
+        const modeButton = document.querySelector('.mode-button');
+        modeButton.addEventListener('click', () => {
+            if (mode === 'Fix') {
+                mode = 'Polar';
+                modeButton.innerText = "Dynamic";
+            } else if (mode === 'Polar') {
+                mode = 'Dense';
+                modeButton.innerText = "Dense";
+            } else if (mode === 'Dense') {
+                mode = 'Delete';
+                modeButton.innerText = "Delete";
+            } else {
+                mode = 'Fix';
+                modeButton.innerText = "Static";
+            }
+        });
+
+        function handleDelete(event) {
+            if (mode !== 'Delete') return;
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+            const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects([...staticObjects, ...polarObjects, ...denseObjects]);
+            if (intersects.length > 0) {
+                const selectedObject = intersects[0].object;
+                scene.remove(selectedObject);
+                staticObjects.splice(staticObjects.indexOf(selectedObject), 1);
+                polarObjects.splice(polarObjects.indexOf(selectedObject), 1);
+                denseObjects.splice(denseObjects.indexOf(selectedObject), 1);
+            }
+        }
+        window.addEventListener('click', handleDelete);
+        window.addEventListener('touchstart', handleDelete);
+
+        let targetVelocity = new THREE.Vector3();
+        const acceleration = 0.001;
+        const deceleration = 0.01;
+        let isMovingForward = true;
+        const cameraVelocity = new THREE.Vector3();
+        const adjustCameraFocus = () => {
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            const azimuthOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
+            const elevationOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
+            direction.applyQuaternion(new THREE.Quaternion()
+                .setFromAxisAngle(new THREE.Vector3(0, 1, 0), azimuthOffset)
+                .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), elevationOffset)));
+            targetVelocity.copy(direction.multiplyScalar(isMovingForward ? 1.0 : -1.0));
+        };
+        const foreButton = document.querySelector('.fore-button');
+        foreButton.addEventListener('click', () => {
+            isMovingForward = !isMovingForward;
+            foreButton.innerText = isMovingForward ? "Push" : "Reel";
+        });
+        const goButton = document.querySelector('.go-button');
+        let isMoving = false;
+        goButton.addEventListener('click', () => {
+            isMoving = !isMoving;
+            goButton.innerText = isMoving ? "Stop" : "Go";
+            if (isMoving) {
+                adjustCameraFocus();
+            } else {
+                targetVelocity.set(0, 0, 0);
+            }
+        });
+
+        document.addEventListener('click', handleInteraction);
+        document.addEventListener('touchstart', handleInteraction);
+
+        document.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects([...staticObjects, ...polarObjects, ...denseObjects]);
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+                scene.remove(object);
+                staticObjects.splice(staticObjects.indexOf(object), 1);
+                polarObjects.splice(polarObjects.indexOf(object), 1);
+                denseObjects.splice(denseObjects.indexOf(object), 1);
+            }
+        });
+
+        const slowButton = document.querySelector('.slow-button');
+        const fastButton = document.querySelector('.fast-button');
+        slowButton.addEventListener('click', () => {
+            cameraVelocity.multiplyScalar(0.5);
+        });
+        fastButton.addEventListener('click', () => {
+            cameraVelocity.multiplyScalar(1.5);
+        });
+
+        const animate = () => {
+            if (isMoving) {
+                cameraVelocity.lerp(targetVelocity, acceleration);
+            } else {
+                cameraVelocity.lerp(new THREE.Vector3(), deceleration);
+            }
+            camera.position.add(cameraVelocity);
+            applyCameraRepulsion();
+            polarObjects.forEach((obj) => {
+                if (obj.userData.scatterVelocity) {
+                    const elapsed = (performance.now() - obj.userData.scatterStart) / 1000;
+                    if (elapsed < obj.userData.scatterDuration) {
+                        obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+                    } else {
+                        obj.userData.scatterVelocity.multiplyScalar(1 - obj.userData.scatterDeceleration);
+                        if (obj.userData.scatterVelocity.length() < 0.01) {
+                            obj.userData.scatterVelocity = null;
+                            obj.userData.scatterStart = null;
+                        } else {
+                            obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+                        }
+                    }
+                }
+                obj.position.add(obj.userData.velocity);
+                obj.rotation.x += obj.userData.rotationSpeed.x;
+                obj.rotation.y += obj.userData.rotationSpeed.y;
+                obj.rotation.z += obj.userData.rotationSpeed.z;
+            });
+            staticObjects.forEach((obj) => {
+                if (obj.userData.scatterVelocity) {
+                    const elapsed = (performance.now() - obj.userData.scatterStart) / 1000;
+                    if (elapsed < obj.userData.scatterDuration) {
+                        obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+                    } else {
+                        obj.userData.scatterVelocity.multiplyScalar(1 - obj.userData.scatterDeceleration);
+                        if (obj.userData.scatterVelocity.length() < 0.01) {
+                            obj.userData.scatterVelocity = null;
+                            obj.userData.scatterStart = null;
+                        } else {
+                            obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+                        }
+                    }
+                }
+            });
+            denseObjects.forEach((obj) => {
+                if (obj.userData.scatterVelocity) {
+                    obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+                }
+            });
+            applyDenseRepulsion();
+            handleDenseCollisions();
+            if (mode === 'Polar') {
+                handlePolarInteractions();
+            }
+            handlePolarAndStaticInteractions();
+            applyDeceleration();
+            controls.update();
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        };
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        window.addEventListener('orientationchange', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
