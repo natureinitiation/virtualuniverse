@@ -87,7 +87,7 @@
     const polarObjects = [];
     const activePoints = [];
     const secrets = ['focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity'];
-    let mode = 'Fix'; // Начальный режим: создание статических объектов
+    const mode = 'Fix'; // Фиксированный режим для теста
 
     // Компонент для статических объектов
     AFRAME.registerComponent('static-object', {
@@ -101,6 +101,7 @@
         this.el.setAttribute('data-clickable', '');
         this.el.addEventListener('click', () => this.scatter());
         staticObjects.push(this.el);
+        console.log('Static object initialized:', this.el);
       },
       tick: function (time, delta) {
         const deltaS = delta / 1000;
@@ -158,7 +159,10 @@
       init: function () {
         this.el.setAttribute('data-clickable', '');
         this.el.addEventListener('click', () => this.scatter());
-        polarObjects.push(this.el);
+        polar
+
+Objects.push(this.el);
+        console.log('Polar object initialized:', this.el);
       },
       tick: function (time, delta) {
         const deltaS = delta / 1000;
@@ -294,15 +298,16 @@
     }
 
     function createFixObject() {
+      console.log('Attempting to create static object');
       const size = Math.random() * 1 + 2;
       const geometry = createGeometry();
       const entity = document.createElement('a-entity');
       entity.setAttribute('geometry', `primitive: ${geometry}; size: ${size}`);
       entity.setAttribute('material', {
         color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        roughness: Math.random() * 0.8 + 0.1,
-        metalness: Math.random() * 0.8 + 0.2,
-        opacity: Math.random() * 0.8 + 0.4,
+        roughness: 0.5,
+        metalness: 0.5,
+        opacity: 0.8,
         transparent: true
       });
       const camera = document.querySelector('a-camera').object3D;
@@ -321,15 +326,16 @@
     }
 
     function createPolarObject() {
+      console.log('Attempting to create polar object');
       const size = Math.random() * 1 + 2;
       const geometry = createGeometry();
       const entity = document.createElement('a-entity');
       entity.setAttribute('geometry', `primitive: ${geometry}; size: ${size}`);
       entity.setAttribute('material', {
         color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        roughness: Math.random(),
-        metalness: Math.random(),
-        opacity: Math.random() * 0.5 + 0.5,
+        roughness: 0.5,
+        metalness: 0.5,
+        opacity: 0.8,
         transparent: true
       });
       const camera = document.querySelector('a-camera').object3D;
@@ -352,6 +358,7 @@
 
     // Создание "секретов"
     function createSecret(x, y) {
+      console.log('Creating secret at:', x, y);
       const secret = document.createElement('a');
       secret.className = 'secret';
       const word = secrets[Math.floor(Math.random() * secrets.length)];
@@ -367,6 +374,7 @@
       const minWordDistance = Math.max(rect.width, rect.height) + 20;
       if (isWordOccupied(x, y, minWordDistance)) {
         secret.remove();
+        console.log('Secret removed due to overlap');
         return;
       }
 
@@ -386,6 +394,7 @@
         secret.remove();
         const index = activePoints.findIndex(p => p.x === x && p.y === y && p.isWord);
         if (index !== -1) activePoints.splice(index, 1);
+        console.log('Secret removed');
       }, 8500);
     }
 
@@ -402,24 +411,12 @@
     // Обработка триггера
     const controller = document.querySelector('#controller');
     controller.addEventListener('triggerdown', () => {
-      console.log('Trigger pressed, mode:', mode);
-      if (mode === 'Fix') {
-        createFixObject();
-      } else if (mode === 'Polar') {
-        createPolarObject();
-      }
+      console.log('Trigger down detected');
+      createFixObject();
     });
-
-    // Временное переключение режимов через тачпад (для теста)
-    controller.addEventListener('trackpadtouched', () => {
-      console.log('Trackpad touched, switching mode');
-      if (mode === 'Fix') {
-        mode = 'Polar';
-        console.log('Mode switched to Polar');
-      } else {
-        mode = 'Fix';
-        console.log('Mode switched to Fix');
-      }
+    controller.addEventListener('triggerpressed', () => {
+      console.log('Trigger pressed detected');
+      createFixObject();
     });
   </script>
 </body>
