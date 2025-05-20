@@ -5,7 +5,6 @@
   <title>VR Scene for Oculus Go</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <style>
-    /* Центрирование кнопки Enter VR */
     .a-enter-vr-button {
       position: fixed !important;
       top: 50% !important;
@@ -20,88 +19,65 @@
 </head>
 <body>
   <a-scene vr-mode-ui="enabled: true">
-    <!-- Небо как фон -->
     <a-sky color="#87CEEB"></a-sky>
-
-    <!-- Начальный вращающийся куб -->
     <a-box
       position="0 1.5 -3"
       color="#FF6347"
       depth="1" height="1" width="1"
       animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear">
     </a-box>
-
-    <!-- Начальная сфера с анимацией цвета -->
     <a-sphere
       position="2 1 -4"
       radius="0.5"
       color="#FFD700"
       animation__color="property: color; to: #00CED1; dur: 2000; loop: true; dir: alternate; easing: easeInOutSine">
     </a-sphere>
-
-    <!-- Освещение -->
     <a-light type="ambient" color="#FFF" intensity="0.5"></a-light>
     <a-light type="directional" color="#FFF" intensity="0.5" position="1 1 1"></a-light>
-
-    <!-- Камера с контроллером -->
     <a-camera position="0 1.6 0" camera-movement>
       <a-entity id="controller" oculus-go-controls="hand: right"></a-entity>
     </a-camera>
   </a-scene>
 
   <script>
-    // Регистрация компонента для движения камеры
     AFRAME.registerComponent('camera-movement', {
+      schema: {
+        speed: { type: 'number', default: 2 }, // Скорость 2 м/с
+        acceleration: { type: 'number', default: 0.1 }, // Быстрее разгон
+        deceleration: { type: 'number', default: 0.2 } // Быстрее остановка
+      },
       init: function () {
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.targetVelocity = new THREE.Vector3(0, 0, 0);
         this.isMoving = false;
-        this.acceleration = 0.01; // Скорость нарастания
-        this.deceleration = 0.02; // Скорость затухания
       },
       tick: function (time, delta) {
-        const deltaS = delta / 1000; // В секундах
+        const deltaS = delta / 1000;
         const camera = this.el.object3D;
 
-        // Обновление целевой скорости
         if (this.isMoving) {
           const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-          this.targetVelocity.copy(direction.multiplyScalar(1)); // Скорость 1 м/с
+          this.targetVelocity.copy(direction.multiplyScalar(this.data.speed));
         } else {
           this.targetVelocity.set(0, 0, 0);
         }
 
-        // Плавное изменение скорости
-        this.velocity.lerp(this.targetVelocity, this.isMoving ? this.acceleration : this.deceleration);
-
-        // Перемещение камеры
+        this.velocity.lerp(this.targetVelocity, this.isMoving ? this.data.acceleration : this.data.deceleration);
         camera.position.add(this.velocity.clone().multiplyScalar(deltaS));
       }
     });
 
-    // Логи для отладки
     document.addEventListener('DOMContentLoaded', () => {
       const scene = document.querySelector('a-scene');
-      scene.addEventListener('loaded', () => {
-        console.log('Scene loaded');
-      });
-      scene.addEventListener('enter-vr', () => {
-        console.log('Entered VR mode');
-      });
+      scene.addEventListener('loaded', () => console.log('Scene loaded'));
+      scene.addEventListener('enter-vr', () => console.log('Entered VR mode'));
       const vrButton = document.querySelector('.a-enter-vr-button');
-      if (vrButton) {
-        vrButton.addEventListener('click', () => {
-          console.log('Enter VR button clicked');
-        });
-      }
+      if (vrButton) vrButton.addEventListener('click', () => console.log('Enter VR button clicked'));
     });
 
-    // Создание нового объекта (куб или сфера) по триггеру
     function createObject() {
       const isCube = Math.random() < 0.5;
       const entity = document.createElement(isCube ? 'a-box' : 'a-sphere');
-      
-      // Позиция: 3 метра впереди камеры
       const camera = document.querySelector('a-camera').object3D;
       const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
       const position = camera.position.clone().add(direction.multiplyScalar(3));
@@ -136,16 +112,13 @@
       console.log(`Created ${isCube ? 'cube' : 'sphere'} at:`, position);
     }
 
-    // Обработка контроллера
     const controller = document.querySelector('#controller');
-    // Триггер для создания объектов
     controller.addEventListener('triggerdown', () => {
       console.log('Trigger pressed');
       createObject();
     });
-    // Тачпад для движения
-    controller.addEventListener('trackpadtouched', () => {
-      console.log('Trackpad touched');
+    controller.addEventListener('trackpadclicked', () => {
+      console.log('Trackpad clicked');
       const camera = document.querySelector('a-camera').components['camera-movement'];
       camera.isMoving = !camera.isMoving;
       console.log('Camera movement:', camera.isMoving ? 'started' : 'stopped');
