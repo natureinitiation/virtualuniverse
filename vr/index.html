@@ -30,9 +30,22 @@
       z-index: 1000;
       transition: opacity 0.3s ease, transform 0.3s ease;
     }
+    /* Сообщение об ошибке */
+    #error-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: red;
+      font-family: monospace;
+      font-size: 20px;
+      z-index: 10000;
+      display: none;
+    }
   </style>
 </head>
 <body>
+  <div id="error-message">Failed to load A-Frame. Check network or console.</div>
   <a-scene vr-mode-ui="enabled: true" physics-manager>
     <!-- Небо как фон -->
     <a-sky color="#87CEEB"></a-sky>
@@ -65,8 +78,15 @@
   </a-scene>
 
   <script>
+    // Проверка загрузки A-Frame
+    if (!window.AFRAME) {
+      document.getElementById('error-message').style.display = 'block';
+      console.error('A-Frame not loaded');
+    }
+
     // Логи для отладки
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded');
       const scene = document.querySelector('a-scene');
       scene.addEventListener('loaded', () => {
         console.log('Scene loaded');
@@ -79,6 +99,8 @@
         vrButton.addEventListener('click', () => {
           console.log('Enter VR button clicked');
         });
+      } else {
+        console.warn('VR button not found');
       }
     });
 
@@ -87,7 +109,7 @@
     const polarObjects = [];
     const activePoints = [];
     const secrets = ['focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity'];
-    const mode = 'Fix'; // Фиксированный режим для теста
+    const mode = 'Fix'; // Фиксированный режим
 
     // Компонент для статических объектов
     AFRAME.registerComponent('static-object', {
@@ -159,9 +181,7 @@
       init: function () {
         this.el.setAttribute('data-clickable', '');
         this.el.addEventListener('click', () => this.scatter());
-        polar
-
-Objects.push(this.el);
+        polarObjects.push(this.el);
         console.log('Polar object initialized:', this.el);
       },
       tick: function (time, delta) {
@@ -292,68 +312,19 @@ Objects.push(this.el);
     }
 
     // Создание объектов
-    function createGeometry() {
-      const geometries = ['box', 'tetrahedron', 'icosahedron', 'octahedron', 'dodecahedron'];
-      return geometries[Math.floor(Math.random() * geometries.length)];
-    }
-
     function createFixObject() {
       console.log('Attempting to create static object');
-      const size = Math.random() * 1 + 2;
-      const geometry = createGeometry();
       const entity = document.createElement('a-entity');
-      entity.setAttribute('geometry', `primitive: ${geometry}; size: ${size}`);
-      entity.setAttribute('material', {
-        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        roughness: 0.5,
-        metalness: 0.5,
-        opacity: 0.8,
-        transparent: true
-      });
+      entity.setAttribute('geometry', 'primitive: box; size: 1');
+      entity.setAttribute('material', 'color: #FF6347; roughness: 0.5; metalness: 0.5; opacity: 0.8; transparent: true');
       const camera = document.querySelector('a-camera').object3D;
       const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-      const position = camera.position.clone().add(direction.multiplyScalar(3));
+      const position = camera.position.clone().add(direction.multiplyScalar(2));
       entity.setAttribute('position', position);
-      entity.setAttribute('rotation', {
-        x: Math.random() * 360,
-        y: Math.random() * 360,
-        z: Math.random() * 360
-      });
       entity.setAttribute('static-object', '');
       entity.setAttribute('data-clickable', '');
       document.querySelector('a-scene').appendChild(entity);
       console.log('Created static object at:', position);
-    }
-
-    function createPolarObject() {
-      console.log('Attempting to create polar object');
-      const size = Math.random() * 1 + 2;
-      const geometry = createGeometry();
-      const entity = document.createElement('a-entity');
-      entity.setAttribute('geometry', `primitive: ${geometry}; size: ${size}`);
-      entity.setAttribute('material', {
-        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        roughness: 0.5,
-        metalness: 0.5,
-        opacity: 0.8,
-        transparent: true
-      });
-      const camera = document.querySelector('a-camera').object3D;
-      const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-      const position = camera.position.clone().add(direction.multiplyScalar(3));
-      entity.setAttribute('position', position);
-      entity.setAttribute('polar-object', {
-        rotationSpeed: {
-          x: (Math.random() - 0.5) * 0.05,
-          y: (Math.random() - 0.5) * 0.05,
-          z: (Math.random() - 0.5) * 0.05
-        },
-        mass: Math.random() * 5 + 1,
-        polarity: Math.random() < 0.5 ? 1 : -1
-      });
-      entity.setAttribute('data-clickable', '');
-      document.querySelector('a-scene').appendChild(entity);
-      console.log('Created polar object at:', position);
     }
 
     // Создание "секретов"
