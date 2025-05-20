@@ -44,12 +44,41 @@
     <a-light type="directional" color="#FFF" intensity="0.5" position="1 1 1"></a-light>
 
     <!-- Камера с контроллером -->
-    <a-camera position="0 1.6 0">
+    <a-camera position="0 1.6 0" camera-movement>
       <a-entity id="controller" oculus-go-controls="hand: right"></a-entity>
     </a-camera>
   </a-scene>
 
   <script>
+    // Регистрация компонента для движения камеры
+    AFRAME.registerComponent('camera-movement', {
+      init: function () {
+        this.velocity = new THREE.Vector3(0, 0, 0);
+        this.targetVelocity = new THREE.Vector3(0, 0, 0);
+        this.isMoving = false;
+        this.acceleration = 0.01; // Скорость нарастания
+        this.deceleration = 0.02; // Скорость затухания
+      },
+      tick: function (time, delta) {
+        const deltaS = delta / 1000; // В секундах
+        const camera = this.el.object3D;
+
+        // Обновление целевой скорости
+        if (this.isMoving) {
+          const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+          this.targetVelocity.copy(direction.multiplyScalar(1)); // Скорость 1 м/с
+        } else {
+          this.targetVelocity.set(0, 0, 0);
+        }
+
+        // Плавное изменение скорости
+        this.velocity.lerp(this.targetVelocity, this.isMoving ? this.acceleration : this.deceleration);
+
+        // Перемещение камеры
+        camera.position.add(this.velocity.clone().multiplyScalar(deltaS));
+      }
+    });
+
     // Логи для отладки
     document.addEventListener('DOMContentLoaded', () => {
       const scene = document.querySelector('a-scene');
@@ -59,7 +88,6 @@
       scene.addEventListener('enter-vr', () => {
         console.log('Entered VR mode');
       });
-      // Лог для клика по кнопке Enter VR
       const vrButton = document.querySelector('.a-enter-vr-button');
       if (vrButton) {
         vrButton.addEventListener('click', () => {
@@ -108,11 +136,19 @@
       console.log(`Created ${isCube ? 'cube' : 'sphere'} at:`, position);
     }
 
-    // Обработка нажатия триггера
+    // Обработка контроллера
     const controller = document.querySelector('#controller');
+    // Триггер для создания объектов
     controller.addEventListener('triggerdown', () => {
       console.log('Trigger pressed');
       createObject();
+    });
+    // Тачпад для движения
+    controller.addEventListener('trackpadtouched', () => {
+      console.log('Trackpad touched');
+      const camera = document.querySelector('a-camera').components['camera-movement'];
+      camera.isMoving = !camera.isMoving;
+      console.log('Camera movement:', camera.isMoving ? 'started' : 'stopped');
     });
   </script>
 </body>
