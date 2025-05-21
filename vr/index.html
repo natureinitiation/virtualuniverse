@@ -2,95 +2,117 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>VR Сцена с сеткой для Oculus Go</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Oculus Go Camera Flight</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-gridhelper-component@^1.0.0/dist/aframe-gridhelper-component.min.js"></script>
-    <script src="https://unpkg.com/aframe-thumb-controls@1.1.0/dist/aframe-thumb-controls.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-    </style>
-</head>
-<body>
-    <a-scene vr-mode-ui="enabled: true">
-        <!-- Бесконечная сетка (пол) -->
-        <a-entity gridhelper="
-            size: 100;
-            divisions: 100;
-            colorCenterLine: #555;
-            colorGrid: #333">
-        </a-entity>
-
-        <!-- Объекты на сцене -->
-        <a-box position="-1 0.5 -3" 
-               rotation="0 45 0" 
-               color="#4CC3D9" 
-               shadow></a-box>
-               
-        <a-sphere position="0 1.25 -5" 
-                 radius="1.25" 
-                 color="#EF2D5E" 
-                 shadow></a-sphere>
-                 
-        <a-cylinder position="1 0.75 -3" 
-                   radius="0.5" 
-                   height="1.5" 
-                   color="#FFC65D" 
-                   shadow></a-cylinder>
-
-        <!-- Освещение -->
-        <a-entity light="type: ambient; color: #BBB"></a-entity>
-        <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-0.5 1 1"></a-entity>
-
-        <!-- Небо -->
-        <a-sky color="#ECECEC"></a-sky>
-
-        <!-- Камера с управлением от тачпада -->
-        <a-entity id="player" 
-                  movement-controls 
-                  thumb-controls="maxSpeed: 0.1"
-                  position="0 1.6 0">
-            <a-entity camera 
-                     look-controls 
-                     wasd-controls="enabled: false">
-            </a-entity>
-        </a-entity>
-    </a-scene>
-
+    <script src="https://unpkg.com/aframe-event-set-component@^3.0.3/dist/aframe-event-set-component.min.js"></script>
     <script>
-        // Компонент для управления движением с тачпада
-        AFRAME.registerComponent('movement-controls', {
+        AFRAME.registerComponent('oculus-go-controls', {
             init: function() {
-                this.speed = 0;
-                this.direction = new THREE.Vector3();
-                this.el.addEventListener('thumbstickmoved', this.onThumbstickMoved.bind(this));
-            },
-            
-            onThumbstickMoved: function(evt) {
-                const camera = this.el.querySelector('[camera]');
-                const rotation = camera.getAttribute('rotation');
+                const el = this.el;
+                let isTriggerPressed = false;
+                let verticalSpeed = 0;
+                const maxHeight = 10;
+                const minHeight = 1;
+                const moveSpeed = 0.1;
+                const riseSpeed = 0.02;
                 
-                // Устанавливаем направление движения
-                this.direction.x = evt.detail.x;
-                this.direction.z = evt.detail.y;
+                // Получаем контроллер Oculus Go
+                const controller = document.querySelector('[oculus-touch-controls]');
                 
-                // Учитываем поворот камеры
-                const yaw = THREE.MathUtils.degToRad(rotation.y);
-                const x = this.direction.x * Math.cos(yaw) - this.direction.z * Math.sin(yaw);
-                const z = this.direction.x * Math.sin(yaw) + this.direction.z * Math.cos(yaw);
-                
-                // Обновляем позицию
-                const position = this.el.getAttribute('position');
-                this.el.setAttribute('position', {
-                    x: position.x - x * 0.1,
-                    y: position.y,
-                    z: position.z - z * 0.1
+                // Обработка нажатия/отпускания триггера
+                controller.addEventListener('triggerdown', () => {
+                    isTriggerPressed = true;
                 });
+                
+                controller.addEventListener('triggerup', () => {
+                    isTriggerPressed = false;
+                });
+                
+                // Обработка тачпада
+                controller.addEventListener('axismove', (evt) => {
+                    const axis = evt.detail.axis;
+                    if (axis.length >= 2) {
+                        const x = axis[0];
+                        const y = axis[1];
+                        
+                        // Движение вперед/назад
+                        if (Math.abs(y) > 0.1) {
+                            const direction = new THREE.Vector3(0, 0, -y * moveSpeed);
+                            direction.applyQuaternion(el.getAttribute('rotation'));
+                            const position = el.getAttribute('position');
+                            el.setAttribute('position', {
+                                x: position.x + direction.x,
+                                y: position.y,
+                                z: position.z + direction.z
+                            });
+                        }
+                        
+                        // Движение влево/вправо
+                        if (Math.abs(x) > 0.1) {
+                            const direction = new THREE.Vector3(x * moveSpeed, 0, 0);
+                            direction.applyQuaternion(el.getAttribute('rotation'));
+                            const position = el.getAttribute('position');
+                            el.setAttribute('position', {
+                                x: position.x + direction.x,
+                                y: position.y,
+                                z: position.z + direction.z
+                            });
+                        }
+                    }
+                });
+                
+                // Анимация вертикального движения
+                this.el.sceneEl.addEventListener('enter-vr', () => {
+                    this.tick = AFRAME.utils.throttleTick(this.tick.bind(this), 16, this);
+                });
+                
+                this.tick = function(time, timeDelta) {
+                    const position = el.getAttribute('position');
+                    
+                    if (isTriggerPressed) {
+                        verticalSpeed = riseSpeed;
+                    } else {
+                        verticalSpeed = -riseSpeed;
+                    }
+                    
+                    // Применяем вертикальное движение с плавностью
+                    const newY = position.y + verticalSpeed;
+                    
+                    // Ограничиваем высоту
+                    if (newY >= minHeight && newY <= maxHeight) {
+                        el.setAttribute('position', {
+                            x: position.x,
+                            y: newY,
+                            z: position.z
+                        });
+                    }
+                };
             }
         });
     </script>
+</head>
+<body>
+    <a-scene background="color: black">
+        <!-- Камера с контролами -->
+        <a-entity id="camera" position="0 1.6 0" oculus-go-controls>
+            <a-entity camera look-controls="pointerLockEnabled: true"></a-entity>
+            <a-entity oculus-touch-controls="hand: left"></a-entity>
+        </a-entity>
+        
+        <!-- Базовая сетка -->
+        <a-grid 
+            position="0 0 0" 
+            rotation="-90 0 0" 
+            width="100" 
+            height="100" 
+            color="#777" 
+            opacity="0.5">
+        </a-grid>
+        
+        <!-- Несколько объектов для ориентира -->
+        <a-box position="-2 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
+        <a-sphere position="0 1.25 -5" radius="1.25" color="#EF2D5E"></a-sphere>
+        <a-cylinder position="2 0.75 -3" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
+    </a-scene>
 </body>
 </html>
