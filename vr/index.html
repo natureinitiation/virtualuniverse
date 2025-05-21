@@ -2,63 +2,77 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>VR Пространство для Oculus Go</title>
+    <title>VR Пространство с сеткой для Oculus Go</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <!-- Дополнительные компоненты A-Frame -->
-    <script src="https://unpkg.com/aframe-environment-component@1.1.0/dist/aframe-environment-component.min.js"></script>
+    <!-- Компонент для сетки -->
+    <script src="https://unpkg.com/aframe-gridhelper-component@^1.0.0/dist/aframe-gridhelper-component.min.js"></script>
+    <!-- Компонент для управления с тачпада -->
+    <script src="https://unpkg.com/aframe-thumb-controls@1.1.0/dist/aframe-thumb-controls.min.js"></script>
 </head>
 <body>
-    <a-scene vr-mode-ui="enabled: true" background="color: #FAFAFA">
-        <!-- Окружающая среда -->
-        <a-entity environment="preset: forest; dressingAmount: 500"></a-entity>
+    <a-scene vr-mode-ui="enabled: true">
+        <!-- Бесконечная сетка -->
+        <a-entity gridhelper="size: 100; divisions: 100; colorCenterLine: #AAA; colorGrid: #444"></a-entity>
         
-        <!-- Сфера (небо) -->
-        <a-sky color="#ECECEC"></a-sky>
+        <!-- Объект для перемещения -->
+        <a-box id="player" 
+               position="0 1.6 0" 
+               color="#4CC3D9" 
+               movement-controls 
+               thumb-controls="maxSpeed: 0.1">
+        </a-box>
         
-        <!-- Земля -->
-        <a-circle 
-            position="0 0 0" 
-            rotation="-90 0 0" 
-            radius="20" 
-            color="#7BC8A4"
-            shadow></a-circle>
+        <!-- Окружение (опционально) -->
+        <a-sky color="#222222"></a-sky>
         
-        <!-- Объекты в сцене -->
-        <a-box 
-            position="-1 0.5 -3" 
-            rotation="0 45 0" 
-            color="#4CC3D9" 
-            shadow
-            event-set__enter="_event: mouseenter; scale: 1.1 1.1 1.1"
-            event-set__leave="_event: mouseleave; scale: 1 1 1"></a-box>
-            
-        <a-sphere 
-            position="0 1.25 -5" 
-            radius="1.25" 
-            color="#EF2D5E" 
-            shadow></a-sphere>
-            
-        <a-cylinder 
-            position="1 0.75 -3" 
-            radius="0.5" 
-            height="1.5" 
-            color="#FFC65D" 
-            shadow></a-cylinder>
+        <!-- Источники света -->
+        <a-entity light="type: ambient; color: #444"></a-entity>
+        <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-0.5 1 1"></a-entity>
         
-        <!-- Источник света -->
-        <a-entity light="type: ambient; color: #BBB"></a-entity>
-        <a-entity light="type: directional; color: #FFF; intensity: 0.6" position="-0.5 1 1"></a-entity>
-        
-        <!-- Камера (пользователь) -->
-        <a-entity camera look-controls wasd-controls position="0 1.6 0">
-            <a-entity 
-                cursor="fuse: true; fuseTimeout: 500"
-                position="0 0 -1"
-                geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-                material="color: black; shader: flat">
+        <!-- Камера привязана к объекту игрока -->
+        <a-entity camera look-controls position="0 1.6 0" parent="#player">
+            <a-entity cursor="fuse: true; fuseTimeout: 500"
+                      position="0 0 -1"
+                      geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                      material="color: white; shader: flat">
             </a-entity>
         </a-entity>
     </a-scene>
+    
+    <script>
+        // Дополнительные настройки управления
+        AFRAME.registerComponent('movement-controls', {
+            init: function() {
+                this.speed = 0;
+                this.el.addEventListener('thumbstickmoved', this.onThumbstickMoved.bind(this));
+            },
+            
+            onThumbstickMoved: function(evt) {
+                const direction = new THREE.Vector3();
+                const rotation = this.el.getAttribute('rotation');
+                
+                // Преобразуем движение джойстика в вектор направления
+                direction.x = evt.detail.x;
+                direction.z = evt.detail.y;
+                
+                // Применяем поворот камеры к направлению движения
+                const rotationRad = THREE.MathUtils.degToRad(rotation.y);
+                const cos = Math.cos(rotationRad);
+                const sin = Math.sin(rotationRad);
+                
+                const x = direction.x * cos - direction.z * sin;
+                const z = direction.x * sin + direction.z * cos;
+                
+                // Обновляем позицию
+                const position = this.el.getAttribute('position');
+                this.el.setAttribute('position', {
+                    x: position.x - x * 0.1,
+                    y: position.y,
+                    z: position.z - z * 0.1
+                });
+            }
+        });
+    </script>
 </body>
 </html>
