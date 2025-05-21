@@ -2,67 +2,85 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>VR Пространство с сеткой для Oculus Go</title>
+    <title>VR Сцена с сеткой для Oculus Go</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <!-- Компонент для сетки -->
     <script src="https://unpkg.com/aframe-gridhelper-component@^1.0.0/dist/aframe-gridhelper-component.min.js"></script>
-    <!-- Компонент для управления с тачпада -->
     <script src="https://unpkg.com/aframe-thumb-controls@1.1.0/dist/aframe-thumb-controls.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
     <a-scene vr-mode-ui="enabled: true">
-        <!-- Бесконечная сетка -->
-        <a-entity gridhelper="size: 100; divisions: 100; colorCenterLine: #AAA; colorGrid: #444"></a-entity>
-        
-        <!-- Объект для перемещения -->
-        <a-box id="player" 
-               position="0 1.6 0" 
+        <!-- Бесконечная сетка (пол) -->
+        <a-entity gridhelper="
+            size: 100;
+            divisions: 100;
+            colorCenterLine: #555;
+            colorGrid: #333">
+        </a-entity>
+
+        <!-- Объекты на сцене -->
+        <a-box position="-1 0.5 -3" 
+               rotation="0 45 0" 
                color="#4CC3D9" 
-               movement-controls 
-               thumb-controls="maxSpeed: 0.1">
-        </a-box>
-        
-        <!-- Окружение (опционально) -->
-        <a-sky color="#222222"></a-sky>
-        
-        <!-- Источники света -->
-        <a-entity light="type: ambient; color: #444"></a-entity>
+               shadow></a-box>
+               
+        <a-sphere position="0 1.25 -5" 
+                 radius="1.25" 
+                 color="#EF2D5E" 
+                 shadow></a-sphere>
+                 
+        <a-cylinder position="1 0.75 -3" 
+                   radius="0.5" 
+                   height="1.5" 
+                   color="#FFC65D" 
+                   shadow></a-cylinder>
+
+        <!-- Освещение -->
+        <a-entity light="type: ambient; color: #BBB"></a-entity>
         <a-entity light="type: directional; color: #FFF; intensity: 0.8" position="-0.5 1 1"></a-entity>
-        
-        <!-- Камера привязана к объекту игрока -->
-        <a-entity camera look-controls position="0 1.6 0" parent="#player">
-            <a-entity cursor="fuse: true; fuseTimeout: 500"
-                      position="0 0 -1"
-                      geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-                      material="color: white; shader: flat">
+
+        <!-- Небо -->
+        <a-sky color="#ECECEC"></a-sky>
+
+        <!-- Камера с управлением от тачпада -->
+        <a-entity id="player" 
+                  movement-controls 
+                  thumb-controls="maxSpeed: 0.1"
+                  position="0 1.6 0">
+            <a-entity camera 
+                     look-controls 
+                     wasd-controls="enabled: false">
             </a-entity>
         </a-entity>
     </a-scene>
-    
+
     <script>
-        // Дополнительные настройки управления
+        // Компонент для управления движением с тачпада
         AFRAME.registerComponent('movement-controls', {
             init: function() {
                 this.speed = 0;
+                this.direction = new THREE.Vector3();
                 this.el.addEventListener('thumbstickmoved', this.onThumbstickMoved.bind(this));
             },
             
             onThumbstickMoved: function(evt) {
-                const direction = new THREE.Vector3();
-                const rotation = this.el.getAttribute('rotation');
+                const camera = this.el.querySelector('[camera]');
+                const rotation = camera.getAttribute('rotation');
                 
-                // Преобразуем движение джойстика в вектор направления
-                direction.x = evt.detail.x;
-                direction.z = evt.detail.y;
+                // Устанавливаем направление движения
+                this.direction.x = evt.detail.x;
+                this.direction.z = evt.detail.y;
                 
-                // Применяем поворот камеры к направлению движения
-                const rotationRad = THREE.MathUtils.degToRad(rotation.y);
-                const cos = Math.cos(rotationRad);
-                const sin = Math.sin(rotationRad);
-                
-                const x = direction.x * cos - direction.z * sin;
-                const z = direction.x * sin + direction.z * cos;
+                // Учитываем поворот камеры
+                const yaw = THREE.MathUtils.degToRad(rotation.y);
+                const x = this.direction.x * Math.cos(yaw) - this.direction.z * Math.sin(yaw);
+                const z = this.direction.x * Math.sin(yaw) + this.direction.z * Math.cos(yaw);
                 
                 // Обновляем позицию
                 const position = this.el.getAttribute('position');
