@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Tetrahedron</title>
+            <link rel="manifest" href="manifest.json"> 
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Добавление трёх разноцветных источников света
+        const light1 = new THREE.PointLight(0xff0000, 1, 200); // Красный
+        light1.position.set(50, 50, 50);
+        scene.add(light1);
+        const light2 = new THREE.PointLight(0x0000ff, 1, 200); // Синий
+        light2.position.set(-50, 50, -50);
+        scene.add(light2);
+        const light3 = new THREE.PointLight(0x00ff00, 1, 200); // Зелёный
+        light3.position.set(0, -50, 50);
+        scene.add(light3);
+        scene.add(new THREE.AmbientLight(0x404040, 0.3)); // Мягкий фоновый свет
+
+        // Создание тетраэдра
+        let geometry = new THREE.TetrahedronGeometry(100);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x808080, // Серый цвет
+            side: THREE.DoubleSide,
+            flatShading: true
+        });
+        let tetrahedron = new THREE.Mesh(geometry, material);
+        scene.add(tetrahedron);
+
+        // Создание 2D-кружков (спрайтов) для вершин
+        let vertexSprites = [];
+        function updateVertexSprites() {
+            vertexSprites.forEach(sprite => scene.remove(sprite));
+            vertexSprites = [];
+            const position = geometry.attributes.position;
+            const spriteMaterial = new THREE.SpriteMaterial({
+                color: 0x50ff0000,
+                map: createCircleTexture(10) // Радиус 10 пикселей
+            });
+            for (let i = 0; i < position.count; i++) {
+                const vertex = new THREE.Vector3().fromBufferAttribute(position, i);
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.position.copy(vertex);
+                sprite.userData.vertexIndex = i;
+                sprite.scale.set(5, 5, 1); // Размер спрайта
+                scene.add(sprite);
+                vertexSprites.push(sprite);
+            }
+        }
+
+        // Создание текстуры круга
+        function createCircleTexture(radius) {
+            const size = radius * 2;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const context = canvas.getContext('2d');
+            context.beginPath();
+            context.arc(radius, radius, radius, 0, 2 * Math.PI);
+            context.fillStyle = '#ff0000';
+            context.fill();
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+        updateVertexSprites();
+
+        // Позиция камеры внутри тетраэдра
+        camera.position.set(0, 0, 20);
+        camera.lookAt(0, 0, 0);
+
+        // Ограничение движения камеры
+        function restrictCameraPosition() {
+            const maxDistance = 80;
+            const distance = camera.position.length();
+            if (distance > maxDistance) {
+                camera.position.setLength(maxDistance);
+            }
+        }
+
+        // Управление камерой и кликами
+        let isDragging = false;
+        let isHoldingSprite = false;
+        let selectedVertexIndex = -1;
+        let mouseDownTime = 0;
+        let previousMousePosition = { x: 0, y: 0 };
+        document.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            mouseDownTime = Date.now();
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+            checkSpriteClick(e);
+        });
+        document.addEventListener('mouseup', (e) => {
+            // Проверяем только короткий клик вне зоны спрайта
+            if (!isHoldingSprite && Date.now() - mouseDownTime < 200) {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(tetrahedron);
+                if (intersects.length > 0) {
+                    const faceIndex = intersects[0].faceIndex;
+                    const point = intersects[0].point;
+                    splitFace(faceIndex, point);
+                }
+            }
+            isDragging = false;
+            isHoldingSprite = false;
+            selectedVertexIndex = -1;
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaMove = {
+                    x: e.clientX - previousMousePosition.x,
+                    y: e.clientY - previousMousePosition.y
+                };
+                camera.rotation.y += deltaMove.x * 0.005;
+                camera.rotation.x += deltaMove.y * 0.005;
+                restrictCameraPosition();
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        // Обработка кликов по спрайтам
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        function checkSpriteClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(vertexSprites);
+            isHoldingSprite = intersects.length > 0;
+            if (isHoldingSprite) {
+                selectedVertexIndex = intersects[0].object.userData.vertexIndex;
+            }
+        }
+
+        // Функция разделения грани
+        function splitFace(faceIndex, point) {
+            const position = geometry.attributes.position;
+            let indices = geometry.index ? geometry.index.array : new Uint16Array(position.count);
+            if (!geometry.index) {
+                for (let i = 0; i < indices.length; i++) {
+                    indices[i] = i;
+                }
+            }
+            const vertices = [];
+            for (let i = 0; i < position.count; i++) {
+                vertices.push(new THREE.Vector3().fromBufferAttribute(position, i));
+            }
+
+            const a = indices[faceIndex * 3];
+            const b = indices[faceIndex * 3 + 1];
+            const c = indices[faceIndex * 3 + 2];
+
+            vertices.push(point);
+            const newVertexIndex = vertices.length - 1;
+
+            const newIndices = [];
+            for (let i = 0; i < indices.length; i += 3) {
+                if (i !== faceIndex * 3) {
+                    newIndices.push(indices[i], indices[i + 1], indices[i + 2]);
+                }
+            }
+            newIndices.push(a, b, newVertexIndex);
+            newIndices.push(b, c, newVertexIndex);
+            newIndices.push(c, a, newVertexIndex);
+
+            const newGeometry = new THREE.BufferGeometry();
+            const newVertices = new Float32Array(vertices.length * 3);
+            vertices.forEach((v, i) => {
+                newVertices[i * 3] = v.x;
+                newVertices[i * 3 + 1] = v.y;
+                newVertices[i * 3 + 2] = v.z;
+            });
+            newGeometry.setAttribute('position', new THREE.BufferAttribute(newVertices, 3));
+            newGeometry.setIndex(newIndices);
+            newGeometry.computeVertexNormals();
+
+            scene.remove(tetrahedron);
+            geometry = newGeometry;
+            tetrahedron = new THREE.Mesh(geometry, material);
+            scene.add(tetrahedron);
+            updateVertexSprites();
+        }
+
+        // Выталкивание вершин камерой
+        function pushVertices() {
+            const position = geometry.attributes.position;
+            const vertices = [];
+            for (let i = 0; i < position.count; i++) {
+                vertices.push(new THREE.Vector3().fromBufferAttribute(position, i));
+            }
+            vertices.forEach((vertex, i) => {
+                const distance = camera.position.distanceTo(vertex);
+                if (distance < 10.0) {
+                    const pushDirection = vertex.clone().sub(camera.position).normalize();
+                    vertex.add(pushDirection.multiplyScalar(1.0));
+                    position.setXYZ(i, vertex.x, vertex.y, vertex.z);
+                    vertexSprites[i].position.copy(vertex);
+                }
+            });
+            if (isHoldingSprite && selectedVertexIndex !== -1) {
+                const vertex = vertices[selectedVertexIndex];
+                const pushDirection = vertex.clone().sub(camera.position).normalize();
+                vertex.add(pushDirection.multiplyScalar(0.5));
+                position.setXYZ(selectedVertexIndex, vertex.x, vertex.y, vertex.z);
+                vertexSprites[selectedVertexIndex].position.copy(vertex);
+            }
+            position.needsUpdate = true;
+        }
+
+        // Обработка изменения размера окна
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        // Анимация
+        function animate() {
+            requestAnimationFrame(animate);
+            pushVertices();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
