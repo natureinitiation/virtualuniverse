@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Tetrahedron</title>
-            <link rel="manifest" href="manifest.json"> 
+    <link rel="manifest" href="manifest.json"> 
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -91,21 +91,24 @@
             }
         }
 
-        // Управление камерой и кликами
+        // Управление камерой и взаимодействием
         let isDragging = false;
         let isHoldingSprite = false;
         let selectedVertexIndex = -1;
-        let mouseDownTime = 0;
-        let previousMousePosition = { x: 0, y: 0 };
+        let touchStartTime = 0;
+        let previousTouchPosition = { x: 0, y: 0 };
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // Обработка мыши
         document.addEventListener('mousedown', (e) => {
             isDragging = true;
-            mouseDownTime = Date.now();
-            previousMousePosition = { x: e.clientX, y: e.clientY };
+            touchStartTime = Date.now();
+            previousTouchPosition = { x: e.clientX, y: e.clientY };
             checkSpriteClick(e);
         });
         document.addEventListener('mouseup', (e) => {
-            // Проверяем только короткий клик вне зоны спрайта
-            if (!isHoldingSprite && Date.now() - mouseDownTime < 200) {
+            if (!isHoldingSprite && Date.now() - touchStartTime < 200) {
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
@@ -123,19 +126,61 @@
         document.addEventListener('mousemove', (e) => {
             if (isDragging) {
                 const deltaMove = {
-                    x: e.clientX - previousMousePosition.x,
-                    y: e.clientY - previousMousePosition.y
+                    x: e.clientX - previousTouchPosition.x,
+                    y: e.clientY - previousTouchPosition.y
                 };
                 camera.rotation.y += deltaMove.x * 0.005;
                 camera.rotation.x += deltaMove.y * 0.005;
                 restrictCameraPosition();
-                previousMousePosition = { x: e.clientX, y: e.clientY };
+                previousTouchPosition = { x: e.clientX, y: e.clientY };
             }
         });
 
-        // Обработка кликов по спрайтам
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
+        // Обработка сенсорных событий
+        document.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                isDragging = true;
+                touchStartTime = Date.now();
+                const touch = e.touches[0];
+                previousTouchPosition = { x: touch.clientX, y: touch.clientY };
+                checkSpriteClick(touch);
+            }
+        }, { passive: false });
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isDragging && e.touches.length === 1) {
+                const touch = e.touches[0];
+                const deltaMove = {
+                    x: touch.clientX - previousTouchPosition.x,
+                    y: touch.clientY - previousTouchPosition.y
+                };
+                camera.rotation.y += deltaMove.x * 0.005;
+                camera.rotation.x += deltaMove.y * 0.005;
+                restrictCameraPosition();
+                previousTouchPosition = { x: touch.clientX, y: touch.clientY };
+            }
+        }, { passive: false });
+        document.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (!isHoldingSprite && Date.now() - touchStartTime < 200 && e.changedTouches.length === 1) {
+                const touch = e.changedTouches[0];
+                mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(tetrahedron);
+                if (intersects.length > 0) {
+                    const faceIndex = intersects[0].faceIndex;
+                    const point = intersects[0].point;
+                    splitFace(faceIndex, point);
+                }
+            }
+            isDragging = false;
+            isHoldingSprite = false;
+            selectedVertexIndex = -1;
+        }, { passive: false });
+
+        // Проверка кликов/касаний по спрайтам
         function checkSpriteClick(event) {
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
