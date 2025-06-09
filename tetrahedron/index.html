@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Icosahedron</title>
+    <title>Interactive Tetrahedron</title>
     <link rel="manifest" href="manifest.json"> 
     <style>
         body { margin: 0; overflow: hidden; }
@@ -15,17 +15,18 @@
             transform: translateX(-50%);
             padding: 10px 20px;
             background: rgba(0, 0, 0, 0);
+            font-family: monospace;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
             z-index: 1000;
         }
         #voyageButton:hover {
             background: rgba(0, 0, 0, 0);
         }
-                .help-button {
+           .help-button {
             position: fixed;
             top: 20px;
             left: 50%;
@@ -50,7 +51,7 @@
 </head>
 <body>
     <button id="voyageButton">Voyage</button>
-        <a href="https://t.me/hobbyandlobby/" style="text-decoration: none;" class="help-button" target="_blank">Fuse</a>
+    <a href="https://t.me/hobbyandlobby/" style="text-decoration: none;" class="help-button" target="_blank">Fuse</a>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         const scene = new THREE.Scene();
@@ -72,7 +73,7 @@
         scene.add(new THREE.AmbientLight(0x404040, 0.3)); // Мягкий фоновый свет
 
         // Создание тетраэдра
-        let geometry = new THREE.IcosahedronGeometry(100);
+        let geometry = new THREE.TetrahedronGeometry(100);
         const material = new THREE.MeshStandardMaterial({
             color: 0x808080, // Серый цвет
             side: THREE.DoubleSide,
@@ -388,7 +389,6 @@
 
                 if (isInside) {
                     camera.position.copy(newPosition);
-                    camera.lookAt(newPosition.clone().add(forward));
                 } else {
                     // Если камера выходит за пределы, останавливаем полёт
                     isVoyaging = false;
