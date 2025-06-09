@@ -3,14 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Tetrahedron</title>
+    <title>Interactive Icosahedron</title>
     <link rel="manifest" href="manifest.json"> 
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
+        #voyageButton {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+        }
+        #voyageButton:hover {
+            background: rgba(0, 0, 0, 0);
+        }
+                .help-button {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            padding: 15px;
+            background: none;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0px solid white;
+            border-radius: 12px;
+        }
     </style>
 </head>
 <body>
+    <button id="voyageButton">Voyage</button>
+        <a href="https://t.me/hobbyandlobby/" style="text-decoration: none;" class="help-button" target="_blank">Fuse</a>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         const scene = new THREE.Scene();
@@ -32,7 +72,7 @@
         scene.add(new THREE.AmbientLight(0x404040, 0.3)); // Мягкий фоновый свет
 
         // Создание тетраэдра
-        let geometry = new THREE.TetrahedronGeometry(100);
+        let geometry = new THREE.IcosahedronGeometry(100);
         const material = new THREE.MeshStandardMaterial({
             color: 0x808080, // Серый цвет
             side: THREE.DoubleSide,
@@ -89,6 +129,14 @@
             if (distance > maxDistance) {
                 camera.position.setLength(maxDistance);
             }
+
+            // Ограничение внутри тетраэдра
+            geometry.computeBoundingBox();
+            const bbox = geometry.boundingBox;
+            const margin = 5; // Отступ от границ
+            camera.position.x = Math.max(bbox.min.x + margin, Math.min(bbox.max.x - margin, camera.position.x));
+            camera.position.y = Math.max(bbox.min.y + margin, Math.min(bbox.max.y - margin, camera.position.y));
+            camera.position.z = Math.max(bbox.min.z + margin, Math.min(bbox.max.z - margin, camera.position.z));
         }
 
         // Управление камерой и взаимодействием
@@ -100,14 +148,34 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
+        // Проверка, находится ли событие в зоне кнопки
+        function isInButtonZone(clientX, clientY) {
+            const button = document.getElementById('voyageButton');
+            const rect = button.getBoundingClientRect();
+            const padding = 20; // Дополнительная зона вокруг кнопки
+            return (
+                clientX >= rect.left - padding &&
+                clientX <= rect.right + padding &&
+                clientY >= rect.top - padding &&
+                clientY <= rect.bottom + padding
+            );
+        }
+
         // Обработка мыши
         document.addEventListener('mousedown', (e) => {
+            if (isInButtonZone(e.clientX, e.clientY)) return;
             isDragging = true;
             touchStartTime = Date.now();
             previousTouchPosition = { x: e.clientX, y: e.clientY };
             checkSpriteClick(e);
         });
         document.addEventListener('mouseup', (e) => {
+            if (isInButtonZone(e.clientX, e.clientY)) {
+                isDragging = false;
+                isHoldingSprite = false;
+                selectedVertexIndex = -1;
+                return;
+            }
             if (!isHoldingSprite && Date.now() - touchStartTime < 200) {
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -140,9 +208,10 @@
         document.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                if (isInButtonZone(touch.clientX, touch.clientY)) return;
                 isDragging = true;
                 touchStartTime = Date.now();
-                const touch = e.touches[0];
                 previousTouchPosition = { x: touch.clientX, y: touch.clientY };
                 checkSpriteClick(touch);
             }
@@ -163,16 +232,24 @@
         }, { passive: false });
         document.addEventListener('touchend', (e) => {
             e.preventDefault();
-            if (!isHoldingSprite && Date.now() - touchStartTime < 200 && e.changedTouches.length === 1) {
+            if (e.changedTouches.length === 1) {
                 const touch = e.changedTouches[0];
-                mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(tetrahedron);
-                if (intersects.length > 0) {
-                    const faceIndex = intersects[0].faceIndex;
-                    const point = intersects[0].point;
-                    splitFace(faceIndex, point);
+                if (isInButtonZone(touch.clientX, touch.clientY)) {
+                    isDragging = false;
+                    isHoldingSprite = false;
+                    selectedVertexIndex = -1;
+                    return;
+                }
+                if (!isHoldingSprite && Date.now() - touchStartTime < 200) {
+                    mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+                    raycaster.setFromCamera(mouse, camera);
+                    const intersects = raycaster.intersectObject(tetrahedron);
+                    if (intersects.length > 0) {
+                        const faceIndex = intersects[0].faceIndex;
+                        const point = intersects[0].point;
+                        splitFace(faceIndex, point);
+                    }
                 }
             }
             isDragging = false;
@@ -182,6 +259,11 @@
 
         // Проверка кликов/касаний по спрайтам
         function checkSpriteClick(event) {
+            if (isInButtonZone(event.clientX, event.clientY)) {
+                isHoldingSprite = false;
+                selectedVertexIndex = -1;
+                return;
+            }
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
@@ -267,6 +349,56 @@
             position.needsUpdate = true;
         }
 
+        // Управление полётом камеры
+        let isVoyaging = false;
+        let targetSpeed = 0;
+        let currentSpeed = 0;
+        const maxSpeed = 0.5;
+        const acceleration = 0.01;
+        const deceleration = 0.015;
+        const voyageButton = document.getElementById('voyageButton');
+        voyageButton.addEventListener('click', () => {
+            isVoyaging = !isVoyaging;
+            voyageButton.textContent = isVoyaging ? 'Stop' : 'Voyage';
+            targetSpeed = isVoyaging ? maxSpeed : 0;
+        });
+
+        function updateCameraVoyage() {
+            if (isVoyaging || currentSpeed > 0) {
+                if (currentSpeed < targetSpeed) {
+                    currentSpeed = Math.min(currentSpeed + acceleration, maxSpeed);
+                } else if (currentSpeed > targetSpeed) {
+                    currentSpeed = Math.max(currentSpeed - deceleration, 0);
+                }
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                const newPosition = camera.position.clone().add(forward.multiplyScalar(currentSpeed));
+                
+                // Проверка, находится ли новая позиция внутри тетраэдра
+                geometry.computeBoundingBox();
+                const bbox = geometry.boundingBox;
+                const margin = 5;
+                const isInside = (
+                    newPosition.x >= bbox.min.x + margin &&
+                    newPosition.x <= bbox.max.x - margin &&
+                    newPosition.y >= bbox.min.y + margin &&
+                    newPosition.y <= bbox.max.y - margin &&
+                    newPosition.z >= bbox.min.z + margin &&
+                    newPosition.z <= bbox.max.z - margin
+                );
+
+                if (isInside) {
+                    camera.position.copy(newPosition);
+                    camera.lookAt(newPosition.clone().add(forward));
+                } else {
+                    // Если камера выходит за пределы, останавливаем полёт
+                    isVoyaging = false;
+                    voyageButton.textContent = 'Voyage';
+                    targetSpeed = 0;
+                }
+                restrictCameraPosition();
+            }
+        }
+
         // Обработка изменения размера окна
         window.addEventListener('resize', () => {
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -278,6 +410,7 @@
         function animate() {
             requestAnimationFrame(animate);
             pushVertices();
+            updateCameraVoyage();
             renderer.render(scene, camera);
         }
         animate();
