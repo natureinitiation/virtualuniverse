@@ -14,17 +14,18 @@
             left: 50%;
             transform: translateX(-50%);
             padding: 10px 20px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0);
+            font-family: monospace;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
             z-index: 1000;
-            touch-action: manipulation; /* Предотвращает нежелательное поведение при касании */
+            touch-action: manipulation;
         }
         #voyageButton:hover {
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0);
         }
     </style>
 </head>
@@ -38,66 +39,57 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
+        // Добавление фонарика (спотлайт) к камере
+        const flashlight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI / 6, 0.5);
+        flashlight.position.set(0, 0, 0); // Позиция относительно камеры
+        camera.add(flashlight);
+        flashlight.target = new THREE.Object3D();
+        camera.add(flashlight.target);
+        flashlight.target.position.set(0, 0, -1); // Направление вперёд от камеры
+        scene.add(camera);
+
         // Добавление трёх разноцветных источников света
-        const light1 = new THREE.PointLight(0xff0000, 1, 200); // Красный
+        const light1 = new THREE.PointLight(0xff0000, 0.5, 200); // Красный, уменьшенная интенсивность
         light1.position.set(50, 50, 50);
         scene.add(light1);
-        const light2 = new THREE.PointLight(0x0000ff, 1, 200); // Синий
+        const light2 = new THREE.PointLight(0x0000ff, 0.5, 200); // Синий
         light2.position.set(-50, 50, -50);
         scene.add(light2);
-        const light3 = new THREE.PointLight(0x00ff00, 1, 200); // Зелёный
+        const light3 = new THREE.PointLight(0x00ff00, 0.5, 200); // Зелёный
         light3.position.set(0, -50, 50);
         scene.add(light3);
-        scene.add(new THREE.AmbientLight(0x404040, 0.3)); // Мягкий фоновый свет
+        scene.add(new THREE.AmbientLight(0x404040, 0.2)); // Мягкий фоновый свет
 
-        // Создание тетраэдра
+        // Создание икосаэдра
         let geometry = new THREE.IcosahedronGeometry(100);
         const material = new THREE.MeshStandardMaterial({
             color: 0x808080, // Серый цвет
             side: THREE.DoubleSide,
             flatShading: true
         });
-        let tetrahedron = new THREE.Mesh(geometry, material);
-        scene.add(tetrahedron);
+        let icosahedron = new THREE.Mesh(geometry, material);
+        scene.add(icosahedron);
 
-        // Создание 2D-кружков (спрайтов) для вершин
-        let vertexSprites = [];
-        function updateVertexSprites() {
-            vertexSprites.forEach(sprite => scene.remove(sprite));
-            vertexSprites = [];
+        // Создание сфер для вершин
+        let vertexSpheres = [];
+        function updateVertexSpheres() {
+            vertexSpheres.forEach(sphere => scene.remove(sphere));
+            vertexSpheres = [];
             const position = geometry.attributes.position;
-            const spriteMaterial = new THREE.SpriteMaterial({
-                color: 0x50ff0000,
-                map: createCircleTexture(10) // Радиус 10 пикселей
-            });
+            const sphereGeometry = new THREE.SphereGeometry(2, 16, 16); // Радиус 2, детализация
+            const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
             for (let i = 0; i < position.count; i++) {
                 const vertex = new THREE.Vector3().fromBufferAttribute(position, i);
-                const sprite = new THREE.Sprite(spriteMaterial);
-                sprite.position.copy(vertex);
-                sprite.userData.vertexIndex = i;
-                sprite.scale.set(5, 5, 1); // Размер спрайта
-                scene.add(sprite);
-                vertexSprites.push(sprite);
+                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                sphere.position.copy(vertex);
+                sphere.userData.vertexIndex = i;
+                scene.add(sphere);
+                vertexSpheres.push(sphere);
             }
         }
+        updateVertexSpheres();
 
-        // Создание текстуры круга
-        function createCircleTexture(radius) {
-            const size = radius * 2;
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const context = canvas.getContext('2d');
-            context.beginPath();
-            context.arc(radius, radius, radius, 0, 2 * Math.PI);
-            context.fillStyle = '#ff0000';
-            context.fill();
-            const texture = new THREE.CanvasTexture(canvas);
-            return texture;
-        }
-        updateVertexSprites();
-
-        // Позиция камеры внутри тетраэдра
+        // Позиция камеры внутри икосаэдра
         camera.position.set(0, 0, 20);
         camera.lookAt(0, 0, 0);
 
@@ -109,7 +101,7 @@
                 camera.position.setLength(maxDistance);
             }
 
-            // Ограничение внутри тетраэдра
+            // Ограничение внутри икосаэдра
             geometry.computeBoundingBox();
             const bbox = geometry.boundingBox;
             const margin = 5; // Отступ от границ
@@ -120,7 +112,7 @@
 
         // Управление камерой и взаимодействием
         let isDragging = false;
-        let isHoldingSprite = false;
+        let isHoldingSphere = false;
         let selectedVertexIndex = -1;
         let touchStartTime = 0;
         let previousTouchPosition = { x: 0, y: 0 };
@@ -146,20 +138,20 @@
             isDragging = true;
             touchStartTime = Date.now();
             previousTouchPosition = { x: e.clientX, y: e.clientY };
-            checkSpriteClick(e);
+            checkSphereClick(e);
         });
         document.addEventListener('mouseup', (e) => {
             if (isInButtonZone(e.clientX, e.clientY)) {
                 isDragging = false;
-                isHoldingSprite = false;
+                isHoldingSphere = false;
                 selectedVertexIndex = -1;
                 return;
             }
-            if (!isHoldingSprite && Date.now() - touchStartTime < 200) {
+            if (!isHoldingSphere && Date.now() - touchStartTime < 200) {
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(tetrahedron);
+                const intersects = raycaster.intersectObject(icosahedron);
                 if (intersects.length > 0) {
                     const faceIndex = intersects[0].faceIndex;
                     const point = intersects[0].point;
@@ -167,7 +159,7 @@
                 }
             }
             isDragging = false;
-            isHoldingSprite = false;
+            isHoldingSphere = false;
             selectedVertexIndex = -1;
         });
         document.addEventListener('mousemove', (e) => {
@@ -192,7 +184,7 @@
                 isDragging = true;
                 touchStartTime = Date.now();
                 previousTouchPosition = { x: touch.clientX, y: touch.clientY };
-                checkSpriteClick(touch);
+                checkSphereClick(touch);
             }
         }, { passive: false });
         document.addEventListener('touchmove', (e) => {
@@ -215,15 +207,15 @@
                 const touch = e.changedTouches[0];
                 if (isInButtonZone(touch.clientX, touch.clientY)) {
                     isDragging = false;
-                    isHoldingSprite = false;
+                    isHoldingSphere = false;
                     selectedVertexIndex = -1;
                     return;
                 }
-                if (!isHoldingSprite && Date.now() - touchStartTime < 200) {
+                if (!isHoldingSphere && Date.now() - touchStartTime < 200) {
                     mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
                     mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
                     raycaster.setFromCamera(mouse, camera);
-                    const intersects = raycaster.intersectObject(tetrahedron);
+                    const intersects = raycaster.intersectObject(icosahedron);
                     if (intersects.length > 0) {
                         const faceIndex = intersects[0].faceIndex;
                         const point = intersects[0].point;
@@ -232,23 +224,23 @@
                 }
             }
             isDragging = false;
-            isHoldingSprite = false;
+            isHoldingSphere = false;
             selectedVertexIndex = -1;
         }, { passive: false });
 
-        // Проверка кликов/касаний по спрайтам
-        function checkSpriteClick(event) {
+        // Проверка кликов/касаний по сферам
+        function checkSphereClick(event) {
             if (isInButtonZone(event.clientX, event.clientY)) {
-                isHoldingSprite = false;
+                isHoldingSphere = false;
                 selectedVertexIndex = -1;
                 return;
             }
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(vertexSprites);
-            isHoldingSprite = intersects.length > 0;
-            if (isHoldingSprite) {
+            const intersects = raycaster.intersectObjects(vertexSpheres);
+            isHoldingSphere = intersects.length > 0;
+            if (isHoldingSphere) {
                 selectedVertexIndex = intersects[0].object.userData.vertexIndex;
             }
         }
@@ -295,11 +287,11 @@
             newGeometry.setIndex(newIndices);
             newGeometry.computeVertexNormals();
 
-            scene.remove(tetrahedron);
+            scene.remove(icosahedron);
             geometry = newGeometry;
-            tetrahedron = new THREE.Mesh(geometry, material);
-            scene.add(tetrahedron);
-            updateVertexSprites();
+            icosahedron = new THREE.Mesh(geometry, material);
+            scene.add(icosahedron);
+            updateVertexSpheres();
         }
 
         // Выталкивание вершин камерой
@@ -315,15 +307,15 @@
                     const pushDirection = vertex.clone().sub(camera.position).normalize();
                     vertex.add(pushDirection.multiplyScalar(1.0));
                     position.setXYZ(i, vertex.x, vertex.y, vertex.z);
-                    vertexSprites[i].position.copy(vertex);
+                    vertexSpheres[i].position.copy(vertex);
                 }
             });
-            if (isHoldingSprite && selectedVertexIndex !== -1) {
+            if (isHoldingSphere && selectedVertexIndex !== -1) {
                 const vertex = vertices[selectedVertexIndex];
                 const pushDirection = vertex.clone().sub(camera.position).normalize();
                 vertex.add(pushDirection.multiplyScalar(0.5));
                 position.setXYZ(selectedVertexIndex, vertex.x, vertex.y, vertex.z);
-                vertexSprites[selectedVertexIndex].position.copy(vertex);
+                vertexSpheres[selectedVertexIndex].position.copy(vertex);
             }
             position.needsUpdate = true;
         }
@@ -336,8 +328,7 @@
         const acceleration = 0.01;
         const deceleration = 0.015;
         const voyageButton = document.getElementById('voyageButton');
-        
-        // Обработчик для мыши и сенсора
+
         function toggleVoyage() {
             isVoyaging = !isVoyaging;
             voyageButton.textContent = isVoyaging ? 'Stop' : 'Voyage';
@@ -350,7 +341,7 @@
         });
         voyageButton.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            e.stopPropagation(); // Останавливаем распространение события
+            e.stopPropagation();
             toggleVoyage();
         }, { passive: false });
 
@@ -363,8 +354,8 @@
                 }
                 const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                 const newPosition = camera.position.clone().add(forward.multiplyScalar(currentSpeed));
-                
-                // Проверка, находится ли новая позиция внутри тетраэдра
+
+                // Проверка, находится ли новая позиция внутри икосаэдра
                 geometry.computeBoundingBox();
                 const bbox = geometry.boundingBox;
                 const margin = 5;
@@ -380,7 +371,6 @@
                 if (isInside) {
                     camera.position.copy(newPosition);
                 } else {
-                    // Если камера выходит за пределы, останавливаем полёт
                     isVoyaging = false;
                     voyageButton.textContent = 'Voyage';
                     targetSpeed = 0;
