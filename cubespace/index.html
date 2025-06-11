@@ -72,15 +72,6 @@
     setVoxel(2,2,2,true);
     renderVoxels();
 
-    // Добавим "пол" для тени
-    const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(20,20),
-      new THREE.MeshStandardMaterial({ color: 0x444444, roughness:0.7 })
-    );
-    plane.rotation.x = -Math.PI/2;
-    plane.position.y = -0.51;
-    plane.receiveShadow = true;
-    scene.add(plane);
 
     // Рендерим всю сетку кубов
     function renderVoxels() {
