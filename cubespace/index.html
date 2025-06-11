@@ -1,29 +1,45 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Cube Space</title>
-  <link rel="manifest" href="manifest.json">
-  <style>
-    body { margin: 0; overflow: hidden; }
-    #info { position: absolute; top: 10px; left: 10px; color: white; font-family: Arial; background:rgba(0,0,0,0.5); padding:3px 8px;}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Space Polarity — Voxels</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { user-select: none; margin: 0; overflow: hidden; background: #000; }
+        .go-button {
+            position: fixed; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 18px;
+            color: #fff !important;
+            background: rgba(0,0,0,0);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 32px;
+        }
+    </style>
 </head>
 <body>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script>
-    const SIZE = 5, CELL = 1;
-    let voxels = {};
-    function setVoxel(x, y, z, val) { voxels[`${x},${y},${z}`] = val; }
-    function getVoxel(x, y, z) { return voxels[`${x},${y},${z}`]; }
-    function deleteVoxel(x, y, z) { delete voxels[`${x},${y},${z}`]; }
-
+    <button class="go-button">Voyage</button>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+    <script>
+    // --- SCENE AND CAMERA ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#007bff');
+    scene.background = new THREE.Color(0x007bff);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(8, 8, 16);
 
-    // --- Свет ---
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.physicallyCorrectLights = true;
+    document.body.appendChild(renderer.domElement);
+
+    // --- LIGHTS ---
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -44,23 +60,43 @@
         scene.add(light);
     });
 
-    // --- Камера, рендерер, управление ---
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100);
-    camera.position.set(SIZE, SIZE, SIZE);
-
-    const renderer = new THREE.WebGLRenderer({antialias: true, alpha: false});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.physicallyCorrectLights = true;
-    document.body.appendChild(renderer.domElement);
-
+    // --- CONTROLS ---
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.005;
-    controls.target.set(2,2,2);
-    controls.update();
 
-    // --- Перламутровый полупрозрачный материал ---
+    // --- DYNAMIC BACKGROUND COLOR ---
+    const colors = ['#007bff', '#7058a8', '#000033', '#f48474'];
+    let currentColorIndex = 0;
+    function changeBackgroundColor() {
+        currentColorIndex = (currentColorIndex + 1) % colors.length;
+        const targetColor = new THREE.Color(colors[currentColorIndex]);
+        animateBackgroundColor(targetColor);
+    }
+    function animateBackgroundColor(targetColor) {
+        const startColor = scene.background.clone();
+        const duration = 5;
+        const startTime = performance.now();
+        function updateBackgroundColor() {
+            const elapsed = (performance.now() - startTime) / 1000;
+            const progress = Math.min(elapsed / duration, 1);
+            scene.background.lerpColors(startColor, targetColor, progress);
+            if (progress < 1) requestAnimationFrame(updateBackgroundColor);
+        }
+        updateBackgroundColor();
+    }
+    setInterval(changeBackgroundColor, 100000);
+
+    // --- VOXEL LOGIC ---
+    const CELL = 1;
+    const voxels = {}; // key: "x,y,z" -> true
+    function setVoxel(x, y, z, val) { voxels[`${x},${y},${z}`] = val; }
+    function getVoxel(x, y, z) { return voxels[`${x},${y},${z}`]; }
+    function deleteVoxel(x, y, z) { delete voxels[`${x},${y},${z}`]; }
+    const voxelGroup = new THREE.Group();
+    scene.add(voxelGroup);
+
+    // Перламутровый материал
     function createIridescentMaterial() {
       return new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
@@ -79,12 +115,6 @@
       });
     }
 
-    const voxelGroup = new THREE.Group();
-    scene.add(voxelGroup);
-
-    setVoxel(2,2,2,true);
-    renderVoxels();
-
     function renderVoxels() {
       while (voxelGroup.children.length) voxelGroup.remove(voxelGroup.children[0]);
       Object.keys(voxels).forEach(key=>{
@@ -95,118 +125,199 @@
             createIridescentMaterial()
           );
           mesh.position.set(x, y, z);
+          // --- SCATTER DATA ---
+          mesh.userData.scatterVelocity = null; // Vector3
+          mesh.userData.scatterAngularVelocity = null; // Vector3 (rotation speed)
+          mesh.userData.scatterStart = null;
+          mesh.userData.scatterDuration = 0.6; // секунд — фаза полного разлёта
+          mesh.userData.scatterDeceleration = 0.03; // очень плавное затухание
+          mesh.userData.hasScattered = false; // Куб ещё не разлетался
           voxelGroup.add(mesh);
         }
       });
     }
+    // Стартовый куб
+    setVoxel(0,0,0,true);
+    renderVoxels();
 
-    // --- Одиночный и двойной тап/клик ---
+    // --- ВОЗМОЖНОСТЬ ДОБАВЛЕНИЯ/УДАЛЕНИЯ КУБОВ ---
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
-    let tapTimeout = null;
-    let lastTapPos = null;
-
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
     function onPointerDown(event) {
-      if (event.pointerType === "touch") {
-        mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-        mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        let intersects = raycaster.intersectObjects(voxelGroup.children);
-        if (intersects.length > 0) {
-          let intersect = intersects[0];
-          let pos = intersect.object.position.clone();
-          let norm = intersect.face.normal.clone();
-          if (!tapTimeout) {
-            lastTapPos = {pos, norm};
-            tapTimeout = setTimeout(() => {
-              // Одиночный тап: добавить
-              let newPos = pos.clone().add(norm);
-              if (!getVoxel(newPos.x, newPos.y, newPos.z)) {
-                setVoxel(newPos.x, newPos.y, newPos.z, true);
-                renderVoxels();
-              }
-              tapTimeout = null;
-              lastTapPos = null;
-            }, 300);
-          } else {
-            // Двойной тап: удалить
-            clearTimeout(tapTimeout);
-            tapTimeout = null;
-            lastTapPos = null;
-            if (voxelGroup.children.length > 1) {
-              setVoxel(pos.x, pos.y, pos.z, false);
-              deleteVoxel(pos.x, pos.y, pos.z);
-              renderVoxels();
-            }
-          }
-        }
-      } else {
-        let extrude = true;
-        if (event.button === 2) extrude = false;
-        mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-        mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-        let intersects = raycaster.intersectObjects(voxelGroup.children);
-        if (intersects.length > 0) {
-          let intersect = intersects[0];
-          let pos = intersect.object.position.clone();
-          let norm = intersect.face.normal.clone();
-          if (extrude) {
+      if (event.target.closest('.go-button')) return; // Не реагировать на кнопки
+      let extrude = true;
+      if (event.button === 2) extrude = false;
+      mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+      mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      let intersects = raycaster.intersectObjects(voxelGroup.children);
+      if (intersects.length > 0) {
+        let intersect = intersects[0];
+        let pos = intersect.object.position.clone();
+        let norm = intersect.face.normal.clone();
+        if (extrude) {
             pos.add(norm);
             if (!getVoxel(pos.x, pos.y, pos.z)) {
               setVoxel(pos.x, pos.y, pos.z, true);
               renderVoxels();
             }
-          } else {
+        } else {
             if (voxelGroup.children.length > 1) {
               setVoxel(pos.x, pos.y, pos.z, false);
               deleteVoxel(pos.x, pos.y, pos.z);
               renderVoxels();
             }
-          }
         }
       }
     }
     renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
 
-    // --- Плавная смена цвета фона ---
-    const colors = ['#007bff', '#7058a8', '#000033', '#f48474'];
-    let currentColorIndex = 0;
-    function changeBackgroundColor() {
-        currentColorIndex = (currentColorIndex + 1) % colors.length;
-        const targetColor = new THREE.Color(colors[currentColorIndex]);
-        animateBackgroundColor(targetColor);
+    // --- РАСТАЛКИВАНИЕ КАМЕРОЙ (repulsion) ---
+    function applyCameraRepulsion() {
+        const repulsionDistance = 3;
+        const repulsionStrength = 0.05;
+        voxelGroup.children.forEach((obj) => {
+            const distance = camera.position.distanceTo(obj.position);
+            if (distance < repulsionDistance) {
+                const direction = obj.position.clone().sub(camera.position).normalize();
+                const force = direction.multiplyScalar((repulsionDistance - distance) * repulsionStrength);
+                obj.position.add(force);
+            }
+        });
     }
-    function animateBackgroundColor(targetColor) {
-        const startColor = scene.background.clone();
-        const duration = 5; // секунд
-        const startTime = performance.now();
-        function updateBackgroundColor() {
-            const elapsed = (performance.now() - startTime) / 1000;
-            const progress = Math.min(elapsed / duration, 1);
-            scene.background.lerpColors(startColor, targetColor, progress);
-            if (progress < 1) requestAnimationFrame(updateBackgroundColor);
-        }
-        updateBackgroundColor();
-    }
-    setInterval(changeBackgroundColor, 100000);
 
-    // --- Анимация ---
+    // --- ФУНКЦИЯ естественного разлёта кубов ---
+    function scatterNearbyCubes(cameraVelocity) {
+      const SCATTER_DISTANCE = 5;
+      const SCATTER_ANGLE_COS = Math.cos(THREE.MathUtils.degToRad(35));
+      voxelGroup.children.forEach(obj => {
+        if (!obj.userData.hasScattered) {
+          const toCube = obj.position.clone().sub(camera.position);
+          const dist = toCube.length();
+          if (dist < SCATTER_DISTANCE) {
+            toCube.normalize();
+            const cameraDir = new THREE.Vector3();
+            camera.getWorldDirection(cameraDir);
+            if (toCube.dot(cameraDir) > SCATTER_ANGLE_COS) {
+              obj.userData.hasScattered = true;
+              obj.userData.scatterVelocity = toCube.clone().multiplyScalar(5 * (0.8 + Math.random()*0.6));
+              obj.userData.scatterStart = performance.now();
+              obj.userData.scatterDuration = 0.6;
+              obj.userData.scatterDeceleration = 0.03;
+
+              // --- Привязка вращения к скорости камеры ---
+              const cameraSpeed = cameraVelocity ? cameraVelocity.length() : 0;
+              const baseSpin = 0.16; // базовый множитель, можно отрегулировать на вкус
+              const spinAmount = Math.min(cameraSpeed * baseSpin, 0.18); // ограничение максимума
+              obj.userData.scatterAngularVelocity = new THREE.Vector3(
+                  (Math.random()-0.5) * spinAmount,
+                  (Math.random()-0.5) * spinAmount,
+                  (Math.random()-0.5) * spinAmount
+              );
+            }
+          }
+        }
+      });
+    }
+
+    // --- КНОПКА и ПОЛЕТ КАМЕРЫ ---
+    let isMoving = false;
+    let targetVelocity = new THREE.Vector3();
+    const cameraVelocity = new THREE.Vector3();
+    let voyageSpeed = 0.3;
+    const acceleration = 0.002;
+    const deceleration = 0.01;
+    const center = new THREE.Vector3(0, 0, 0);
+
+    const voyageBtn = document.querySelector('.go-button');
+
+    voyageBtn.addEventListener('click', () => {
+        isMoving = !isMoving;
+        voyageBtn.textContent = isMoving ? "Stop" : "Voyage";
+        controls.enabled = !isMoving;
+        if (isMoving) {
+            adjustCameraFocus();
+        } else {
+            targetVelocity.set(0, 0, 0);
+        }
+    });
+
+    function adjustCameraFocus() {
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        const azimuthOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
+        const elevationOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
+        direction.applyQuaternion(new THREE.Quaternion()
+            .setFromAxisAngle(new THREE.Vector3(0, 1, 0), azimuthOffset)
+            .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), elevationOffset)));
+        targetVelocity.copy(direction.multiplyScalar(voyageSpeed));
+    }
+    voyageBtn.addEventListener('dblclick', (e) => {
+        if (isMoving) adjustCameraFocus();
+    });
+
+    // --- Вызываем разлёт кубов при изменении OrbitControls (вращение/зум камеры вручную) ---
+    controls.addEventListener('change', () => {
+      // Для ручного управления вращение не зависит от скорости камеры, используем фиксированный spin
+      scatterNearbyCubes({length:()=>0.9}); // просто для красоты
+    });
+
+    // --- АНИМАЦИЯ ---
     function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+        if (isMoving) {
+            cameraVelocity.lerp(targetVelocity, acceleration);
+            camera.position.add(cameraVelocity);
+            camera.lookAt(center);
+
+            // Естественный разлёт кубов при автоматическом движении камеры — скорость вращения зависит от cameraVelocity
+            scatterNearbyCubes(cameraVelocity);
+        } else {
+            cameraVelocity.lerp(new THREE.Vector3(), deceleration);
+            camera.position.add(cameraVelocity);
+            controls.update();
+        }
+
+        // --- scatter-logic для кубов ---
+        voxelGroup.children.forEach(obj => {
+            if (obj.userData.scatterVelocity) {
+                const elapsed = (performance.now() - obj.userData.scatterStart) / 1000;
+                if (elapsed < obj.userData.scatterDuration) {
+                    obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+                } else {
+                    obj.userData.scatterVelocity.multiplyScalar(1 - obj.userData.scatterDeceleration);
+                    if (obj.userData.scatterVelocity.length() < 0.003) {
+                        obj.userData.scatterVelocity = null;
+                        obj.userData.scatterStart = null;
+                    } else {
+                        obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+                    }
+                }
+            }
+            // --- scatter-вращение ---
+            if (obj.userData.scatterAngularVelocity) {
+                obj.rotation.x += obj.userData.scatterAngularVelocity.x;
+                obj.rotation.y += obj.userData.scatterAngularVelocity.y;
+                obj.rotation.z += obj.userData.scatterAngularVelocity.z;
+                obj.userData.scatterAngularVelocity.multiplyScalar(1 - 0.01);
+                if (obj.userData.scatterAngularVelocity.length() < 0.001)
+                    obj.userData.scatterAngularVelocity = null;
+            }
+        });
+
+        applyCameraRepulsion();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
     }
     animate();
 
-    // --- Ресайз ---
-    window.addEventListener('resize', ()=>{
-      camera.aspect = window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    // --- RESIZE ---
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
     });
-  </script>
+    </script>
 </body>
 </html>
