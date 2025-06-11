@@ -98,40 +98,78 @@
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    renderer.domElement.addEventListener('pointerdown', onPointerDown);
-    let lastTap = 0;
+let tapTimeout = null;
+let lastTapPos = null;
 
-    function onPointerDown(event) {
-      let extrude = true;
-      if (event.button === 2) extrude = false;
-      if(event.pointerType === "touch") {
-        let now = Date.now();
-        if(now - lastTap < 300) extrude = false;
-        lastTap = now;
-      }
-      mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-      mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      let intersects = raycaster.intersectObjects(voxelGroup.children);
-      if(intersects.length > 0) {
-        let intersect = intersects[0];
-        let pos = intersect.object.position.clone();
-        let norm = intersect.face.normal.clone();
-        if(extrude) {
-          pos.add(norm);
-          if(!getVoxel(pos.x,pos.y,pos.z)) {
-            setVoxel(pos.x,pos.y,pos.z,true);
+renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+function onPointerDown(event) {
+  if (event.pointerType === "touch") {
+    // Получаем координаты касания
+    mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+    mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    let intersects = raycaster.intersectObjects(voxelGroup.children);
+
+    if (intersects.length > 0) {
+      let intersect = intersects[0];
+      let pos = intersect.object.position.clone();
+      let norm = intersect.face.normal.clone();
+
+      // Если это первый тап
+      if (!tapTimeout) {
+        lastTapPos = {pos, norm};
+        tapTimeout = setTimeout(() => {
+          // Если не было второго тапа — добавляем (экструдируем)
+          let newPos = pos.clone().add(norm);
+          if (!getVoxel(newPos.x, newPos.y, newPos.z)) {
+            setVoxel(newPos.x, newPos.y, newPos.z, true);
             renderVoxels();
           }
-        } else {
-          if(voxelGroup.children.length > 1) {
-            setVoxel(pos.x,pos.y,pos.z,false);
-            deleteVoxel(pos.x,pos.y,pos.z);
-            renderVoxels();
-          }
+          tapTimeout = null;
+          lastTapPos = null;
+        }, 300);
+      } else {
+        // Второй тап (двойной) — удаляем куб
+        clearTimeout(tapTimeout);
+        tapTimeout = null;
+        lastTapPos = null;
+        // Не даём удалить последний куб
+        if (voxelGroup.children.length > 1) {
+          setVoxel(pos.x, pos.y, pos.z, false);
+          deleteVoxel(pos.x, pos.y, pos.z);
+          renderVoxels();
         }
       }
     }
+  } else {
+    // Для мыши — старая логика (ЛКМ/ПКМ)
+    let extrude = true;
+    if (event.button === 2) extrude = false;
+    mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+    mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    let intersects = raycaster.intersectObjects(voxelGroup.children);
+    if (intersects.length > 0) {
+      let intersect = intersects[0];
+      let pos = intersect.object.position.clone();
+      let norm = intersect.face.normal.clone();
+      if (extrude) {
+        pos.add(norm);
+        if (!getVoxel(pos.x, pos.y, pos.z)) {
+          setVoxel(pos.x, pos.y, pos.z, true);
+          renderVoxels();
+        }
+      } else {
+        if (voxelGroup.children.length > 1) {
+          setVoxel(pos.x, pos.y, pos.z, false);
+          deleteVoxel(pos.x, pos.y, pos.z);
+          renderVoxels();
+        }
+      }
+    }
+  }
+}
 
     renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
 
