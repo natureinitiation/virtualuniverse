@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>3D Voxel Node Prototype</title>
+  <title>Cube Space</title>
       <link rel="manifest" href="manifest.json">
   <style>
     body { margin: 0; overflow: hidden; }
@@ -10,133 +10,120 @@
   </style>
 </head>
 <body>
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
-    // Основные параметры сетки
-    const SIZE = 5; // Размер кубической среды (5x5x5)
-    const CELL = 1; // Размер одной ячейки
-
-    // 3D массив для хранения состояния клеток
+    const SIZE = 5, CELL = 1;
     let voxels = {};
-    function setVoxel(x, y, z, val) {
-      voxels[`${x},${y},${z}`] = val;
-    }
-    function getVoxel(x, y, z) {
-      return voxels[`${x},${y},${z}`];
-    }
-    function deleteVoxel(x, y, z) {
-      delete voxels[`${x},${y},${z}`];
-    }
+    function setVoxel(x, y, z, val) { voxels[`${x},${y},${z}`] = val; }
+    function getVoxel(x, y, z) { return voxels[`${x},${y},${z}`]; }
+    function deleteVoxel(x, y, z) { delete voxels[`${x},${y},${z}`]; }
 
-    // Three.js сцена
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x222233);
+    scene.background = new THREE.Color(0x11111a);
 
-    // Освещение
-    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambient);
+    // Три цветных PointLight
+    const lightR = new THREE.PointLight(0xff2222, 2, 100);
+    lightR.position.set(10, 0, 0);
+    scene.add(lightR);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-    dirLight.position.set(10, 10, 10);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
-    dirLight.shadow.camera.near = 0.5;
-    dirLight.shadow.camera.far = 50;
-    scene.add(dirLight);
+    const lightG = new THREE.PointLight(0x22ff22, 2, 100);
+    lightG.position.set(0, 10, 0);
+    scene.add(lightG);
 
-    // Камера
+    const lightB = new THREE.PointLight(0x2222ff, 2, 100);
+    lightB.position.set(0, 0, 10);
+    scene.add(lightB);
+
+    // Можно добавить небольшое общее освещение
+    scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+
+    // Камера и рендерер
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100);
     camera.position.set(SIZE, SIZE, SIZE);
 
-    // Рендерер
-    const renderer = new THREE.WebGLRenderer({antialias: true});
+    const renderer = new THREE.WebGLRenderer({antialias: true, alpha: false});
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.physicallyCorrectLights = true;
     document.body.appendChild(renderer.domElement);
 
-    // Управление камерой
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(2,2,2);
     controls.update();
 
-    // Материал куба
-    const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0x42c5f5, roughness: 0.5 });
+    // Материал: полупрозрачный перламутровый (iridescence)
+    function createIridescentMaterial() {
+      return new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.6,
+        roughness: 0.2,
+        metalness: 0.8,
+        clearcoat: 0.8,
+        clearcoatRoughness: 0.15,
+        reflectivity: 1,
+        transmission: 0.7, // стеклянность
+        thickness: 0.8,
+        iridescence: 1,    // перламутровость
+        iridescenceIOR: 1.3,
+        iridescenceThicknessRange: [100, 400]
+      });
+    }
 
-    // Группа для всех кубов (чтобы быстро обновлять)
     const voxelGroup = new THREE.Group();
     scene.add(voxelGroup);
 
-    // Создаём начальный куб в центре
     setVoxel(2,2,2,true);
     renderVoxels();
 
 
-    // Рендерим всю сетку кубов
+
     function renderVoxels() {
-      // Очищаем старые меши
       while (voxelGroup.children.length) voxelGroup.remove(voxelGroup.children[0]);
       Object.keys(voxels).forEach(key=>{
         const [x,y,z] = key.split(',').map(Number);
         if(getVoxel(x,y,z)) {
           const mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(CELL,CELL,CELL),
-            cubeMaterial.clone()
+            new THREE.BoxGeometry(CELL * 0.98, CELL * 0.98, CELL * 0.98),
+            createIridescentMaterial()
           );
           mesh.position.set(x, y, z);
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
           voxelGroup.add(mesh);
         }
       });
     }
 
-    // Raycaster для определения клика
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    // Обработка событий мыши/тача
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
-
-    // Для тач-двойного тапа
     let lastTap = 0;
 
     function onPointerDown(event) {
-      // Определяем тип клика
-      let extrude = true; // по умолчанию — выдавить
-      if (event.button === 2) extrude = false; // ПКМ — втянуть
-
-      // Для тача — двойной тап = втянуть
+      let extrude = true;
+      if (event.button === 2) extrude = false;
       if(event.pointerType === "touch") {
         let now = Date.now();
-        if(now - lastTap < 300) {
-          extrude = false;
-        }
+        if(now - lastTap < 300) extrude = false;
         lastTap = now;
       }
-
-      // Получаем координаты мыши относительно окна
       mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
       mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-
       raycaster.setFromCamera(mouse, camera);
-
-      // Проверка попадания по кубу
       let intersects = raycaster.intersectObjects(voxelGroup.children);
       if(intersects.length > 0) {
         let intersect = intersects[0];
         let pos = intersect.object.position.clone();
         let norm = intersect.face.normal.clone();
-
         if(extrude) {
-          pos.add(norm); // выдавить в сторону грани
+          pos.add(norm);
           if(!getVoxel(pos.x,pos.y,pos.z)) {
             setVoxel(pos.x,pos.y,pos.z,true);
             renderVoxels();
           }
         } else {
-          // втянуть: удаляем тот по которому кликнули (не даём удалить последний)
           if(voxelGroup.children.length > 1) {
             setVoxel(pos.x,pos.y,pos.z,false);
             deleteVoxel(pos.x,pos.y,pos.z);
@@ -146,17 +133,14 @@
       }
     }
 
-    // Отключаем контекстное меню для ПКМ
     renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
 
-    // Рендеринг
     function animate() {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
     }
     animate();
 
-    // Масштабирование окна
     window.addEventListener('resize', ()=>{
       camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
