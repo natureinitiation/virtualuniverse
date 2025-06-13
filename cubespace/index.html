@@ -27,6 +27,21 @@
         .go-button { bottom: 20px; left: 50%; transform: translateX(-50%);}
         .descent-button { bottom: 20px; left: 10%; transform: translateX(-50%);}
         .raise-button { bottom: 20px; right: 10%; transform: translateX(50%);}
+        .channel-link {
+            position: fixed;
+            pointer-events: auto;
+            font-family: monospace;
+            font-size: 18px;
+            color: #fff;
+            text-decoration: underline;
+            background: rgba(0,0,0,0);
+            border-radius: 8px;
+            padding: 8px 18px;
+            opacity: 0;
+            transition: opacity 1s, transform 1s;
+            z-index: 9999;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -60,15 +75,14 @@
     scene.add(ultramarineLight);
     [
         { color: 0xff0000, position: [10, 0, 0] },
-                { color: 0xff0000, position: [-10, 0, 0] },
+        { color: 0xff0000, position: [-10, 0, 0] },
         { color: 0x00ff00, position: [0, 10, 0] },
-                { color: 0x00ff00, position: [0, -10, 0] },
+        { color: 0x00ff00, position: [0, -10, 0] },
         { color: 0x0000ff, position: [0, 0, 10] },
-                { color: 0x0000ff, position: [0, 0, -10] },
+        { color: 0x0000ff, position: [0, 0, -10] },
         { color: 0x3f00ff, position: [-10, -10, -10] },
-                { color: 0x3f00ff, position: [10, 10, 10] }
-
-].forEach(({ color, position }) => {
+        { color: 0x3f00ff, position: [10, 10, 10] }
+    ].forEach(({ color, position }) => {
         const light = new THREE.DirectionalLight(color, 0.8);
         light.position.set(...position);
         scene.add(light);
@@ -259,7 +273,7 @@
     const raiseBtn = document.querySelector('.raise-button');
     const descentBtn = document.querySelector('.descent-button');
     let verticalDirection = 0;
-    const VERTICAL_SPEED = 0.08;
+    const VERTICAL_SPEED = 0.01;
     const VERTICAL_OFFSET_LIMIT = 16;
     let verticalOffset = 0;
 
@@ -279,7 +293,7 @@
     let isMoving = false;
     let flightDirection = new THREE.Vector3();
     const cameraVelocity = new THREE.Vector3();
-    let voyageSpeed = 0.3;
+    let voyageSpeed = 0.05;
     const acceleration = 0.002;
     const deceleration = 0.01;
 
@@ -297,10 +311,83 @@
         }
     });
 
+    // --- CHANNEL-LINK SPAWN FUNCTION ---
+function showChannelLinkAt(x, y) {
+    // Remove previous link if exists
+    let prev = document.getElementById("channel-link-temp");
+    if (prev) prev.remove();
+
+    const link = document.createElement('a');
+    link.className = 'channel-link';
+    link.id = "channel-link-temp";
+    link.href = "https://hobbyandlobby.t.me/";
+    link.target = "_blank";
+    link.textContent = "Channel";
+
+    document.body.appendChild(link);
+    // Центрируем по координате
+    link.style.left = x + "px";
+    link.style.top = y + "px";
+    link.style.opacity = "0";
+    link.style.transform = "translate(-50%, -50%) scale(0.8)";
+    // Force reflow for transition
+    void link.offsetWidth;
+    // Fade in
+    link.style.opacity = "1";
+    link.style.transform = "translate(-50%, -50%) scale(1)";
+
+    // Hide after 4.5 seconds (slow fade out)
+    setTimeout(() => {
+        link.style.opacity = "0";
+        link.style.transform = "translate(-50%, -50%) scale(1.1)";
+    }, 4000);
+    setTimeout(() => {
+        link.remove();
+    }, 5500);
+}
+
+    // --- SPAWN CHANNEL-LINK ON EMPTY FIELD CLICK/TOUCH ---
+    function handleChannelLink(event, isTouch) {
+        // Don't trigger on UI buttons
+        if (event.target.closest('.button')) return;
+        // Mouse or touch coordinates
+        let clientX, clientY;
+        if (isTouch) {
+            const t = event.touches ? event.touches[0] : event.changedTouches[0];
+            clientX = t.clientX;
+            clientY = t.clientY;
+        } else {
+            clientX = event.clientX;
+            clientY = event.clientY;
+            // Only left click
+            if (event.button !== 0) return;
+        }
+        // 3D raycast
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouseNDC = new THREE.Vector2(
+            ((clientX - rect.left) / rect.width) * 2 - 1,
+            -((clientY - rect.top) / rect.height) * 2 + 1
+        );
+        raycaster.setFromCamera(mouseNDC, camera);
+        let intersects = raycaster.intersectObjects(voxelGroup.children);
+        // Только если в "пустое" место (нет куба)
+        if (intersects.length === 0) {
+            showChannelLinkAt(clientX, clientY);
+        }
+    }
+    // Mouse click
+    renderer.domElement.addEventListener('mousedown', function(e) {
+        // Только если не кнопка и не правый клик
+        if (e.button === 0) handleChannelLink(e, false);
+    });
+    // Touch tap
+    renderer.domElement.addEventListener('touchstart', function(e) {
+        handleChannelLink(e, true);
+    });
+
     // --- АНИМАЦИЯ ---
     function animate() {
         if (isMoving) {
-            // Летим по сохранённому направлению
             cameraVelocity.lerp(flightDirection.clone().multiplyScalar(voyageSpeed), acceleration);
             camera.position.add(cameraVelocity);
 
@@ -315,9 +402,7 @@
 
             applyCameraRepulsion();
 
-            // ВСЕГДА смотрим в центр сцены!
             camera.lookAt(0, 0, 0);
-            // controls.update() НЕ вызываем
         } else {
             cameraVelocity.lerp(new THREE.Vector3(), deceleration);
             camera.position.add(cameraVelocity);
