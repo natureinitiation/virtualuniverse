@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Voxels</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Space Polarity — Voxels</title>
     <style>
         body { user-select: none; margin: 0; overflow: hidden; background: #000; }
         .button {
@@ -22,10 +21,10 @@
             justify-content: center;
             background: none !important;
         }
-        .create-delete-button { top: 20px; left: 10%; transform: translateX(-50%); }
-        .mode-button { top: 20px; right: 10%; transform: translateX(50%); }
+        .create-delete-button { top: 20px; left: 10%; transform: translateX(-50%);}
+        .mode-button { top: 20px; right: 10%; transform: translateX(50%);}
         .strike-invisible-button { top: 20px; right: 50%; transform: translateX(50%);}
-        .go-button { bottom: 20px; left: 50%; transform: translateX(-50%); }
+        .go-button { bottom: 20px; left: 50%; transform: translateX(-50%);}
         .descent-button { bottom: 20px; left: 10%; transform: translateX(-50%);}
         .raise-button { bottom: 20px; right: 10%; transform: translateX(50%);}
     </style>
@@ -53,32 +52,36 @@
     document.body.appendChild(renderer.domElement);
 
     // --- LIGHTS ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(10, 10, 10);
-    scene.add(directionalLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    let dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(10, 10, 10); scene.add(dirLight);
     const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 0.8);
     ultramarineLight.position.set(-10, -10, -10);
     scene.add(ultramarineLight);
-    const lights = [
+    [
         { color: 0xff0000, position: [10, 0, 0] },
+                { color: 0xff0000, position: [-10, 0, 0] },
         { color: 0x00ff00, position: [0, 10, 0] },
+                { color: 0x00ff00, position: [0, -10, 0] },
         { color: 0x0000ff, position: [0, 0, 10] },
+                { color: 0x0000ff, position: [0, 0, -10] },
         { color: 0x3f00ff, position: [-10, -10, -10] },
-    ];
-    lights.forEach(({ color, position }) => {
+                { color: 0x3f00ff, position: [10, 10, 10] }
+
+].forEach(({ color, position }) => {
         const light = new THREE.DirectionalLight(color, 0.8);
         light.position.set(...position);
         scene.add(light);
     });
 
-    // --- CONTROLS ---
+    // --- ORBIT CONTROLS ---
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.005;
+    controls.minPolarAngle = THREE.MathUtils.degToRad(5);
+    controls.maxPolarAngle = THREE.MathUtils.degToRad(175);
 
-    // --- DYNAMIC BACKGROUND COLOR ---
+    // --- BACKGROUND COLOR ANIMATION ---
     const colors = ['#007bff', '#7058a8', '#000033', '#f48474'];
     let currentColorIndex = 0;
     function changeBackgroundColor() {
@@ -100,7 +103,7 @@
     }
     setInterval(changeBackgroundColor, 100000);
 
-    // --- VOXEL LOGIC ---
+    // --- VOXELS ---
     const CELL = 1;
     const voxels = {};
     function setVoxel(x, y, z, val) { voxels[`${x},${y},${z}`] = val; }
@@ -109,7 +112,6 @@
     const voxelGroup = new THREE.Group();
     scene.add(voxelGroup);
 
-    // --- MATERIALS FOR MODES ---
     function createIridescentMaterial() {
       return new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
@@ -147,7 +149,6 @@
         renderVoxels();
     });
 
-    // --- RENDER VOXELS WITH MODES ---
     function renderVoxels() {
       while (voxelGroup.children.length) voxelGroup.remove(voxelGroup.children[0]);
       Object.keys(voxels).forEach(key => {
@@ -158,12 +159,6 @@
             createIridescentMaterial()
           );
           mesh.position.set(x, y, z);
-          mesh.userData.scatterVelocity = null;
-          mesh.userData.scatterAngularVelocity = null;
-          mesh.userData.scatterStart = null;
-          mesh.userData.scatterDuration = 0.6;
-          mesh.userData.scatterDeceleration = 0.03;
-          mesh.userData.hasScattered = false;
           voxelGroup.add(mesh);
           if (renderMode === 1) {
             mesh.material.wireframe = true;
@@ -260,43 +255,9 @@
         });
     }
 
-    function scatterNearbyCubes(cameraVelocity) {
-      if (!repulsionEnabled) return;
-      const SCATTER_DISTANCE = 5;
-      const SCATTER_ANGLE_COS = Math.cos(THREE.MathUtils.degToRad(35));
-      voxelGroup.children.forEach(obj => {
-        if (!obj.userData.hasScattered) {
-          const toCube = obj.position.clone().sub(camera.position);
-          const dist = toCube.length();
-          if (dist < SCATTER_DISTANCE) {
-            toCube.normalize();
-            const cameraDir = new THREE.Vector3();
-            camera.getWorldDirection(cameraDir);
-            if (toCube.dot(cameraDir) > SCATTER_ANGLE_COS) {
-              obj.userData.hasScattered = true;
-              obj.userData.scatterVelocity = toCube.clone().multiplyScalar(5 * (0.8 + Math.random()*0.6));
-              obj.userData.scatterStart = performance.now();
-              obj.userData.scatterDuration = 0.6;
-              obj.userData.scatterDeceleration = 0.03;
-
-              const cameraSpeed = cameraVelocity ? cameraVelocity.length() : 0;
-              const baseSpin = 0.16;
-              const spinAmount = Math.min(cameraSpeed * baseSpin, 0.18);
-              obj.userData.scatterAngularVelocity = new THREE.Vector3(
-                  (Math.random()-0.5) * spinAmount,
-                  (Math.random()-0.5) * spinAmount,
-                  (Math.random()-0.5) * spinAmount
-              );
-            }
-          }
-        }
-      });
-    }
-
     // --- ВЕРТИКАЛЬНОЕ СМЕЩЕНИЕ ---
     const raiseBtn = document.querySelector('.raise-button');
     const descentBtn = document.querySelector('.descent-button');
-
     let verticalDirection = 0;
     const VERTICAL_SPEED = 0.08;
     const VERTICAL_OFFSET_LIMIT = 16;
@@ -314,95 +275,66 @@
     descentBtn.addEventListener('touchstart',    e => { e.preventDefault(); verticalDirection = -1; });
     descentBtn.addEventListener('touchend',      () => { verticalDirection = 0; });
 
-    // --- КНОПКА и ПОЛЕТ КАМЕРЫ ---
+    // --- КНОПКА и ПОЛЁТ КАМЕРЫ (заменённая логика) ---
     let isMoving = false;
-    let targetVelocity = new THREE.Vector3();
+    let flightDirection = new THREE.Vector3();
     const cameraVelocity = new THREE.Vector3();
     let voyageSpeed = 0.3;
     const acceleration = 0.002;
     const deceleration = 0.01;
-    const center = new THREE.Vector3(0, 0, 0);
 
     const voyageBtn = document.querySelector('.go-button');
     voyageBtn.addEventListener('click', () => {
         isMoving = !isMoving;
         voyageBtn.textContent = isMoving ? "Stop" : "Voyage";
         if (isMoving) {
-            adjustCameraFocus();
+            // При старте полёта сохраняем направление взгляда
+            camera.getWorldDirection(flightDirection);
+            flightDirection.normalize();
+            controls.enabled = false;
         } else {
-            targetVelocity.set(0, 0, 0);
+            controls.enabled = true;
         }
     });
 
-    function adjustCameraFocus() {
-        const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction);
-        const azimuthOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
-        const elevationOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
-        direction.applyQuaternion(new THREE.Quaternion()
-            .setFromAxisAngle(new THREE.Vector3(0, 1, 0), azimuthOffset)
-            .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), elevationOffset)));
-        targetVelocity.copy(direction.multiplyScalar(voyageSpeed));
-    }
-    voyageBtn.addEventListener('dblclick', (e) => {
-        if (isMoving) adjustCameraFocus();
-    });
-
-    controls.addEventListener('change', () => {
-        if (repulsionEnabled) scatterNearbyCubes({length:()=>0.9});
-    });
-
+    // --- АНИМАЦИЯ ---
     function animate() {
         if (isMoving) {
-            const direction = new THREE.Vector3();
-            camera.getWorldDirection(direction);
-            targetVelocity.copy(direction.multiplyScalar(voyageSpeed));
-            cameraVelocity.lerp(targetVelocity, acceleration);
+            // Летим по сохранённому направлению
+            cameraVelocity.lerp(flightDirection.clone().multiplyScalar(voyageSpeed), acceleration);
             camera.position.add(cameraVelocity);
-            if (repulsionEnabled) scatterNearbyCubes(cameraVelocity);
+
+            // Вертикальное смещение
+            if (verticalDirection !== 0) {
+                verticalOffset += verticalDirection * VERTICAL_SPEED;
+                verticalOffset = Math.max(-VERTICAL_OFFSET_LIMIT, Math.min(VERTICAL_OFFSET_LIMIT, verticalOffset));
+            }
+            const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+            camera.position.addScaledVector(camUp, verticalOffset - (camera.__verticalOffset || 0));
+            camera.__verticalOffset = verticalOffset;
+
+            applyCameraRepulsion();
+
+            // ВСЕГДА смотрим в центр сцены!
+            camera.lookAt(0, 0, 0);
+            // controls.update() НЕ вызываем
         } else {
             cameraVelocity.lerp(new THREE.Vector3(), deceleration);
             camera.position.add(cameraVelocity);
-            controls.target.copy(center);
+
+            // Вертикальное смещение
+            if (verticalDirection !== 0) {
+                verticalOffset += verticalDirection * VERTICAL_SPEED;
+                verticalOffset = Math.max(-VERTICAL_OFFSET_LIMIT, Math.min(VERTICAL_OFFSET_LIMIT, verticalOffset));
+            }
+            const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+            camera.position.addScaledVector(camUp, verticalOffset - (camera.__verticalOffset || 0));
+            camera.__verticalOffset = verticalOffset;
+
+            applyCameraRepulsion();
+
             controls.update();
         }
-
-        // Вертикальное смещение (без возврата — только накопление)
-        if (verticalDirection !== 0) {
-            verticalOffset += verticalDirection * VERTICAL_SPEED;
-            verticalOffset = Math.max(-VERTICAL_OFFSET_LIMIT, Math.min(VERTICAL_OFFSET_LIMIT, verticalOffset));
-        }
-        const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-        camera.position.addScaledVector(camUp, verticalOffset - (camera.__verticalOffset || 0));
-        camera.__verticalOffset = verticalOffset;
-
-        // --- ОБРАБОТКА ВРАЩЕНИЯ/РАЗЛЁТА ВСЕГДА, НЕ ЗАВИСИТ ОТ РЕЖИМА ---
-        voxelGroup.children.forEach(obj => {
-            if (obj.userData.scatterVelocity) {
-                const elapsed = (performance.now() - obj.userData.scatterStart) / 1000;
-                if (elapsed < obj.userData.scatterDuration) {
-                    obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
-                } else {
-                    obj.userData.scatterVelocity.multiplyScalar(1 - obj.userData.scatterDeceleration);
-                    if (obj.userData.scatterVelocity.length() < 0.003) {
-                        obj.userData.scatterVelocity = null;
-                        obj.userData.scatterStart = null;
-                    } else {
-                        obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
-                    }
-                }
-            }
-            if (obj.userData.scatterAngularVelocity) {
-                obj.rotation.x += obj.userData.scatterAngularVelocity.x;
-                obj.rotation.y += obj.userData.scatterAngularVelocity.y;
-                obj.rotation.z += obj.userData.scatterAngularVelocity.z;
-                obj.userData.scatterAngularVelocity.multiplyScalar(1 - 0.01);
-                if (obj.userData.scatterAngularVelocity.length() < 0.001)
-                    obj.userData.scatterAngularVelocity = null;
-            }
-        });
-
-        applyCameraRepulsion();
 
         renderer.render(scene, camera);
         requestAnimationFrame(animate);
@@ -414,6 +346,7 @@
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
     </script>
 </body>
 </html>
