@@ -1,6 +1,6 @@
-{
-    "name": "Cube Space",
-    "short_name": "Cube",
+s{
+    "name": "Voxels",
+    "short_name": "Voxels",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#007BFF",
