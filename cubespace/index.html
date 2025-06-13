@@ -22,7 +22,8 @@
             justify-content: center;
             background: none !important;
         }
-        .create-delete-button { top: 20px; left: 10%;   transform: translateX(-50%); }
+        .create-delete-button { top: 20px; left: 10%; transform: translateX(-50%); }
+        .mode-button { top: 20px; left: 50%; transform: translateX(-50%); }
         .strike-invisible-button { top: 20px; right: 10%; transform: translateX(50%);}
         .go-button { bottom: 20px; left: 50%; transform: translateX(-50%); }
         .descent-button { bottom: 20px; left: 10%; transform: translateX(-50%);}
@@ -31,8 +32,9 @@
 </head>
 <body>
     <div class="button create-delete-button">Create</div>
-    <div class="button go-button">Voyage</div>
+    <div class="button mode-button">Plane</div>
     <div class="button strike-invisible-button">Invisible</div>
+    <div class="button go-button">Voyage</div>
     <div class="button descent-button">Descent</div>
     <div class="button raise-button">Raise</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -107,6 +109,7 @@
     const voxelGroup = new THREE.Group();
     scene.add(voxelGroup);
 
+    // --- MATERIALS FOR MODES ---
     function createIridescentMaterial() {
       return new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
@@ -124,18 +127,37 @@
         iridescenceThicknessRange: [100, 400]
       });
     }
+    function createWireMaterial() {
+      return new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.5
+      });
+    }
 
+    // --- MODE SWITCH LOGIC ---
+    let renderMode = 0;
+    const modeNames = ["Plane", "Wire", "Combo"];
+    const modeButton = document.querySelector('.mode-button');
+    modeButton.textContent = modeNames[renderMode];
+    modeButton.addEventListener('click', () => {
+        renderMode = (renderMode + 1) % 3;
+        modeButton.textContent = modeNames[renderMode];
+        renderVoxels();
+    });
+
+    // --- RENDER VOXELS WITH MODES ---
     function renderVoxels() {
       while (voxelGroup.children.length) voxelGroup.remove(voxelGroup.children[0]);
-      Object.keys(voxels).forEach(key=>{
-        const [x,y,z] = key.split(',').map(Number);
-        if(getVoxel(x,y,z)) {
+      Object.keys(voxels).forEach(key => {
+        const [x, y, z] = key.split(',').map(Number);
+        if (getVoxel(x, y, z)) {
           const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(CELL * 0.98, CELL * 0.98, CELL * 0.98),
             createIridescentMaterial()
           );
           mesh.position.set(x, y, z);
-          // --- SCATTER DATA ---
           mesh.userData.scatterVelocity = null;
           mesh.userData.scatterAngularVelocity = null;
           mesh.userData.scatterStart = null;
@@ -143,6 +165,22 @@
           mesh.userData.scatterDeceleration = 0.03;
           mesh.userData.hasScattered = false;
           voxelGroup.add(mesh);
+          if (renderMode === 1) {
+            mesh.material.wireframe = true;
+            mesh.material.opacity = 0.8;
+          } else if (renderMode === 2) {
+            const wire = new THREE.Mesh(
+              new THREE.BoxGeometry(CELL * 0.995, CELL * 0.995, CELL * 0.995),
+              createWireMaterial()
+            );
+            wire.position.copy(mesh.position);
+            voxelGroup.add(wire);
+            mesh.material.wireframe = false;
+            mesh.material.opacity = 0.6;
+          } else {
+            mesh.material.wireframe = false;
+            mesh.material.opacity = 0.6;
+          }
         }
       });
     }
@@ -223,7 +261,6 @@
     }
 
     function scatterNearbyCubes(cameraVelocity) {
-      // Вызов только если режим Strike!
       if (!repulsionEnabled) return;
       const SCATTER_DISTANCE = 5;
       const SCATTER_ANGLE_COS = Math.cos(THREE.MathUtils.degToRad(35));
@@ -312,7 +349,6 @@
     });
 
     controls.addEventListener('change', () => {
-        // scatter только если режим Strike!
         if (repulsionEnabled) scatterNearbyCubes({length:()=>0.9});
     });
 
