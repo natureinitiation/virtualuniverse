@@ -7,23 +7,34 @@
     <link rel="manifest" href="manifest.json">
     <style>
         body { user-select: none; margin: 0; overflow: hidden; background: #000; }
-        .go-button {
-            position: fixed; bottom: 20px; left: 50%;
-            transform: translateX(-50%);
+        .button {
+            position: fixed;
             z-index: 1000;
             cursor: pointer;
             font-family: monospace;
             font-size: 18px;
             color: #fff !important;
-            background: rgba(0,0,0,0);
             border: none;
             border-radius: 8px;
             padding: 12px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none !important;
         }
+        .create-delete-button { top: 20px; left: 5%;   transform: translateX(-50%); }
+        .strike-invisible-button { top: 20px; right: 5%; transform: translateX(50%);}
+        .go-button { bottom: 20px; left: 50%; transform: translateX(-50%); }
+        .descent-button { bottom: 20px; left: 5%; transform: translateX(-50%);}
+        .raise-button { bottom: 20px; right: 5%; transform: translateX(50%);}
     </style>
 </head>
 <body>
-    <button class="go-button">Voyage</button>
+    <div class="button create-delete-button">Create</div>
+    <div class="button go-button">Voyage</div>
+    <div class="button strike-invisible-button">Invisible</div>
+    <div class="button descent-button">Descent</div>
+    <div class="button raise-button">Raise</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
     <script>
@@ -89,14 +100,13 @@
 
     // --- VOXEL LOGIC ---
     const CELL = 1;
-    const voxels = {}; // key: "x,y,z" -> true
+    const voxels = {};
     function setVoxel(x, y, z, val) { voxels[`${x},${y},${z}`] = val; }
     function getVoxel(x, y, z) { return voxels[`${x},${y},${z}`]; }
     function deleteVoxel(x, y, z) { delete voxels[`${x},${y},${z}`]; }
     const voxelGroup = new THREE.Group();
     scene.add(voxelGroup);
 
-    // Перламутровый материал
     function createIridescentMaterial() {
       return new THREE.MeshPhysicalMaterial({
         color: 0xffffff,
@@ -126,56 +136,80 @@
           );
           mesh.position.set(x, y, z);
           // --- SCATTER DATA ---
-          mesh.userData.scatterVelocity = null; // Vector3
-          mesh.userData.scatterAngularVelocity = null; // Vector3 (rotation speed)
+          mesh.userData.scatterVelocity = null;
+          mesh.userData.scatterAngularVelocity = null;
           mesh.userData.scatterStart = null;
-          mesh.userData.scatterDuration = 0.6; // секунд — фаза полного разлёта
-          mesh.userData.scatterDeceleration = 0.03; // очень плавное затухание
-          mesh.userData.hasScattered = false; // Куб ещё не разлетался
+          mesh.userData.scatterDuration = 0.6;
+          mesh.userData.scatterDeceleration = 0.03;
+          mesh.userData.hasScattered = false;
           voxelGroup.add(mesh);
         }
       });
     }
-    // Стартовый куб
     setVoxel(0,0,0,true);
     renderVoxels();
 
-    // --- ВОЗМОЖНОСТЬ ДОБАВЛЕНИЯ/УДАЛЕНИЯ КУБОВ ---
+    // --- CREATE/DELETE BUTTON LOGIC ---
+    let createMode = true;
+    let mode = 'Fix';
+    const createDeleteBtn = document.querySelector('.create-delete-button');
+    createDeleteBtn.addEventListener('click', () => {
+        createMode = !createMode;
+        createDeleteBtn.textContent = createMode ? "Create" : "Delete";
+        mode = createMode ? 'Fix' : 'Delete';
+    });
+
+    let lastCreateTime = 0;
+    const CREATE_DELAY = 200;
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
     function onPointerDown(event) {
-      if (event.target.closest('.go-button')) return; // Не реагировать на кнопки
-      let extrude = true;
-      if (event.button === 2) extrude = false;
+      if (event.target.closest('.button')) return;
       mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
       mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
       let intersects = raycaster.intersectObjects(voxelGroup.children);
-      if (intersects.length > 0) {
-        let intersect = intersects[0];
-        let pos = intersect.object.position.clone();
-        let norm = intersect.face.normal.clone();
-        if (extrude) {
-            pos.add(norm);
-            if (!getVoxel(pos.x, pos.y, pos.z)) {
-              setVoxel(pos.x, pos.y, pos.z, true);
-              renderVoxels();
-            }
-        } else {
-            if (voxelGroup.children.length > 1) {
-              setVoxel(pos.x, pos.y, pos.z, false);
-              deleteVoxel(pos.x, pos.y, pos.z);
-              renderVoxels();
-            }
+      if (mode === 'Delete') {
+        if (intersects.length > 0 && voxelGroup.children.length > 1) {
+          let pos = intersects[0].object.position.clone();
+          setVoxel(pos.x, pos.y, pos.z, false);
+          deleteVoxel(pos.x, pos.y, pos.z);
+          renderVoxels();
+        }
+        return;
+      }
+      if (mode === 'Fix') {
+        let now = Date.now();
+        if (now - lastCreateTime < CREATE_DELAY) return;
+        lastCreateTime = now;
+
+        if (intersects.length > 0) {
+          let intersect = intersects[0];
+          let pos = intersect.object.position.clone();
+          let norm = intersect.face.normal.clone();
+          pos.add(norm);
+          if (!getVoxel(pos.x, pos.y, pos.z)) {
+            setVoxel(pos.x, pos.y, pos.z, true);
+            renderVoxels();
+          }
         }
       }
     }
     renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
 
-    // --- РАСТАЛКИВАНИЕ КАМЕРОЙ (repulsion) ---
+    // --- STRIKE/INVISIBLE BUTTON LOGIC (Invisible стартовый) ---
+    let repulsionEnabled = false;
+    const strikeBtn = document.querySelector('.strike-invisible-button');
+    strikeBtn.textContent = "Invisible";
+    strikeBtn.addEventListener('click', () => {
+        repulsionEnabled = !repulsionEnabled;
+        strikeBtn.textContent = repulsionEnabled ? "Strike" : "Invisible";
+    });
+
     function applyCameraRepulsion() {
+        if (!repulsionEnabled) return;
         const repulsionDistance = 3;
         const repulsionStrength = 0.05;
         voxelGroup.children.forEach((obj) => {
@@ -188,8 +222,9 @@
         });
     }
 
-    // --- ФУНКЦИЯ естественного разлёта кубов ---
     function scatterNearbyCubes(cameraVelocity) {
+      // Вызов только если режим Strike!
+      if (!repulsionEnabled) return;
       const SCATTER_DISTANCE = 5;
       const SCATTER_ANGLE_COS = Math.cos(THREE.MathUtils.degToRad(35));
       voxelGroup.children.forEach(obj => {
@@ -207,10 +242,9 @@
               obj.userData.scatterDuration = 0.6;
               obj.userData.scatterDeceleration = 0.03;
 
-              // --- Привязка вращения к скорости камеры ---
               const cameraSpeed = cameraVelocity ? cameraVelocity.length() : 0;
-              const baseSpin = 0.16; // базовый множитель, можно отрегулировать на вкус
-              const spinAmount = Math.min(cameraSpeed * baseSpin, 0.18); // ограничение максимума
+              const baseSpin = 0.16;
+              const spinAmount = Math.min(cameraSpeed * baseSpin, 0.18);
               obj.userData.scatterAngularVelocity = new THREE.Vector3(
                   (Math.random()-0.5) * spinAmount,
                   (Math.random()-0.5) * spinAmount,
@@ -222,6 +256,27 @@
       });
     }
 
+    // --- ВЕРТИКАЛЬНОЕ СМЕЩЕНИЕ ---
+    const raiseBtn = document.querySelector('.raise-button');
+    const descentBtn = document.querySelector('.descent-button');
+
+    let verticalDirection = 0;
+    const VERTICAL_SPEED = 0.08;
+    const VERTICAL_OFFSET_LIMIT = 16;
+    let verticalOffset = 0;
+
+    raiseBtn.addEventListener('pointerdown',   () => { verticalDirection = 1; });
+    raiseBtn.addEventListener('pointerup',     () => { verticalDirection = 0; });
+    raiseBtn.addEventListener('pointerleave',  () => { verticalDirection = 0; });
+    raiseBtn.addEventListener('touchstart',    e => { e.preventDefault(); verticalDirection = 1; });
+    raiseBtn.addEventListener('touchend',      () => { verticalDirection = 0; });
+
+    descentBtn.addEventListener('pointerdown',   () => { verticalDirection = -1; });
+    descentBtn.addEventListener('pointerup',     () => { verticalDirection = 0; });
+    descentBtn.addEventListener('pointerleave',  () => { verticalDirection = 0; });
+    descentBtn.addEventListener('touchstart',    e => { e.preventDefault(); verticalDirection = -1; });
+    descentBtn.addEventListener('touchend',      () => { verticalDirection = 0; });
+
     // --- КНОПКА и ПОЛЕТ КАМЕРЫ ---
     let isMoving = false;
     let targetVelocity = new THREE.Vector3();
@@ -232,11 +287,9 @@
     const center = new THREE.Vector3(0, 0, 0);
 
     const voyageBtn = document.querySelector('.go-button');
-
     voyageBtn.addEventListener('click', () => {
         isMoving = !isMoving;
         voyageBtn.textContent = isMoving ? "Stop" : "Voyage";
-        controls.enabled = !isMoving;
         if (isMoving) {
             adjustCameraFocus();
         } else {
@@ -258,28 +311,36 @@
         if (isMoving) adjustCameraFocus();
     });
 
-    // --- Вызываем разлёт кубов при изменении OrbitControls (вращение/зум камеры вручную) ---
     controls.addEventListener('change', () => {
-      // Для ручного управления вращение не зависит от скорости камеры, используем фиксированный spin
-      scatterNearbyCubes({length:()=>0.9}); // просто для красоты
+        // scatter только если режим Strike!
+        if (repulsionEnabled) scatterNearbyCubes({length:()=>0.9});
     });
 
-    // --- АНИМАЦИЯ ---
     function animate() {
         if (isMoving) {
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            targetVelocity.copy(direction.multiplyScalar(voyageSpeed));
             cameraVelocity.lerp(targetVelocity, acceleration);
             camera.position.add(cameraVelocity);
-            camera.lookAt(center);
-
-            // Естественный разлёт кубов при автоматическом движении камеры — скорость вращения зависит от cameraVelocity
-            scatterNearbyCubes(cameraVelocity);
+            if (repulsionEnabled) scatterNearbyCubes(cameraVelocity);
         } else {
             cameraVelocity.lerp(new THREE.Vector3(), deceleration);
             camera.position.add(cameraVelocity);
+            controls.target.copy(center);
             controls.update();
         }
 
-        // --- scatter-logic для кубов ---
+        // Вертикальное смещение (без возврата — только накопление)
+        if (verticalDirection !== 0) {
+            verticalOffset += verticalDirection * VERTICAL_SPEED;
+            verticalOffset = Math.max(-VERTICAL_OFFSET_LIMIT, Math.min(VERTICAL_OFFSET_LIMIT, verticalOffset));
+        }
+        const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+        camera.position.addScaledVector(camUp, verticalOffset - (camera.__verticalOffset || 0));
+        camera.__verticalOffset = verticalOffset;
+
+        // --- ОБРАБОТКА ВРАЩЕНИЯ/РАЗЛЁТА ВСЕГДА, НЕ ЗАВИСИТ ОТ РЕЖИМА ---
         voxelGroup.children.forEach(obj => {
             if (obj.userData.scatterVelocity) {
                 const elapsed = (performance.now() - obj.userData.scatterStart) / 1000;
@@ -295,7 +356,6 @@
                     }
                 }
             }
-            // --- scatter-вращение ---
             if (obj.userData.scatterAngularVelocity) {
                 obj.rotation.x += obj.userData.scatterAngularVelocity.x;
                 obj.rotation.y += obj.userData.scatterAngularVelocity.y;
@@ -307,12 +367,12 @@
         });
 
         applyCameraRepulsion();
+
         renderer.render(scene, camera);
         requestAnimationFrame(animate);
     }
     animate();
 
-    // --- RESIZE ---
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
