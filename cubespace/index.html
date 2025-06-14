@@ -259,7 +259,7 @@
     const raiseBtn = document.querySelector('.raise-button');
     const descentBtn = document.querySelector('.descent-button');
     let verticalDirection = 0;
-    const VERTICAL_SPEED = 0.08;
+    const VERTICAL_SPEED = 0.01;
     const VERTICAL_OFFSET_LIMIT = 16;
     let verticalOffset = 0;
 
@@ -279,7 +279,7 @@
     let isMoving = false;
     let flightDirection = new THREE.Vector3();
     const cameraVelocity = new THREE.Vector3();
-    let voyageSpeed = 0.3;
+    let voyageSpeed = 0.05;
     const acceleration = 0.002;
     const deceleration = 0.01;
 
