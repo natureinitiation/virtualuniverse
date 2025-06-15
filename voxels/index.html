@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Voxels</title>
+    <style>
+        body { user-select: none; margin: 0; overflow: hidden; background: #000; }
+        .button {
+            position: fixed;
+            z-index: 1000;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 18px;
+            color: #fff !important;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none !important;
+        }
+        .create-delete-button { top: 20px; left: 15%; transform: translateX(-50%);}
+        .mode-button { top: 20px; right: 15%; transform: translateX(50%);}
+        .strike-invisible-button { top: 20px; right: 50%; transform: translateX(50%);}
+        .go-button { bottom: 20px; left: 50%; transform: translateX(-50%);}
+        .descent-button { bottom: 20px; left: 15%; transform: translateX(-50%);}
+        .raise-button { bottom: 20px; right: 15%; transform: translateX(50%);}
+    </style>
+</head>
+<body>
+    <div class="button create-delete-button">Create</div>
+    <div class="button mode-button">Plane</div>
+    <div class="button strike-invisible-button">Invisible</div>
+    <div class="button go-button">Voyage</div>
+    <div class="button descent-button">Descent</div>
+    <div class="button raise-button">Raise</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+    <script>
+    // --- SCENE AND CAMERA ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x007bff);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(8, 8, 8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.physicallyCorrectLights = true;
+    document.body.appendChild(renderer.domElement);
+
+    // --- LIGHTS ---
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    let dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(10, 10, 10); scene.add(dirLight);
+
+    // --- ORBIT CONTROLS ---
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.005;
+
+    // --- ВЕРТИКАЛЬНОЕ СМЕЩЕНИЕ ---
+    const raiseBtn = document.querySelector('.raise-button');
+    const descentBtn = document.querySelector('.descent-button');
+    let verticalDirection = 0;
+    const VERTICAL_SPEED = 0.001;
+    const VERTICAL_OFFSET_LIMIT = 8;
+    let verticalOffset = 0;
+    let verticalSpeed = 0; // Текущая вертикальная скорость
+    const INERTIA_FACTOR = 0.05; // Коэффициент инертности
+
+    raiseBtn.addEventListener('pointerdown',   () => { verticalDirection = 1; });
+    raiseBtn.addEventListener('pointerup',     () => { verticalDirection = 0; });
+    raiseBtn.addEventListener('pointerleave',  () => { verticalDirection = 0; });
+    raiseBtn.addEventListener('touchstart',    e => { e.preventDefault(); verticalDirection = 1; });
+    raiseBtn.addEventListener('touchend',      () => { verticalDirection = 0; });
+
+    descentBtn.addEventListener('pointerdown',   () => { verticalDirection = -1; });
+    descentBtn.addEventListener('pointerup',     () => { verticalDirection = 0; });
+    descentBtn.addEventListener('pointerleave',  () => { verticalDirection = 0; });
+    descentBtn.addEventListener('touchstart',    e => { e.preventDefault(); verticalDirection = -1; });
+    descentBtn.addEventListener('touchend',      () => { verticalDirection = 0; });
+
+    // --- КНОПКА и АНИМАЦИЯ ---
+    let isMoving = false;
+    let flightDirection = new THREE.Vector3();
+    const cameraVelocity = new THREE.Vector3();
+    let voyageSpeed = 0.005;
+    const acceleration = 0.02;
+    const deceleration = 0.01;
+
+    const voyageBtn = document.querySelector('.go-button');
+    voyageBtn.addEventListener('click', () => {
+        isMoving = !isMoving;
+        voyageBtn.textContent = isMoving ? "Stop" : "Voyage";
+        if (isMoving) {
+            camera.getWorldDirection(flightDirection);
+            flightDirection.normalize();
+            controls.enabled = false;
+        } else {
+            controls.enabled = true;
+        }
+    });
+
+    function animate() {
+        if (isMoving) {
+            cameraVelocity.lerp(flightDirection.clone().multiplyScalar(voyageSpeed), acceleration);
+            camera.position.add(cameraVelocity);
+
+            // Вертикальное смещение с инерцией
+            if (verticalDirection !== 0) {
+                verticalSpeed += verticalDirection * VERTICAL_SPEED;
+                verticalSpeed = Math.max(-VERTICAL_OFFSET_LIMIT, Math.min(VERTICAL_OFFSET_LIMIT, verticalSpeed));
+            } else if (verticalSpeed !== 0) {
+                verticalSpeed *= (1 - INERTIA_FACTOR); // Постепенное уменьшение скорости
+                if (Math.abs(verticalSpeed) < 0.001) verticalSpeed = 0; // Остановка при низкой скорости
+            }
+            verticalOffset += verticalSpeed;
+            verticalOffset = Math.max(-VERTICAL_OFFSET_LIMIT, Math.min(VERTICAL_OFFSET_LIMIT, verticalOffset));
+            const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+            camera.position.addScaledVector(camUp, verticalOffset - (camera.__verticalOffset || 0));
+            camera.__verticalOffset = verticalOffset;
+
+            controls.update();
+        } else {
+            cameraVelocity.lerp(new THREE.Vector3(), deceleration);
+            camera.position.add(cameraVelocity);
+
+            // Вертикальное смещение с инерцией
+            if (verticalDirection !== 0) {
+                verticalSpeed += verticalDirection * VERTICAL_SPEED;
+                verticalSpeed = Math.max(-VERTICAL_OFFSET_LIMIT, Math.min(VERTICAL_OFFSET_LIMIT, verticalSpeed));
+            } else if (verticalSpeed !== 0) {
+                verticalSpeed *= (1 - INERTIA_FACTOR); // Постепенное уменьшение скорости
+                if (Math.abs(verticalSpeed) < 0.001) verticalSpeed = 0; // Остановка при низкой скорости
+            }
+            verticalOffset += verticalSpeed;
+            verticalOffset = Math.max(-VERTICAL_OFFSET_LIMIT, Math.min(VERTICAL_OFFSET_LIMIT, verticalOffset));
+            const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+            camera.position.addScaledVector(camUp, verticalOffset - (camera.__verticalOffset || 0));
+            camera.__verticalOffset = verticalOffset;
+
+            controls.update();
+        }
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    </script>
+</body>
+</html>
