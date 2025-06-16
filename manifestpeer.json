@@ -1,7 +1,7 @@
 {
     "name": "Peer Exchange",
     "short_name": "Peer",
-    "start_url": "index.html",
+    "start_url": "peer.html",
     "display": "standalone",
     "background_color": "#007BFF",
     "theme_color": "#007BFF",
