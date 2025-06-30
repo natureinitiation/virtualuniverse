@@ -27,7 +27,7 @@
             height: 50vh;
             object-fit: contain;
             opacity: 0.8;
-            transition: all 0.3s ease-in-out; /* Для плавных эффектов */
+            transition: transform 0.3s ease-in-out; /* Плавное масштабирование */
             pointer-events: all; /* Включаем взаимодействие только для активного слоя */
         }
         #uploadButton {
@@ -74,6 +74,7 @@
         const layers = [];
         let currentLayer = null;
         let initialDistance = null;
+        let initialTouch = { x: 0, y: 0 }; // Для перемещения элемента
 
         // Блокировка стандартного поведения
         document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -109,8 +110,10 @@
                     video.className = 'layer';
                     video.style.left = `${Math.random() * 50}vw`;
                     video.style.top = `${Math.random() * 50}vh`;
-                    video.addEventListener('touchstart', () => {
+                    video.addEventListener('touchstart', (e) => {
                         currentLayer = video;
+                        initialTouch.x = e.touches[0].clientX - video.offsetLeft;
+                        initialTouch.y = e.touches[0].clientY - video.offsetTop;
                     });
                     document.body.appendChild(video);
                     video.play();
@@ -124,8 +127,10 @@
                     img.style.top = `${Math.random() * 50}vh`;
                     img.style.width = '30vw';
                     img.style.height = 'auto';
-                    img.addEventListener('touchstart', () => {
+                    img.addEventListener('touchstart', (e) => {
                         currentLayer = img;
+                        initialTouch.x = e.touches[0].clientX - img.offsetLeft;
+                        initialTouch.y = e.touches[0].clientY - img.offsetTop;
                     });
                     document.body.appendChild(img);
                     layers.push(img);
@@ -154,39 +159,12 @@
             initialDistance = null;
         });
 
-        // Highlight (подсветка слоя)
-        document.addEventListener('touchstart', (e) => {
-            if (currentLayer) {
-                currentLayer.style.boxShadow = '0 0 20px 5px rgba(255, 255, 255, 0.5)';
-            }
-        });
-
-        document.addEventListener('touchend', () => {
-            if (currentLayer) {
-                currentLayer.style.boxShadow = 'none';
-            }
-        });
-
-        // Fade In/Out (прозрачность)
-        document.addEventListener('touchstart', (e) => {
-            if (currentLayer) {
-                currentLayer.style.opacity = '0.5';
-            }
-        });
-
-        document.addEventListener('touchend', () => {
-            if (currentLayer) {
-                currentLayer.style.opacity = '1';
-            }
-        });
-
-        // Пульсация
-        document.addEventListener('touchstart', (e) => {
-            if (currentLayer) {
-                currentLayer.style.transform = 'scale(1.2)';
-                setTimeout(() => {
-                    currentLayer.style.transform = 'scale(1)';
-                }, 300);
+        // Перемещение элемента (один палец)
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 1 && currentLayer) {
+                const touch = e.touches[0];
+                currentLayer.style.left = `${touch.clientX - initialTouch.x}px`;
+                currentLayer.style.top = `${touch.clientY - initialTouch.y}px`;
             }
         });
 
