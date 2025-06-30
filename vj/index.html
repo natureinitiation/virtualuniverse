@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>VJ Touch Screen Effects</title>
-    <link rel="manifest" href="manifest.json">
     <style>
         body {
             margin: 0;
@@ -20,6 +19,7 @@
             top: 0;
             left: 0;
             -webkit-user-drag: none; /* Отключает перетаскивание в браузерах WebKit */
+            pointer-events: none;    /* Отключаем взаимодействие с изображениями и видео */
         }
         .layer {
             position: absolute;
@@ -28,6 +28,7 @@
             object-fit: contain;
             opacity: 0.8;
             transition: all 0.3s ease-in-out; /* Для плавных эффектов */
+            pointer-events: all; /* Включаем взаимодействие только для активного слоя */
         }
         #uploadButton {
             position: absolute;
@@ -47,23 +48,6 @@
         #uploadButton:hover {
             background: #666;
         }
-        @keyframes ripple {
-            from {
-                transform: scale(0);
-                opacity: 1;
-            }
-            to {
-                transform: scale(3);
-                opacity: 0;
-            }
-        }
-        @keyframes shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            50% { transform: translateX(5px); }
-            75% { transform: translateX(-5px); }
-            100% { transform: translateX(0); }
-        }
     </style>
 </head>
 <body>
@@ -82,12 +66,14 @@
         let initialDistance = null;
         let initialAngle = null;
 
-        // Блокировка стандартного поведения на уровне событий
-        document.addEventListener('contextmenu', (e) => e.preventDefault()); // Блокируем контекстное меню
-        document.addEventListener('selectstart', (e) => e.preventDefault()); // Блокируем выделение текста
-        document.addEventListener('dragstart', (e) => e.preventDefault()); // Блокируем перетаскивание
+        // Блокировка стандартного поведения
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('selectstart', (e) => e.preventDefault());
+        document.addEventListener('dragstart', (e) => e.preventDefault());
         document.addEventListener('touchstart', (e) => e.preventDefault());
         document.addEventListener('touchmove', (e) => e.preventDefault());
+        document.addEventListener('mousedown', (e) => e.preventDefault());
+        document.addEventListener('pointerdown', (e) => e.preventDefault());
 
         // Показ кнопки после пяти касаний
         document.addEventListener('touchstart', (e) => {
@@ -116,6 +102,9 @@
                     video.className = 'layer';
                     video.style.left = `${Math.random() * 50}vw`;
                     video.style.top = `${Math.random() * 50}vh`;
+                    video.addEventListener('touchstart', () => {
+                        currentLayer = video;
+                    });
                     document.body.appendChild(video);
                     video.play();
                     layers.push(video);
@@ -128,6 +117,9 @@
                     img.style.top = `${Math.random() * 50}vh`;
                     img.style.width = '30vw';
                     img.style.height = 'auto';
+                    img.addEventListener('touchstart', () => {
+                        currentLayer = img;
+                    });
                     document.body.appendChild(img);
                     layers.push(img);
                 }
@@ -162,70 +154,6 @@
         document.addEventListener('touchend', () => {
             initialDistance = null;
             initialAngle = null;
-        });
-
-        // Highlight
-        document.addEventListener('touchstart', (e) => {
-            if (currentLayer) {
-                currentLayer.style.boxShadow = '0 0 20px 5px rgba(255, 255, 255, 0.5)';
-            }
-        });
-
-        document.addEventListener('touchend', () => {
-            if (currentLayer) {
-                currentLayer.style.boxShadow = 'none';
-            }
-        });
-
-        // Fade In/Out (прозрачность)
-        document.addEventListener('touchstart', (e) => {
-            if (currentLayer) {
-                currentLayer.style.opacity = '0.5';
-            }
-        });
-
-        document.addEventListener('touchend', () => {
-            if (currentLayer) {
-                currentLayer.style.opacity = '1';
-            }
-        });
-
-        // Пульсация
-        document.addEventListener('touchstart', (e) => {
-            if (currentLayer) {
-                currentLayer.style.transform = 'scale(1.2)';
-            }
-        });
-
-        document.addEventListener('touchend', () => {
-            if (currentLayer) {
-                currentLayer.style.transform = 'scale(1)';
-            }
-        });
-
-        // Волны
-        document.addEventListener('touchstart', (e) => {
-            const ripple = document.createElement('div');
-            ripple.style.position = 'absolute';
-            ripple.style.width = '100px';
-            ripple.style.height = '100px';
-            ripple.style.borderRadius = '50%';
-            ripple.style.background = 'rgba(255, 255, 255, 0.5)';
-            ripple.style.pointerEvents = 'none';
-            ripple.style.left = `${e.touches[0].clientX - 50}px`;
-            ripple.style.top = `${e.touches[0].clientY - 50}px`;
-            ripple.style.animation = 'ripple 0.6s ease-out';
-            document.body.appendChild(ripple);
-            ripple.addEventListener('animationend', () => {
-                ripple.remove();
-            });
-        });
-
-        // Тряска
-        document.addEventListener('touchstart', (e) => {
-            if (currentLayer) {
-                currentLayer.style.animation = 'shake 0.3s';
-            }
         });
     </script>
 </body>
