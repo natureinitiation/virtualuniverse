@@ -9,12 +9,16 @@
             margin: 0;
             overflow: hidden;
             background: #000;
+            -webkit-user-select: none; /* Отключает выделение текста для iOS */
+            -ms-user-select: none;    /* Отключает выделение текста для IE */
+            user-select: none;        /* Отключает выделение текста для остальных */
         }
         video, img {
             object-fit: contain;
             position: absolute;
             top: 0;
             left: 0;
+            -webkit-user-drag: none; /* Отключает перетаскивание в браузерах WebKit */
         }
         .layer {
             position: absolute;
@@ -77,9 +81,12 @@
         let initialDistance = null;
         let initialAngle = null;
 
-        // Предотвращение стандартного поведения
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        // Блокировка стандартного поведения на уровне событий
+        document.addEventListener('contextmenu', (e) => e.preventDefault()); // Блокируем контекстное меню
+        document.addEventListener('selectstart', (e) => e.preventDefault()); // Блокируем выделение текста
+        document.addEventListener('dragstart', (e) => e.preventDefault()); // Блокируем перетаскивание
         document.addEventListener('touchstart', (e) => e.preventDefault());
+        document.addEventListener('touchmove', (e) => e.preventDefault());
 
         // Показ кнопки после пяти касаний
         document.addEventListener('touchstart', (e) => {
