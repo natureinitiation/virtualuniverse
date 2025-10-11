@@ -82,7 +82,6 @@
   const fasterBtn = document.getElementById('fasterBtn');
   const slowerBtn = document.getElementById('slowerBtn');
 
-
   let words = inputText.value.split(' ');
   let index = 0;
   let interval = 500; // начальная скорость в мс
@@ -92,32 +91,45 @@
     const baseSize = window.innerWidth / 10;
     const wordLength = word.length;
     let size = baseSize;
-    if(wordLength > 20) size = baseSize / 1.2;
-    if(wordLength > 30) size = baseSize / 1.5;
-        if(wordLength > 30) size = baseSize / 2;
+    if (wordLength > 20) size = baseSize / 1.2;
+    if (wordLength > 30) size = baseSize / 1.5;
+    if (wordLength > 30) size = baseSize / 2;
     wordElement.style.fontSize = size + 'px';
   }
 
-  // Мгновенная замена слова без пауз и плавности
   function showNextWordInstant() {
-    wordElement.textContent = words[index];
-    setFontSize(words[index]);
+    let currentWord = words[index];
+    wordElement.textContent = currentWord;
+    setFontSize(currentWord);
+
+    // Проверяем, содержит ли слово знак препинания
+    const punctuation = /[.,!?]/;
+    const hasPunctuation = punctuation.test(currentWord);
+    const currentInterval = hasPunctuation ? interval * 2 : interval; // Пауза в 2 раза дольше для знаков препинания
+
     index = (index + 1) % words.length;
+
+    // Очищаем предыдущий таймер
+    clearInterval(timer);
+    // Устанавливаем новый таймер с учетом паузы
+    timer = setTimeout(() => {
+      showNextWordInstant();
+      timer = setInterval(showNextWordInstant, interval);
+    }, currentInterval);
   }
 
   function startAnimation() {
     words = inputText.value.trim().split(/\s+/);
-    if(words.length === 0) return;
+    if (words.length === 0) return;
     index = 0;
     clearInterval(timer);
     showNextWordInstant();
-    timer = setInterval(showNextWordInstant, interval);
   }
 
   startBtn.onclick = startAnimation;
 
   fasterBtn.onclick = () => {
-    if(interval > 100){
+    if (interval > 100) {
       interval -= 100;
       clearInterval(timer);
       timer = setInterval(showNextWordInstant, interval);
@@ -133,7 +145,7 @@
   window.onload = startAnimation;
 
   window.onresize = () => {
-    if(words.length > 0){
+    if (words.length > 0) {
       let currentWord = wordElement.textContent || words[index];
       setFontSize(currentWord);
     }
