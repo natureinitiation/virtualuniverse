@@ -109,7 +109,7 @@
     // Проверяем, содержит ли слово знак препинания
     const punctuation = /[.,!?]/;
     const hasPunctuation = punctuation.test(currentWord);
-    const currentInterval = hasPunctuation ? interval * 2 : interval; // Пауза в 3 раза дольше для знаков препинания
+    const currentInterval = hasPunctuation ? interval * 3 : interval; // Пауза в 3 раза дольше для знаков препинания
 
     index++;
 
