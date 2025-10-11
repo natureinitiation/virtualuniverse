@@ -93,11 +93,15 @@
     let size = baseSize;
     if (wordLength > 20) size = baseSize / 1.2;
     if (wordLength > 30) size = baseSize / 1.5;
-    if (wordLength > 30) size = baseSize / 2;
+    if (wordLength > 40) size = baseSize / 2;
     wordElement.style.fontSize = size + 'px';
   }
 
   function showNextWordInstant() {
+    if (index >= words.length) {
+      index = 0; // Зацикливание
+    }
+
     let currentWord = words[index];
     wordElement.textContent = currentWord;
     setFontSize(currentWord);
@@ -105,24 +109,21 @@
     // Проверяем, содержит ли слово знак препинания
     const punctuation = /[.,!?]/;
     const hasPunctuation = punctuation.test(currentWord);
-    const currentInterval = hasPunctuation ? interval * 2 : interval; // Пауза в 2 раза дольше для знаков препинания
+    const currentInterval = hasPunctuation ? interval * 3 : interval; // Пауза в 3 раза дольше для знаков препинания
 
-    index = (index + 1) % words.length;
+    index++;
 
     // Очищаем предыдущий таймер
-    clearInterval(timer);
-    // Устанавливаем новый таймер с учетом паузы
-    timer = setTimeout(() => {
-      showNextWordInstant();
-      timer = setInterval(showNextWordInstant, interval);
-    }, currentInterval);
+    clearTimeout(timer);
+    // Устанавливаем новый таймер
+    timer = setTimeout(showNextWordInstant, currentInterval);
   }
 
   function startAnimation() {
     words = inputText.value.trim().split(/\s+/);
     if (words.length === 0) return;
     index = 0;
-    clearInterval(timer);
+    clearTimeout(timer);
     showNextWordInstant();
   }
 
@@ -131,15 +132,15 @@
   fasterBtn.onclick = () => {
     if (interval > 100) {
       interval -= 100;
-      clearInterval(timer);
-      timer = setInterval(showNextWordInstant, interval);
+      clearTimeout(timer);
+      showNextWordInstant();
     }
   };
 
   slowerBtn.onclick = () => {
     interval += 200;
-    clearInterval(timer);
-    timer = setInterval(showNextWordInstant, interval);
+    clearTimeout(timer);
+    showNextWordInstant();
   };
 
   window.onload = startAnimation;
