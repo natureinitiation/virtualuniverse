@@ -139,44 +139,6 @@
     }
   };
 </script>
-function showNextWord() {
-  wordElement.textContent = words[index];
-  setFontSize(words[index]);
-
-  // Проверьте последний символ слова:
-  let lastChar = words[index].slice(-1);
-  // Знаки, после которых нужна пауза:
-  const punctuation = [".", ",", "!", "?", ";", ":"];
-
-  // Устанавливаем интервал в зависимости от знака:
-  let delay = punctuation.includes(lastChar) ? interval * 2 : interval;
-
-  index = (index + 1) % words.length;
-
-  clearTimeout(timer);
-  timer = setTimeout(showNextWord, delay);
-}
-
-// Запуск анимации:
-timer = setTimeout(showNextWord, interval);
-
-function showNextWord() {
-  wordElement.textContent = words[index];
-  setFontSize(words[index]);
-
-  let lastChar = words[index].slice(-1);
-  const punctuation = [".", ",", "!", "?", ";", ":"];
-
-  let delay = punctuation.includes(lastChar) ? interval * 2 : interval;
-
-  index = (index + 1) % words.length;
-
-  clearTimeout(timer);
-  timer = setTimeout(showNextWord, delay);
-}
-
-// Запуск анимации
-timer = setTimeout(showNextWord, interval);
 
 </body>
 </html>
