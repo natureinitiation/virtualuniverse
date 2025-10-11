@@ -79,7 +79,7 @@
   const startBtn = document.getElementById('startBtn');
   const fasterBtn = document.getElementById('fasterBtn');
   const slowerBtn = document.getElementById('slowerBtn');
-  const createVideoBtn = document.getElementById('createVideoBtn');
+
 
   let words = inputText.value.split(' ');
   let index = 0;
@@ -134,59 +134,6 @@
       let currentWord = wordElement.textContent || words[index];
       setFontSize(currentWord);
     }
-  };
-
-  createVideoBtn.onclick = () => {
-    if (!navigator.mediaDevices || !window.MediaRecorder) {
-      alert('Ваш браузер не поддерживает запись видео.');
-      return;
-    }
-
-    clearInterval(timer);
-
-    const videoWords = inputText.value.trim().split(/\s+/);
-    if (videoWords.length === 0) return;
-
-    let currentIndex = 0;
-    const stream = wordElement.captureStream(30);
-    const recordedChunks = [];
-    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
-
-    mediaRecorder.ondataavailable = e => {
-      if (e.data.size > 0) recordedChunks.push(e.data);
-    };
-
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = 'animation.webm';
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-      startAnimation();
-    };
-
-    function showWord(i) {
-      wordElement.textContent = videoWords[i];
-      setFontSize(videoWords[i]);
-    }
-
-    mediaRecorder.start();
-    showWord(currentIndex);
-
-    const videoTimer = setInterval(() => {
-      currentIndex++;
-      if (currentIndex >= videoWords.length) {
-        clearInterval(videoTimer);
-        setTimeout(() => mediaRecorder.stop(), 1000);
-      } else {
-        showWord(currentIndex);
-      }
-    }, interval);
   };
 </script>
 
