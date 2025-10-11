@@ -1,6 +1,6 @@
 {
     "name": "Fast reading",
-    "short_name": "fast_reading",
+    "short_name": "Fast reading",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#007BFF",
