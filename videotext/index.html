@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Анимация слов - мгновенная замена без пауз</title>
+<style>
+  body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: #222;
+    color: #fff;
+    font-family: Arial, sans-serif;
+  }
+  #inputContainer {
+    padding: 10px;
+    text-align: center;
+  }
+  #inputText {
+    width: 70%;
+    max-width: 600px;
+    padding: 8px;
+    font-size: 1em;
+    border-radius: 4px;
+    border: none;
+  }
+  #container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #word {
+    opacity: 1;
+    font-weight: bold;
+    text-align: center;
+    max-width: 90%;
+    word-wrap: break-word;
+    /* Убираем плавности анимации */
+    transition: none;
+  }
+  #buttonsContainer {
+    padding: 10px;
+    text-align: center;
+  }
+
+  button {
+  font-size: 16px;
+  background-color: transparent; /* убираем фон */
+  color: white;                  /* делаем текст белым */
+  border: none;                  /* убираем рамку */
+  outline: none;                 /* убираем обводку при фокусе */
+  cursor: pointer;               /* курсор указателя */
+}
+
+</style>
+</head>
+<body>
+  <div id="inputContainer">
+    <input type="text" id="inputText" value="Это пример текста для показа замены слов по центру экрана" />
+  </div>
+
+  <div id="container">
+    <div id="word"></div>
+  </div>
+
+  <div id="buttonsContainer">
+    <button id="startBtn">Start</button> 
+    <button id="fasterBtn">Faster</button>
+    <button id="slowerBtn">Slower</button>
+    <button id="createVideoBtn">Create Video</button>
+  </div>
+
+<script>
+  const wordElement = document.getElementById('word');
+  const inputText = document.getElementById('inputText');
+  const startBtn = document.getElementById('startBtn');
+  const fasterBtn = document.getElementById('fasterBtn');
+  const slowerBtn = document.getElementById('slowerBtn');
+  const createVideoBtn = document.getElementById('createVideoBtn');
+
+  let words = inputText.value.split(' ');
+  let index = 0;
+  let interval = 1500; // начальная скорость в мс
+  let timer = null;
+
+  function setFontSize(word) {
+    const baseSize = window.innerWidth / 10;
+    const wordLength = word.length;
+    let size = baseSize;
+    if(wordLength > 10) size = baseSize / 1.5;
+    if(wordLength > 20) size = baseSize / 2;
+    wordElement.style.fontSize = size + 'px';
+  }
+
+  // Мгновенная замена слова без пауз и плавности
+  function showNextWordInstant() {
+    wordElement.textContent = words[index];
+    setFontSize(words[index]);
+    index = (index + 1) % words.length;
+  }
+
+  function startAnimation() {
+    words = inputText.value.trim().split(/\s+/);
+    if(words.length === 0) return;
+    index = 0;
+    clearInterval(timer);
+    showNextWordInstant();
+    timer = setInterval(showNextWordInstant, interval);
+  }
+
+  startBtn.onclick = startAnimation;
+
+  fasterBtn.onclick = () => {
+    if(interval > 100){
+      interval -= 100;
+      clearInterval(timer);
+      timer = setInterval(showNextWordInstant, interval);
+    }
+  };
+
+  slowerBtn.onclick = () => {
+    interval += 200;
+    clearInterval(timer);
+    timer = setInterval(showNextWordInstant, interval);
+  };
+
+  window.onload = startAnimation;
+
+  window.onresize = () => {
+    if(words.length > 0){
+      let currentWord = wordElement.textContent || words[index];
+      setFontSize(currentWord);
+    }
+  };
+
+  createVideoBtn.onclick = () => {
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      alert('Ваш браузер не поддерживает запись видео.');
+      return;
+    }
+
+    clearInterval(timer);
+
+    const videoWords = inputText.value.trim().split(/\s+/);
+    if (videoWords.length === 0) return;
+
+    let currentIndex = 0;
+    const stream = wordElement.captureStream(30);
+    const recordedChunks = [];
+    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'animation.webm';
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+      startAnimation();
+    };
+
+    function showWord(i) {
+      wordElement.textContent = videoWords[i];
+      setFontSize(videoWords[i]);
+    }
+
+    mediaRecorder.start();
+    showWord(currentIndex);
+
+    const videoTimer = setInterval(() => {
+      currentIndex++;
+      if (currentIndex >= videoWords.length) {
+        clearInterval(videoTimer);
+        setTimeout(() => mediaRecorder.stop(), 1000);
+      } else {
+        showWord(currentIndex);
+      }
+    }, interval);
+  };
+</script>
+
+</body>
+</html>
