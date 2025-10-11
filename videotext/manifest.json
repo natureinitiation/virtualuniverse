@@ -1,6 +1,6 @@
 {
-    "name": "Videotext",
-    "short_name": "Videotext",
+    "name": "Order",
+    "short_name": "Order",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#007BFF",
