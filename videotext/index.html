@@ -107,7 +107,7 @@
     setFontSize(currentWord);
 
     // Проверяем, содержит ли слово знак препинания
-    const punctuation = /[.,!?]/;
+    const punctuation = /[.,—:;!?]/;
     const hasPunctuation = punctuation.test(currentWord);
     // Динамический множитель паузы: больше для меньших интервалов
     const pauseMultiplier = interval <= 300 ? 4 : interval <= 500 ? 3 : 2;
