@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eternal Echo - Auto P2P Memory Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 20px auto; 
+            padding: 10px; 
+            background: #333; 
+            color: #fff; 
+        }
+        h1 { color: white; }
+        input[type="text"], textarea { 
+            display: block; 
+            width: 100%; 
+            margin: 10px 0; 
+            padding: 8px; 
+        }
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 8px;
+            background: #f28c38; /* Orange background for Choose File buttons */
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+        }
+        select, button { 
+            display: inline-block; 
+            width: auto; 
+            margin: 10px 0; 
+            padding: 8px; 
+        }
+        button {
+            background: #f1c40f; /* Yellow background for Save buttons */
+            color: #000;
+            border: none;
+            border-radius: 4px;
+        }
+        textarea { height: 100px; color: #fff; }
+        .memory { border: 1px solid #ccc; padding: 10px; margin: 10px 0; background: #444; }
+        .media-preview { max-width: 100%; margin-top: 5px; }
+        #status, #profile, #relevant-peer, #related-content, #description { 
+            margin-top: 20px; 
+            padding: 10px; 
+            border: 1px solid #555; 
+            background: #444; 
+        }
+        #peers { font-size: 0.9em; color: #aaa; }
+        #avatar-preview, #relevant-avatar-preview { max-width: 100px; height: auto; }
+        .crypto-address { cursor: pointer; color: #007bff; text-decoration: underline; }
+        .nickname { cursor: pointer; color: #007bff; text-decoration: underline; }
+        #qr-code { margin-top: 10px; text-align: center; }
+        #lang-selector { margin: 10px 0; }
+        body[lang="zh"] { font-family: 'Noto Sans SC', sans-serif; }
+        #archive { margin-top: 10px; }
+        #archive-content { margin-top: 10px; background: #555; padding: 10px; }
+        .delete-memory { color: red; cursor: pointer; margin-left: 10px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/webconnect@0.0.10/dist/umd/webconnect.js"></script>
+</head>
+<body lang="en">
+    <h1>Eternal Echo - Auto P2P Memory Terminal</h1>
+    <select id="lang-selector" onchange="changeLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="ru">Русский</option>
+        <option value="zh">中文</option>
+    </select>
+    <div id="status">Status: Initializing P2P</div>
+    <div id="peers"></div>
+
+    <h3 data-i18n="profile_title">Your Profile</h3>
+    <div id="profile">
+        <input type="text" id="nickname" data-i18n-placeholder="nickname_placeholder" placeholder="Nickname (e.g., @Dr_Singularity)">
+        <input type="text" id="crypto-address" data-i18n-placeholder="crypto_address_placeholder" placeholder="Address for receiving funds (wallet)">
+        <select id="cryptocurrency">
+            <option value="">Cryptocurrency</option>
+            <option value="Bitcoin">Bitcoin</option>
+            <option value="Ethereum">Ethereum</option>
+            <option value="USDT">USDT</option>
+        </select>
+        <select id="chain-type">
+            <option value="">Chain Type</option>
+            <option value="Bitcoin">Bitcoin</option>
+            <option value="Ethereum">Ethereum</option>
+            <option value="Tron (TRC20)">Tron (TRC20)</option>
+        </select>
+        <input type="file" id="avatar" accept="image/*">
+        <button onclick="saveProfile()" data-i18n="save_profile">Save Profile</button>
+        <div id="profile-display"></div>
+    </div>
+
+    <h3 data-i18n="add_memory_title">Add Memory</h3>
+    <input type="text" id="title" data-i18n-placeholder="title_placeholder" placeholder="Title">
+    <textarea id="description" data-i18n-placeholder="description_placeholder" placeholder="Description"></textarea>
+    <select id="weather">
+        <option value="" data-i18n="weather_placeholder">Weather</option>
+        <option value="Sunny">Sunny</option>
+        <option value="Cloudy">Cloudy</option>
+        <option value="Rainy">Rainy</option>
+        <option value="Snowy">Snowy</option>
+        <option value="Windy">Windy</option>
+        <option value="Foggy">Foggy</option>
+    </select>
+    <select id="emotion">
+        <option value="" data-i18n="emotion_placeholder">Emotion</option>
+        <option value="Joy">Joy</option>
+        <option value="Sadness">Sadness</option>
+        <option value="Anger">Anger</option>
+        <option value="Surprise">Surprise</option>
+        <option value="Fear">Fear</option>
+        <option value="Calm">Calm</option>
+    </select>
+    <select id="perception">
+        <option value="" data-i18n="perception_placeholder">Perception</option>
+        <option value="Vision">Vision</option>
+        <option value="Hearing">Hearing</option>
+        <option value="Touch">Touch</option>
+        <option value="Taste">Taste</option>
+        <option value="Smell">Smell</option>
+        <option value="Intuition">Intuition</option>
+    </select>
+    <input type="file" id="files" multiple accept="image/*,video/*,audio/*">
+    <button onclick="addMemory()" data-i18n="save_spread">Save and Spread</button>
+
+    <h3 data-i18n="memories_title">Memories (local + from relevant user)</h3>
+    <div id="memories"></div>
+    <div id="archive"><a href="javascript:void(0)" onclick="loadArchive()" data-i18n="view_archive">View Archive</a></div>
+    <div id="archive-content"></div>
+
+    <div id="relevant-peer">
+        <h3 data-i18n="relevant_peer_title">Most Relevant User</h3>
+        <div id="relevant-peer-profile"></div>
+    </div>
+
+    <div id="related-content">
+        <h3 data-i18n="related_content_title">Like-minded Content</h3>
+        <p id="user-content"></p>
+    </div>
+
+    <div id="description">
+        <p data-i18n="intro_description">You are all extremely lucky humans, especially if you will be here during the 2030s. Why? Because by then, technology and science will be so insanely advanced (compared to today) that the chances of living as long as you wish will be very high. For those who don't know me yet, I am talking about age reversing technology, full rejuvenation (all human organs, including your brain). I am talking about a world where all people look 25 and have perfect health. You will be able to experience your early-mid 20s once again, but this time, permanently.</p>
+        <h3 data-i18n="about_terminal">About the Terminal</h3>
+        <p data-i18n="about_description">Eternal Echo is a decentralized terminal for storing and sharing memories in a P2P network. Record emotions, experiences, media; share with like-minded people automatically.</p>
+        <p data-i18n="how_it_works"><strong>How it works:</strong> Fill in your profile, add a description of your state or memory, mark perception and emotion. The terminal uses auto P2P and Gossip technology without a server to send transactions to the network without an address. Relevant users (like-minded people) who open this terminal can detect the signal and send their message to you directly (if both are online), and make a payment (donation) to your address via a standard external (wallet) application to support you.</p>
+        <p data-i18n="create_mem">In other words, you create your mem: fill in your profile, which you can change at any time, attach a file, image, video, or music to it, and send it to a decentralized network controlled by various protocols but not by any specific person or organization hiding behind a centralized server. You can copy this code and paste it into the Code Viewer (included) to use its implemented functionality.</p>
+        <div id="qr-code"></div>
+    </div>
+
+    <script>
+        const translations = {
+            en: {
+                profile_title: "Your Profile",
+                nickname_placeholder: "Nickname (e.g., @Dr_Singularity)",
+                crypto_address_placeholder: "Address for receiving funds (wallet)",
+                save_profile: "Save Profile",
+                add_memory_title: "Add Memory",
+                title_placeholder: "Title",
+                description_placeholder: "Description",
+                emotion_placeholder: "Emotion",
+                perception_placeholder: "Perception",
+                weather_placeholder: "Weather",
+                save_spread: "Save and Spread",
+                memories_title: "Memories (local + from relevant user)",
+                relevant_peer_title: "Most Relevant User",
+                related_content_title: "Like-minded Content",
+                about_terminal: "About the Terminal",
+                about_description: "Eternal Echo is a decentralized terminal for storing and sharing memories in a P2P network. Record emotions, experiences, media; share with like-minded people automatically.",
+                how_it_works: "<strong>How it works:</strong> Fill in your profile, add a description of your state or memory, mark perception and emotion. The terminal uses auto P2P and Gossip technology without a server to send transactions to the network without an address. Relevant users (like-minded people) who open this terminal can detect the signal and send their message to you directly (if both are online), and make a payment (donation) to your address via a standard external (wallet) application to support you.",
+                create_mem: "In other words, you create your mem: fill in your profile, which you can change at any time, attach a file, image, video, or music to it, and send it to a decentralized network controlled by various protocols but not by any specific person or organization hiding behind a centralized server. You can copy this code and paste it into the Code Viewer (included) to use its implemented functionality.",
+                intro_description: "You are all extremely lucky humans, especially if you will be here during the 2030s. Why? Because by then, technology and science will be so insanely advanced (compared to today) that the chances of living as long as you wish will be very high. For those who don't know me yet, I am talking about age reversing technology, full rejuvenation (all human organs, including your brain). I am talking about a world where all people look 25 and have perfect health. You will be able to experience your early-mid 20s once again, but this time, permanently.",
+                status_label: "Status",
+                status_init: "Initializing P2P",
+                status_connected: "Connected to {peerId}, gossip active",
+                status_disconnected: "Disconnected from {peerId}, peers: {peers}",
+                peers_connected: "Connected peers: {count}",
+                nickname_label: "Nickname",
+                crypto_address_label: "Crypto Address",
+                cryptocurrency_label: "Cryptocurrency",
+                chain_type_label: "Chain Type",
+                avatar_not_loaded: "Avatar not loaded",
+                address_copied: "Address copied to clipboard!",
+                address_copy_error: "Error copying address.",
+                address_not_specified: "Address not specified.",
+                nickname_inserted: "Nickname inserted into Description!",
+                profile_saved: "Profile saved and sent!",
+                memory_saved: "Saved and spread!",
+                description_label: "Description",
+                emotion_label: "Emotion",
+                perception_label: "Perception",
+                weather_label: "Weather",
+                date_label: "Date",
+                media_label: "Media",
+                from: "from",
+                view_archive: "View Archive",
+                delete_memory: "Delete"
+            },
+            ru: {
+                profile_title: "Ваш профиль",
+                nickname_placeholder: "Nickname (например, @Dr_Singularity)",
+                crypto_address_placeholder: "Адрес для получения средств (wallet)",
+                save_profile: "Сохранить профиль",
+                add_memory_title: "Добавить воспоминание",
+                title_placeholder: "Заголовок",
+                description_placeholder: "Описание",
+                emotion_placeholder: "Эмоция",
+                perception_placeholder: "Восприятие",
+                weather_placeholder: "Погода",
+                save_spread: "Сохранить и распространить",
+                memories_title: "Воспоминания (локальные + от релевантного пользователя)",
+                relevant_peer_title: "Наиболее релевантный пользователь",
+                related_content_title: "Единомышленный контент",
+                about_terminal: "О терминале",
+                about_description: "Eternal Echo — децентрализованный терминал для сохранения и обмена воспоминаниями в P2P-сети. Записывайте эмоции, переживания, медиа; делитесь с единомышленниками автоматически.",
+                how_it_works: "<strong>Как работает:</strong> Заполните профиль, добавьте описание своего состояния или воспоминание, отметьте восприятие и эмоцию. Терминал использует auto P2P и технологию Gossip без сервера для отправки транзакции в сеть без адреса. Релевантные пользователи (единомышленники), открывшие этот терминал, могут запеленговать сигнал и отправить своё послание вам напрямую (если вы оба в сети), и сделать платёж (пожертвование) на ваш адрес через стандартное внешнее приложение (кошелёк) для вашей поддержки.",
+                create_mem: "То есть, вы создаёте свой мем: заполняете свой профиль, который вы можете изменить в любой момент, прилагаете к нему файл, изображение, видео или музыку и отправляете это в децентрализованную сеть, которая контролируется всевозможными протоколами, но не каким-то конкретным лицом или организацией, скрывающихся за централизованным сервером. Вы можете скопировать этот код и вставить его в Code Viewer (прилагается), чтобы использовать реализованный в нем функционал.",
+                intro_description: "Вы все невероятно счастливые люди, особенно если будете здесь в 2030-е годы. Почему? Потому что к тому времени технологии и наука будут настолько невероятно развиты (по сравнению с сегодняшним днём), что шансы жить столько, сколько вы пожелаете, будут очень высоки. Для тех, кто меня ещё не знает, я говорю о технологиях омоложения, полном восстановлении организма (всех органов человека, включая мозг). Я говорю о мире, где все люди выглядят на 25 лет и обладают идеальным здоровьем. Вы сможете снова пережить свои ранние-средние 20-е годы, но на этот раз навсегда.",
+                status_label: "Статус",
+                status_init: "Инициализация P2P",
+                status_connected: "Подключён к {peerId}, gossip активен",
+                status_disconnected: "Отключён от {peerId}, peers: {peers}",
+                peers_connected: "Подключено peers: {count}",
+                nickname_label: "Nickname",
+                crypto_address_label: "Крипто-адрес",
+                cryptocurrency_label: "Криптовалюта",
+                chain_type_label: "Тип сети",
+                avatar_not_loaded: "Аватар не загружен",
+                address_copied: "Адрес скопирован в буфер обмена!",
+                address_copy_error: "Ошибка копирования адреса.",
+                address_not_specified: "Адрес не указан.",
+                nickname_inserted: "Nickname вставлен в Description!",
+                profile_saved: "Профиль сохранён и отправлен!",
+                memory_saved: "Сохранено и распространено!",
+                description_label: "Описание",
+                emotion_label: "Эмоция",
+                perception_label: "Восприятие",
+                weather_label: "Погода",
+                date_label: "Дата",
+                media_label: "Медиа",
+                from: "от",
+                view_archive: "Просмотреть архив",
+                delete_memory: "Удалить"
+            },
+            zh: {
+                profile_title: "您的个人资料",
+                nickname_placeholder: "昵称（例如，@Dr_Singularity）",
+                crypto_address_placeholder: "接收资金的地址（钱包）",
+                save_profile: "保存个人资料",
+                add_memory_title: "添加记忆",
+                title_placeholder: "标题",
+                description_placeholder: "描述",
+                emotion_placeholder: "情感",
+                perception_placeholder: "感知",
+                weather_placeholder: "天气",
+                save_spread: "保存并传播",
+                memories_title: "记忆（本地 + 来自相关用户）",
+                relevant_peer_title: "最相关的用户",
+                related_content_title: "志同道合内容",
+                about_terminal: "关于终端",
+                about_description: "Eternal Echo 是一个去中心化的终端，用于在P2P网络中存储和分享记忆。记录情感、体验、媒体，自动与志同道合的人分享。",
+                how_it_works: "<strong>工作原理：</strong> 填写您的个人资料，添加您的状态或记忆描述，标记感知和情感。终端使用无服务器的auto P2P和Gossip技术将交易发送到网络，无需地址。打开此终端的相關用戶（志同道合者）可以探测到信号并直接向您发送信息（如果双方均在线），并通过标准外部（钱包）应用程序向您的地址付款（捐款）以支持您。",
+                create_mem: "换句话说，您创建自己的迷因：填写您的个人资料（可随时更改），附加文件、图像、视频或音乐，并将其发送到由各种协议控制的去中心化网络，而不是由隐藏在中心化服务器背后的特定个人或组织控制。您可以复制此代码并粘贴到Code Viewer（附带）中以使用其实现的功能。",
+                intro_description: "你们都是极其幸运的人类，尤其是如果你们能活到2030年代。为什么？因为到那时，科技和科学将变得非常先进（与今天相比），你们想要活多久就几乎都能实现。对于那些还不认识我的人，我说的是逆龄技术，全面年轻化（包括你们的所有人体器官，包括大脑）。我说的是一种所有人都看起来25岁、拥有完美健康的世界。你们将能够再次体验二十多岁的青春时光，但这一次，是永久的。",
+                status_label: "状态",
+                status_init: "初始化P2P",
+                status_connected: "已连接到 {peerId}，gossip活跃",
+                status_disconnected: "已从 {peerId} 断开，peers：{peers}",
+                peers_connected: "已连接的peers：{count}",
+                nickname_label: "昵称",
+                crypto_address_label: "加密地址",
+                cryptocurrency_label: "加密货币",
+                chain_type_label: "网络类型",
+                avatar_not_loaded: "未加载头像",
+                address_copied: "地址已复制到剪贴板！",
+                address_copy_error: "复制地址时出错。",
+                address_not_specified: "未指定地址。",
+                nickname_inserted: "昵称插入描述中！",
+                profile_saved: "个人资料已保存并发送！",
+                memory_saved: "已保存并传播！",
+                description_label: "描述",
+                emotion_label: "情感",
+                perception_label: "感知",
+                weather_label: "天气",
+                date_label: "日期",
+                media_label: "媒体",
+                from: "来自",
+                view_archive: "查看档案",
+                delete_memory: "删除"
+            }
+        };
+
+        let connect;
+        let memories = [];
+        let archive = [];
+        let profile = { nickname: '' };
+        let peers = [];
+        let relevantPeer = null;
+        const GOSSIP_INTERVAL = 30000;
+        let gossipTimer;
+        const SHARE_LINK = ''; // Set custom link here (e.g., 'http://localhost:8000')
+
+        function changeLanguage(lang) {
+            document.body.setAttribute('lang', lang);
+            document.querySelectorAll('[data-i18n]').forEach(elem => {
+                const key = elem.getAttribute('data-i18n');
+                elem.innerHTML = translations[lang][key] || elem.innerHTML;
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(elem => {
+                const key = elem.getAttribute('data-i18n-placeholder');
+                elem.placeholder = translations[lang][key] || elem.placeholder;
+            });
+            document.querySelectorAll('select#emotion option').forEach((opt, index) => {
+                if (index === 0) opt.text = translations[lang].emotion_placeholder;
+                else opt.text = ['Joy', 'Sadness', 'Anger', 'Surprise', 'Fear', 'Calm'][index - 1];
+            });
+            document.querySelectorAll('select#perception option').forEach((opt, index) => {
+                if (index === 0) opt.text = translations[lang].perception_placeholder;
+                else opt.text = ['Vision', 'Hearing', 'Touch', 'Taste', 'Smell', 'Intuition'][index - 1];
+            });
+            document.querySelectorAll('select#weather option').forEach((opt, index) => {
+                if (index === 0) opt.text = translations[lang].weather_placeholder;
+                else opt.text = ['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Windy', 'Foggy'][index - 1];
+            });
+            loadProfile();
+            loadMemories();
+            updateRelatedContent();
+            updateRelevantPeerProfile();
+            updatePeers();
+            updateStatus(translations[lang].status_init);
+        }
+
+        let db;
+        const dbRequest = indexedDB.open('EternalEchoDB', 5);
+        dbRequest.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains('memories')) {
+                db.createObjectStore('memories', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('profile')) {
+                db.createObjectStore('profile', { keyPath: 'key' });
+            }
+            if (!db.objectStoreNames.contains('archive')) {
+                db.createObjectStore('archive', { keyPath: 'id' });
+            }
+        };
+        dbRequest.onsuccess = (event) => {
+            db = event.target.result;
+            loadProfileFromDB();
+            loadMemoriesFromDB();
+            loadArchiveFromDB();
+        };
+        dbRequest.onerror = (event) => {
+            console.error('IndexedDB error:', event.target.error);
+            updateStatus('Failed to initialize database');
+        };
+
+        async function saveProfileToDB(profileData) {
+            try {
+                const tx = db.transaction(['profile'], 'readwrite');
+                const store = tx.objectStore('profile');
+                await store.put({ key: 'current', ...profileData });
+                console.log('Profile saved to DB:', profileData);
+                return true;
+            } catch (error) {
+                console.error('Error saving profile:', error);
+                return false;
+            }
+        }
+
+        function loadProfileFromDB() {
+            try {
+                const tx = db.transaction(['profile'], 'readonly');
+                const store = tx.objectStore('profile');
+                const request = store.get('current');
+                request.onsuccess = (event) => {
+                    if (event.target.result) {
+                        profile = event.target.result;
+                        console.log('Profile loaded from DB:', profile);
+                    }
+                    loadProfile();
+                };
+                request.onerror = (event) => {
+                    console.error('Error loading profile:', event.target.error);
+                    loadProfile();
+                };
+            } catch (error) {
+                console.error('Error accessing profile store:', error);
+                loadProfile();
+            }
+        }
+
+        async function saveMemoriesToDB() {
+            try {
+                const tx = db.transaction(['memories'], 'readwrite');
+                const store = tx.objectStore('memories');
+                await store.clear();
+                for (const memory of memories) {
+                    await store.put(memory);
+                }
+                console.log('Memories saved to DB:', memories);
+            } catch (error) {
+                console.error('Error saving memories:', error);
+            }
+        }
+
+        function loadMemoriesFromDB() {
+            try {
+                const tx = db.transaction(['memories'], 'readonly');
+                const store = tx.objectStore('memories');
+                const request = store.getAll();
+                request.onsuccess = (event) => {
+                    memories = event.target.result || [];
+                    console.log('Memories loaded from DB:', memories);
+                    loadMemories();
+                    updateRelatedContent();
+                };
+                request.onerror = (event) => {
+                    console.error('Error loading memories:', event.target.error);
+                };
+            } catch (error) {
+                console.error('Error accessing memories store:', error);
+            }
+        }
+
+        async function saveArchiveToDB() {
+            try {
+                const tx = db.transaction(['archive'], 'readwrite');
+                const store = tx.objectStore('archive');
+                await store.clear();
+                for (const memory of archive) {
+                    await store.put(memory);
+                }
+                console.log('Archive saved to DB:', archive);
+            } catch (error) {
+                console.error('Error saving archive:', error);
+            }
+        }
+
+        function loadArchiveFromDB() {
+            try {
+                const tx = db.transaction(['archive'], 'readonly');
+                const store = tx.objectStore('archive');
+                const request = store.getAll();
+                request.onsuccess = (event) => {
+                    archive = event.target.result || [];
+                    console.log('Archive loaded from DB:', archive);
+                    loadArchive();
+                };
+                request.onerror = (event) => {
+                    console.error('Error loading archive:', event.target.error);
+                };
+            } catch (error) {
+                console.error('Error accessing archive store:', error);
+            }
+        }
+
+        function loadArchive() {
+            const lang = document.body.getAttribute('lang') || 'en';
+            const archiveContent = document.getElementById('archive-content');
+            archiveContent.innerHTML = '';
+            if (archive.length === 0) {
+                archiveContent.innerHTML = `<p>${translations[lang].view_archive}: Empty</p>`;
+                return;
+            }
+            archive.forEach((memory, index) => {
+                const memoryDiv = document.createElement('div');
+                memoryDiv.className = 'memory';
+                let html = `
+                    <strong>${index + 1}: ${memory.title || 'Untitled'} ${memory.fromPeer ? `(${translations[lang].from} ${memory.fromPeerNickname || translations[lang].nickname_label})` : ''}</strong>
+                    <span class="delete-memory" onclick="deleteMemory('${memory.id}')"> (${translations[lang].delete_memory})</span><br>
+                    ${translations[lang].description_label}: ${memory.description || 'No description'}<br>
+                    ${translations[lang].emotion_label}: ${memory.emotion || 'None'}<br>
+                    ${translations[lang].perception_label}: ${memory.perception || 'None'}<br>
+                    ${translations[lang].weather_label}: ${memory.weather || 'None'}<br>
+                    ${translations[lang].date_label}: ${memory.timestamp}
+                `;
+                if (memory.files && memory.files.length > 0) {
+                    html += `<br>${translations[lang].media_label}:`;
+                    memory.files.forEach(file => {
+                        if (file.type.startsWith('image/')) {
+                            html += `<br><img src="${file.data}" class="media-preview" alt="${file.name}">`;
+                        } else if (file.type.startsWith('video/')) {
+                            html += `<br><video controls class="media-preview"><source src="${file.data}" type="${file.type}"></video>`;
+                        } else if (file.type.startsWith('audio/')) {
+                            html += `<br><audio controls><source src="${file.data}" type="${file.type}"></audio>`;
+                        }
+                    });
+                }
+                memoryDiv.innerHTML = html;
+                archiveContent.appendChild(memoryDiv);
+            });
+        }
+
+        async function deleteMemory(id) {
+            try {
+                archive = archive.filter(m => m.id !== id);
+                await saveArchiveToDB();
+                loadArchive();
+                console.log('Memory deleted:', id);
+            } catch (error) {
+                console.error('Error deleting memory:', error);
+            }
+        }
+
+        function initP2P() {
+            try {
+                connect = webconnect({ channelName: 'eternal-echo-channel' });
+
+                connect.onConnect((attribute) => {
+                    const peerId = attribute.connectId;
+                    peers.push({ id: peerId, profile: null, memories: [] });
+                    updatePeers();
+                    connect.Send(JSON.stringify({ type: 'profile', profile }), { connectId: peerId });
+                    const lang = document.body.getAttribute('lang') || 'en';
+                    updateStatus(translations[lang].status_connected.replace('{peerId}', peerId));
+                    console.log('Peer connected:', peerId);
+                    findRelevantPeer();
+                });
+
+                connect.onDisconnect((attribute) => {
+                    peers = peers.filter(p => p.id !== attribute.connectId);
+                    updatePeers();
+                    findRelevantPeer();
+                    updateRelatedContent();
+                    const lang = document.body.getAttribute('lang') || 'en';
+                    updateStatus(translations[lang].status_disconnected.replace('{peerId}', attribute.connectId).replace('{peers}', peers.length));
+                    console.log('Peer disconnected:', attribute.connectId);
+                });
+
+                connect.onReceive((data, attribute) => {
+                    try {
+                        receiveGossip(JSON.parse(data), attribute.connectId);
+                    } catch (error) {
+                        console.error('Error parsing gossip data:', error);
+                    }
+                });
+
+                startGossip();
+                const lang = document.body.getAttribute('lang') || 'en';
+                updateStatus(translations[lang].status_init);
+            } catch (error) {
+                console.error('P2P initialization error:', error);
+                updateStatus('Failed to initialize P2P');
+            }
+        }
+
+        function updatePeers() {
+            const lang = document.body.getAttribute('lang') || 'en';
+            document.getElementById('peers').innerHTML = translations[lang].peers_connected.replace('{count}', peers.length);
+            console.log('Current peers:', peers);
+        }
+
+        function updateStatus(msg) {
+            const lang = document.body.getAttribute('lang') || 'en';
+            document.getElementById('status').innerHTML = `${translations[lang].status_label}: ${msg}`;
+        }
+
+        function updateRelatedContent() {
+            const lang = document.body.getAttribute('lang') || 'en';
+            const userContent = document.getElementById('user-content');
+            if (relevantPeer && relevantPeer.memories.length > 0) {
+                const latestMemory = relevantPeer.memories[relevantPeer.memories.length - 1];
+                userContent.innerHTML = `
+                    <strong>${latestMemory.title || 'Untitled'}</strong> (${translations[lang].from} ${relevantPeer.profile?.nickname || translations[lang].nickname_label}): ${latestMemory.description || 'No description'}
+                `;
+            } else if (memories.length > 0 && !memories[0].fromPeer) {
+                const latestMemory = memories[memories.length - 1];
+                userContent.innerHTML = `
+                    <strong>${latestMemory.title || 'Untitled'}</strong> (${translations[lang].from} ${profile.nickname || translations[lang].nickname_label}): ${latestMemory.description || 'No description'}
+                `;
+            } else {
+                userContent.innerHTML = '';
+            }
+        }
+
+        function findRelevantPeer() {
+            if (!peers.length) {
+                relevantPeer = null;
+                updateRelevantPeerProfile();
+                loadMemories();
+                updateRelatedContent();
+                return;
+            }
+            let bestPeer = peers[0];
+            peers.forEach(peer => {
+                if (peer.profile) {
+                    bestPeer = peer;
+                }
+            });
+            relevantPeer = bestPeer;
+            updateRelevantPeerProfile();
+            loadMemories();
+            updateRelatedContent();
+            console.log('Relevant peer selected:', bestPeer);
+        }
+
+        function updateRelevantPeerProfile() {
+            const display = document.getElementById('relevant-peer-profile');
+            const lang = document.body.getAttribute('lang') || 'en';
+            if (relevantPeer && relevantPeer.profile) {
+                const nickname = relevantPeer.profile.nickname || translations[lang].nickname_label;
+                const address = relevantPeer.profile.address || translations[lang].address_not_specified;
+                display.innerHTML = `
+                    <strong>${translations[lang].nickname_label}:</strong> <span class="nickname" onclick="insertNickname('${nickname}')">${nickname}</span><br>
+                    <strong>${translations[lang].crypto_address_label}:</strong> <span class="crypto-address" onclick="copyAddress('${address}')">${address}</span><br>
+                    <strong>${translations[lang].cryptocurrency_label}:</strong> ${relevantPeer.profile.cryptocurrency || translations[lang].address_not_specified}<br>
+                    <strong>${translations[lang].chain_type_label}:</strong> ${relevantPeer.profile.chainType || translations[lang].address_not_specified}<br>
+                    ${relevantPeer.profile.avatar ? `<img id="relevant-avatar-preview" src="${relevantPeer.profile.avatar}" alt="Avatar/QR">` : translations[lang].avatar_not_loaded}
+                `;
+            } else {
+                display.innerHTML = `<p>${translations[lang].relevant_peer_title}: None</p>`;
+            }
+        }
+
+        function insertNickname(nickname) {
+            const lang = document.body.getAttribute('lang') || 'en';
+            const formattedNickname = nickname.startsWith('@') ? nickname : `@${nickname}`;
+            document.getElementById('description').value = formattedNickname;
+            alert(translations[lang].nickname_inserted);
+        }
+
+        function copyAddress(address) {
+            const lang = document.body.getAttribute('lang') || 'en';
+            navigator.clipboard.writeText(address).then(() => {
+                alert(translations[lang].address_copied);
+            }).catch(() => {
+                alert(translations[lang].address_copy_error);
+            });
+        }
+
+        function receiveGossip(data, peerId) {
+            if (data.type === 'profile') {
+                const peer = peers.find(p => p.id === peerId);
+                if (peer) {
+                    peer.profile = data.profile;
+                    console.log('Profile received from peer:', peerId, data.profile);
+                    findRelevantPeer();
+                }
+            } else if (data.type === 'gossip' && data.memories) {
+                data.memories.forEach(newMem => {
+                    if (!memories.find(m => m.id === newMem.id)) {
+                        if (memories.length > 0 && memories[0].fromPeer) {
+                            archive.push(memories.shift());
+                            saveArchiveToDB();
+                        }
+                        memories.push({ ...newMem, fromPeer: peerId, fromPeerNickname: peers.find(p => p.id === peerId)?.profile?.nickname });
+                        const peer = peers.find(p => p.id === peerId);
+                        if (peer) peer.memories.push(newMem);
+                        console.log('Memory received from peer:', peerId, newMem);
+                    }
+                });
+                saveMemoriesToDB();
+                findRelevantPeer();
+            }
+        }
+
+        function startGossip() {
+            if (gossipTimer) clearInterval(gossipTimer);
+            gossipTimer = setInterval(() => {
+                const randomMemories = memories.filter(m => !m.fromPeer).sort(() => 0.5 - Math.random()).slice(0, 3);
+                connect.Send(JSON.stringify({ type: 'gossip', memories: randomMemories, github_link: SHARE_LINK }), { connectId: null });
+                console.log('Gossip sent:', randomMemories);
+            }, GOSSIP_INTERVAL);
+        }
+
+        async function saveProfile() {
+            const nickname = document.getElementById('nickname').value || '';
+            const address = document.getElementById('crypto-address').value || '';
+            const cryptocurrency = document.getElementById('cryptocurrency').value || '';
+            const chainType = document.getElementById('chain-type').value || '';
+            const avatarFile = document.getElementById('avatar').files[0];
+            let avatarData = profile.avatar || '';
+
+            if (avatarFile) {
+                try {
+                    avatarData = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(avatarFile);
+                    });
+                } catch (error) {
+                    console.error('Error reading avatar:', error);
+                }
+            }
+
+            profile = { nickname, address, cryptocurrency, chainType, avatar: avatarData };
+            const saved = await saveProfileToDB(profile);
+            connect.Send(JSON.stringify({ type: 'profile', profile }), { connectId: null });
+            loadProfile();
+            const lang = document.body.getAttribute('lang') || 'en';
+            alert(translations[lang].profile_saved);
+            if (!saved) console.error('Profile save failed, check IndexedDB');
+        }
+
+        function loadProfile() {
+            const display = document.getElementById('profile-display');
+            const lang = document.body.getAttribute('lang') || 'en';
+            display.innerHTML = `
+                <strong>${translations[lang].nickname_label}:</strong> ${profile.nickname || translations[lang].nickname_label}<br>
+                <strong>${translations[lang].crypto_address_label}:</strong> <span class="crypto-address" onclick="copyAddress('${profile.address || translations[lang].address_not_specified}')">${profile.address || translations[lang].address_not_specified}</span><br>
+                <strong>${translations[lang].cryptocurrency_label}:</strong> ${profile.cryptocurrency || translations[lang].address_not_specified}<br>
+                <strong>${translations[lang].chain_type_label}:</strong> ${profile.chainType || translations[lang].address_not_specified}<br>
+                ${profile.avatar ? `<img id="avatar-preview" src="${profile.avatar}" alt="Avatar/QR">` : translations[lang].avatar_not_loaded}
+            `;
+            document.getElementById('nickname').value = profile.nickname || '';
+            document.getElementById('crypto-address').value = profile.address || '';
+            document.getElementById('cryptocurrency').value = profile.cryptocurrency || '';
+            document.getElementById('chain-type').value = profile.chainType || '';
+        }
+
+        async function addMemory() {
+            const title = document.getElementById('title').value || 'Untitled';
+            const description = document.getElementById('description').value || 'No description';
+            const emotion = document.getElementById('emotion').value || 'None';
+            const perception = document.getElementById('perception').value || 'None';
+            const weather = document.getElementById('weather').value || 'None';
+            const filesInput = document.getElementById('files');
+            const files = filesInput.files;
+            const lang = document.body.getAttribute('lang') || 'en';
+
+            const newMemory = {
+                id: Date.now().toString(),
+                title, description, emotion, perception, weather,
+                timestamp: new Date().toISOString().split('T')[0],
+                files: [],
+                fromPeer: null
+            };
+
+            try {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const base64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(file);
+                    });
+                    newMemory.files.push({ name: file.name, type: file.type, data: base64 });
+                }
+            } catch (error) {
+                console.error('Error reading files:', error);
+            }
+
+            memories.push(newMemory);
+            await saveMemoriesToDB();
+            connect.Send(JSON.stringify({ type: 'gossip', memories: [newMemory], github_link: SHARE_LINK }), { connectId: null });
+            findRelevantPeer();
+            clearForm();
+            alert(translations[lang].memory_saved);
+            console.log('Memory saved:', newMemory);
+        }
+
+        function clearForm() {
+            document.getElementById('title').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('emotion').value = '';
+            document.getElementById('perception').value = '';
+            document.getElementById('weather').value = '';
+            document.getElementById('files').value = '';
+        }
+
+        window.onload = () => {
+            initP2P();
+            changeLanguage('en');
+            loadProfile();
+        };
+    </script>
+</body>
+</html>
