@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
     <title>Eternal Echo - Auto P2P Memory Terminal</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC&display=swap" rel="stylesheet">
     <style>
@@ -27,7 +26,7 @@
             width: 100%;
             margin: 10px 0;
             padding: 8px;
-            background: #f28c38; /* Orange background for Choose File buttons */
+            background: #f28c38;
             color: #fff;
             border: none;
             border-radius: 4px;
@@ -39,7 +38,7 @@
             padding: 8px; 
         }
         button {
-            background: #f1c40f; /* Yellow background for Save buttons */
+            background: #f1c40f;
             color: #000;
             border: none;
             border-radius: 4px;
@@ -60,9 +59,6 @@
         #qr-code { margin-top: 10px; text-align: center; }
         #lang-selector { margin: 10px 0; }
         body[lang="zh"] { font-family: 'Noto Sans SC', sans-serif; }
-        #archive { margin-top: 10px; }
-        #archive-content { margin-top: 10px; background: #555; padding: 10px; }
-        .delete-memory { color: red; cursor: pointer; margin-left: 10px; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/webconnect@0.0.10/dist/umd/webconnect.js"></script>
 </head>
@@ -132,8 +128,6 @@
 
     <h3 data-i18n="memories_title">Memories (local + from relevant user)</h3>
     <div id="memories"></div>
-    <div id="archive"><a href="javascript:void(0)" onclick="loadArchive()" data-i18n="view_archive">View Archive</a></div>
-    <div id="archive-content"></div>
 
     <div id="relevant-peer">
         <h3 data-i18n="relevant_peer_title">Most Relevant User</h3>
@@ -191,7 +185,8 @@
                 address_not_specified: "Address not specified.",
                 nickname_inserted: "Nickname inserted into Description!",
                 profile_saved: "Profile saved and sent!",
-                memory_saved: "Saved and spread!",
+                memory_saved: "Memory saved and spread!",
+                memory_save_error: "Error saving: ",
                 description_label: "Description",
                 emotion_label: "Emotion",
                 perception_label: "Perception",
@@ -199,7 +194,6 @@
                 date_label: "Date",
                 media_label: "Media",
                 from: "from",
-                view_archive: "View Archive",
                 delete_memory: "Delete"
             },
             ru: {
@@ -237,7 +231,8 @@
                 address_not_specified: "Адрес не указан.",
                 nickname_inserted: "Nickname вставлен в Description!",
                 profile_saved: "Профиль сохранён и отправлен!",
-                memory_saved: "Сохранено и распространено!",
+                memory_saved: "Воспоминание сохранено и распространено!",
+                memory_save_error: "Ошибка при сохранении: ",
                 description_label: "Описание",
                 emotion_label: "Эмоция",
                 perception_label: "Восприятие",
@@ -245,7 +240,6 @@
                 date_label: "Дата",
                 media_label: "Медиа",
                 from: "от",
-                view_archive: "Просмотреть архив",
                 delete_memory: "Удалить"
             },
             zh: {
@@ -283,7 +277,8 @@
                 address_not_specified: "未指定地址。",
                 nickname_inserted: "昵称插入描述中！",
                 profile_saved: "个人资料已保存并发送！",
-                memory_saved: "已保存并传播！",
+                memory_saved: "记忆已保存并传播！",
+                memory_save_error: "保存记忆时出错：",
                 description_label: "描述",
                 emotion_label: "情感",
                 perception_label: "感知",
@@ -291,20 +286,17 @@
                 date_label: "日期",
                 media_label: "媒体",
                 from: "来自",
-                view_archive: "查看档案",
                 delete_memory: "删除"
             }
         };
 
         let connect;
         let memories = [];
-        let archive = [];
         let profile = { nickname: '' };
         let peers = [];
         let relevantPeer = null;
         const GOSSIP_INTERVAL = 30000;
         let gossipTimer;
-        const SHARE_LINK = ''; // Set custom link here (e.g., 'http://localhost:8000')
 
         function changeLanguage(lang) {
             document.body.setAttribute('lang', lang);
@@ -337,7 +329,7 @@
         }
 
         let db;
-        const dbRequest = indexedDB.open('EternalEchoDB', 5);
+        const dbRequest = indexedDB.open('EternalEchoDB', 9);
         dbRequest.onupgradeneeded = (event) => {
             db = event.target.result;
             if (!db.objectStoreNames.contains('memories')) {
@@ -346,36 +338,36 @@
             if (!db.objectStoreNames.contains('profile')) {
                 db.createObjectStore('profile', { keyPath: 'key' });
             }
-            if (!db.objectStoreNames.contains('archive')) {
-                db.createObjectStore('archive', { keyPath: 'id' });
-            }
         };
         dbRequest.onsuccess = (event) => {
             db = event.target.result;
             loadProfileFromDB();
             loadMemoriesFromDB();
-            loadArchiveFromDB();
         };
         dbRequest.onerror = (event) => {
-            console.error('IndexedDB error:', event.target.error);
+            console.error('IndexedDB initialization error:', event.target.error);
+            const lang = document.body.getAttribute('lang') || 'en';
             updateStatus('Failed to initialize database');
+            alert(translations[lang].memory_save_error + event.target.error.message);
         };
 
         async function saveProfileToDB(profileData) {
             try {
+                if (!db) throw new Error('Database not initialized');
                 const tx = db.transaction(['profile'], 'readwrite');
                 const store = tx.objectStore('profile');
                 await store.put({ key: 'current', ...profileData });
                 console.log('Profile saved to DB:', profileData);
                 return true;
             } catch (error) {
-                console.error('Error saving profile:', error);
-                return false;
+                console.error('Error saving profile to DB:', error);
+                throw error;
             }
         }
 
         function loadProfileFromDB() {
             try {
+                if (!db) throw new Error('Database not initialized');
                 const tx = db.transaction(['profile'], 'readonly');
                 const store = tx.objectStore('profile');
                 const request = store.get('current');
@@ -387,7 +379,7 @@
                     loadProfile();
                 };
                 request.onerror = (event) => {
-                    console.error('Error loading profile:', event.target.error);
+                    console.error('Error loading profile from DB:', event.target.error);
                     loadProfile();
                 };
             } catch (error) {
@@ -398,6 +390,7 @@
 
         async function saveMemoriesToDB() {
             try {
+                if (!db) throw new Error('Database not initialized');
                 const tx = db.transaction(['memories'], 'readwrite');
                 const store = tx.objectStore('memories');
                 await store.clear();
@@ -405,71 +398,90 @@
                     await store.put(memory);
                 }
                 console.log('Memories saved to DB:', memories);
+                return true;
             } catch (error) {
-                console.error('Error saving memories:', error);
+                console.error('Error saving memories to DB:', error);
+                throw error;
             }
         }
 
         function loadMemoriesFromDB() {
             try {
+                if (!db) throw new Error('Database not initialized');
                 const tx = db.transaction(['memories'], 'readonly');
                 const store = tx.objectStore('memories');
                 const request = store.getAll();
                 request.onsuccess = (event) => {
                     memories = event.target.result || [];
                     console.log('Memories loaded from DB:', memories);
+                    filterMemories();
                     loadMemories();
                     updateRelatedContent();
                 };
                 request.onerror = (event) => {
-                    console.error('Error loading memories:', event.target.error);
+                    console.error('Error loading memories from DB:', event.target.error);
+                    const lang = document.body.getAttribute('lang') || 'en';
+                    alert(translations[lang].memory_save_error + event.target.error.message);
                 };
             } catch (error) {
                 console.error('Error accessing memories store:', error);
+                const lang = document.body.getAttribute('lang') || 'en';
+                alert(translations[lang].memory_save_error + error.message);
             }
         }
 
-        async function saveArchiveToDB() {
-            try {
-                const tx = db.transaction(['archive'], 'readwrite');
-                const store = tx.objectStore('archive');
-                await store.clear();
-                for (const memory of archive) {
-                    await store.put(memory);
-                }
-                console.log('Archive saved to DB:', archive);
-            } catch (error) {
-                console.error('Error saving archive:', error);
-            }
-        }
-
-        function loadArchiveFromDB() {
-            try {
-                const tx = db.transaction(['archive'], 'readonly');
-                const store = tx.objectStore('archive');
-                const request = store.getAll();
-                request.onsuccess = (event) => {
-                    archive = event.target.result || [];
-                    console.log('Archive loaded from DB:', archive);
-                    loadArchive();
-                };
-                request.onerror = (event) => {
-                    console.error('Error loading archive:', event.target.error);
-                };
-            } catch (error) {
-                console.error('Error accessing archive store:', error);
-            }
-        }
-
-        function loadArchive() {
-            const lang = document.body.getAttribute('lang') || 'en';
-            const archiveContent = document.getElementById('archive-content');
-            archiveContent.innerHTML = '';
-            if (archive.length === 0) {
-                archiveContent.innerHTML = `<p>${translations[lang].view_archive}: Empty</p>`;
+        function filterMemories() {
+            console.log('Starting filterMemories, memories count:', memories.length);
+            if (memories.length === 0) {
+                console.log('No memories to filter');
+                loadMemories();
                 return;
             }
-            archive.forEach((memory, index) => {
+
+            memories.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            console.log('Memories sorted by timestamp:', memories.map(m => ({ id: m.id, timestamp: m.timestamp })));
+
+            let latestLocal = null;
+            let latestRelevant = null;
+
+            // Keep only the latest local memory
+            for (const mem of memories) {
+                if (!mem.fromPeer && !latestLocal) {
+                    latestLocal = mem;
+                    console.log('Selected latest local memory:', mem.id);
+                }
+            }
+
+            // Keep only the latest relevant memory from relevantPeer
+            if (relevantPeer) {
+                for (const mem of memories) {
+                    if (mem.fromPeer === relevantPeer.id && !latestRelevant) {
+                        latestRelevant = mem;
+                        console.log('Selected latest relevant memory:', mem.id);
+                    }
+                }
+            }
+
+            memories = [];
+            if (latestLocal) memories.push(latestLocal);
+            if (latestRelevant) memories.push(latestRelevant);
+
+            console.log('After filtering - memories:', memories.map(m => m.id));
+
+            saveMemoriesToDB();
+            loadMemories();
+        }
+
+        function loadMemories() {
+            const lang = document.body.getAttribute('lang') || 'en';
+            const memoriesDiv = document.getElementById('memories');
+            memoriesDiv.innerHTML = '';
+            if (memories.length === 0) {
+                memoriesDiv.innerHTML = `<p>${translations[lang].memories_title}: Empty</p>`;
+                console.log('No memories to display');
+                return;
+            }
+            memories.forEach((memory, index) => {
                 const memoryDiv = document.createElement('div');
                 memoryDiv.className = 'memory';
                 let html = `
@@ -494,18 +506,21 @@
                     });
                 }
                 memoryDiv.innerHTML = html;
-                archiveContent.appendChild(memoryDiv);
+                memoriesDiv.appendChild(memoryDiv);
             });
+            console.log('Memories loaded to UI:', memories.map(m => m.id));
         }
 
         async function deleteMemory(id) {
             try {
-                archive = archive.filter(m => m.id !== id);
-                await saveArchiveToDB();
-                loadArchive();
+                memories = memories.filter(m => m.id !== id);
+                await saveMemoriesToDB();
+                loadMemories();
                 console.log('Memory deleted:', id);
             } catch (error) {
                 console.error('Error deleting memory:', error);
+                const lang = document.body.getAttribute('lang') || 'en';
+                alert(translations[lang].memory_save_error + error.message);
             }
         }
 
@@ -547,7 +562,9 @@
                 updateStatus(translations[lang].status_init);
             } catch (error) {
                 console.error('P2P initialization error:', error);
+                const lang = document.body.getAttribute('lang') || 'en';
                 updateStatus('Failed to initialize P2P');
+                alert(translations[lang].memory_save_error + error.message);
             }
         }
 
@@ -584,11 +601,12 @@
             if (!peers.length) {
                 relevantPeer = null;
                 updateRelevantPeerProfile();
+                filterMemories();
                 loadMemories();
                 updateRelatedContent();
                 return;
             }
-            let bestPeer = peers[0];
+            let bestPeer = null;
             peers.forEach(peer => {
                 if (peer.profile) {
                     bestPeer = peer;
@@ -596,6 +614,7 @@
             });
             relevantPeer = bestPeer;
             updateRelevantPeerProfile();
+            filterMemories();
             loadMemories();
             updateRelatedContent();
             console.log('Relevant peer selected:', bestPeer);
@@ -643,19 +662,19 @@
                     console.log('Profile received from peer:', peerId, data.profile);
                     findRelevantPeer();
                 }
-            } else if (data.type === 'gossip' && data.memories) {
+            } else if (data.type === 'gossip' && data.memories && peerId === (relevantPeer?.id)) {
                 data.memories.forEach(newMem => {
                     if (!memories.find(m => m.id === newMem.id)) {
-                        if (memories.length > 0 && memories[0].fromPeer) {
-                            archive.push(memories.shift());
-                            saveArchiveToDB();
-                        }
                         memories.push({ ...newMem, fromPeer: peerId, fromPeerNickname: peers.find(p => p.id === peerId)?.profile?.nickname });
                         const peer = peers.find(p => p.id === peerId);
-                        if (peer) peer.memories.push(newMem);
-                        console.log('Memory received from peer:', peerId, newMem);
+                        if (peer) {
+                            peer.memories = peer.memories.filter(m => m.id !== newMem.id);
+                            peer.memories.push(newMem);
+                        }
+                        console.log('Memory received from relevant peer:', peerId, newMem);
                     }
                 });
+                filterMemories();
                 saveMemoriesToDB();
                 findRelevantPeer();
             }
@@ -665,38 +684,73 @@
             if (gossipTimer) clearInterval(gossipTimer);
             gossipTimer = setInterval(() => {
                 const randomMemories = memories.filter(m => !m.fromPeer).sort(() => 0.5 - Math.random()).slice(0, 3);
-                connect.Send(JSON.stringify({ type: 'gossip', memories: randomMemories, github_link: SHARE_LINK }), { connectId: null });
-                console.log('Gossip sent:', randomMemories);
+                try {
+                    connect.Send(JSON.stringify({ type: 'gossip', memories: randomMemories }), { connectId: null });
+                    console.log('Gossip sent:', randomMemories);
+                } catch (error) {
+                    console.error('Error sending gossip:', error);
+                }
             }, GOSSIP_INTERVAL);
         }
 
         async function saveProfile() {
-            const nickname = document.getElementById('nickname').value || '';
-            const address = document.getElementById('crypto-address').value || '';
-            const cryptocurrency = document.getElementById('cryptocurrency').value || '';
-            const chainType = document.getElementById('chain-type').value || '';
-            const avatarFile = document.getElementById('avatar').files[0];
-            let avatarData = profile.avatar || '';
-
-            if (avatarFile) {
-                try {
-                    avatarData = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(avatarFile);
-                    });
-                } catch (error) {
-                    console.error('Error reading avatar:', error);
-                }
-            }
-
-            profile = { nickname, address, cryptocurrency, chainType, avatar: avatarData };
-            const saved = await saveProfileToDB(profile);
-            connect.Send(JSON.stringify({ type: 'profile', profile }), { connectId: null });
-            loadProfile();
             const lang = document.body.getAttribute('lang') || 'en';
-            alert(translations[lang].profile_saved);
-            if (!saved) console.error('Profile save failed, check IndexedDB');
+            console.log('Starting saveProfile');
+            if (!db) {
+                console.error('Database not initialized');
+                alert(translations[lang].memory_save_error + 'Database not initialized');
+                return;
+            }
+            try {
+                const nickname = document.getElementById('nickname').value || '';
+                const address = document.getElementById('crypto-address').value || '';
+                const cryptocurrency = document.getElementById('cryptocurrency').value || '';
+                const chainType = document.getElementById('chain-type').value || '';
+                const avatarFile = document.getElementById('avatar').files[0];
+                let avatarData = profile.avatar || '';
+
+                console.log('Profile data:', { nickname, address, cryptocurrency, chainType, avatarFile: avatarFile ? avatarFile.name : 'No avatar' });
+
+                if (avatarFile) {
+                    try {
+                        console.log('Reading avatar file...');
+                        avatarData = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                console.log('Avatar read successfully');
+                                resolve(reader.result);
+                            };
+                            reader.onerror = () => {
+                                console.error('Error reading avatar');
+                                reject(new Error('Failed to read avatar file'));
+                            };
+                            reader.readAsDataURL(avatarFile);
+                        });
+                    } catch (fileError) {
+                        console.error('File read error, proceeding without avatar:', fileError);
+                    }
+                }
+
+                profile = { nickname, address, cryptocurrency, chainType, avatar: avatarData };
+                console.log('Saving profile to DB...');
+                await saveProfileToDB(profile);
+                console.log('Profile saved to DB');
+                alert(translations[lang].profile_saved);
+
+                try {
+                    console.log('Sending profile to P2P...');
+                    connect.Send(JSON.stringify({ type: 'profile', profile }), { connectId: null });
+                    console.log('Profile sent to P2P');
+                } catch (p2pError) {
+                    console.error('P2P send error:', p2pError);
+                }
+
+                loadProfile();
+                console.log('Profile save completed');
+            } catch (error) {
+                console.error('Error in saveProfile:', error);
+                alert(translations[lang].memory_save_error + error.message);
+            }
         }
 
         function loadProfile() {
@@ -716,44 +770,82 @@
         }
 
         async function addMemory() {
-            const title = document.getElementById('title').value || 'Untitled';
-            const description = document.getElementById('description').value || 'No description';
-            const emotion = document.getElementById('emotion').value || 'None';
-            const perception = document.getElementById('perception').value || 'None';
-            const weather = document.getElementById('weather').value || 'None';
-            const filesInput = document.getElementById('files');
-            const files = filesInput.files;
             const lang = document.body.getAttribute('lang') || 'en';
-
-            const newMemory = {
-                id: Date.now().toString(),
-                title, description, emotion, perception, weather,
-                timestamp: new Date().toISOString().split('T')[0],
-                files: [],
-                fromPeer: null
-            };
-
-            try {
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    const base64 = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.readAsDataURL(file);
-                    });
-                    newMemory.files.push({ name: file.name, type: file.type, data: base64 });
-                }
-            } catch (error) {
-                console.error('Error reading files:', error);
+            console.log('Starting addMemory');
+            if (!db) {
+                console.error('Database not initialized');
+                alert(translations[lang].memory_save_error + 'Database not initialized');
+                return;
             }
+            try {
+                const title = document.getElementById('title').value || 'Untitled';
+                const description = document.getElementById('description').value || 'No description';
+                const emotion = document.getElementById('emotion').value || 'None';
+                const perception = document.getElementById('perception').value || 'None';
+                const weather = document.getElementById('weather').value || 'None';
+                const filesInput = document.getElementById('files');
+                const files = filesInput.files;
 
-            memories.push(newMemory);
-            await saveMemoriesToDB();
-            connect.Send(JSON.stringify({ type: 'gossip', memories: [newMemory], github_link: SHARE_LINK }), { connectId: null });
-            findRelevantPeer();
-            clearForm();
-            alert(translations[lang].memory_saved);
-            console.log('Memory saved:', newMemory);
+                console.log('Memory data:', { title, description, emotion, perception, weather, filesLength: files.length });
+
+                const newMemory = {
+                    id: Date.now().toString(),
+                    title, description, emotion, perception, weather,
+                    timestamp: new Date().toISOString().split('T')[0],
+                    files: [],
+                    fromPeer: null
+                };
+
+                if (files.length > 0) {
+                    console.log('Processing files...');
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        console.log('Reading file:', file.name);
+                        try {
+                            const base64 = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                    console.log('File read successfully:', file.name);
+                                    resolve(reader.result);
+                                };
+                                reader.onerror = () => {
+                                    console.error('Error reading file:', file.name);
+                                    reject(new Error('Failed to read file: ' + file.name));
+                                };
+                                reader.readAsDataURL(file);
+                            });
+                            newMemory.files.push({ name: file.name, type: file.type, data: base64 });
+                        } catch (fileError) {
+                            console.error('File read error, proceeding without file:', fileError);
+                        }
+                    }
+                }
+
+                console.log('Adding memory:', newMemory.id);
+                memories = memories.filter(m => m.fromPeer); // Keep only relevant peer memories
+                memories.push(newMemory);
+                console.log('Saving memories to DB...');
+                await saveMemoriesToDB();
+                console.log('Memories saved to DB');
+                alert(translations[lang].memory_saved);
+
+                try {
+                    console.log('Sending memory to P2P...');
+                    connect.Send(JSON.stringify({ type: 'gossip', memories: [newMemory] }), { connectId: null });
+                    console.log('Memory sent to P2P');
+                } catch (error) {
+                    console.error('P2P send error:', error);
+                }
+
+                console.log('Filtering memories...');
+                filterMemories();
+                findRelevantPeer();
+                clearForm();
+                console.log('Memory save completed');
+            } catch (error) {
+                console.error('Error in addMemory:', error);
+                alert(translations[lang].memory_save_error + error.message);
+            }
         }
 
         function clearForm() {
