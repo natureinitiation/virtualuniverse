@@ -24,16 +24,12 @@
         .create-delete-button { top: 20px; left: 15%; transform: translateX(-50%);}
         .mode-button { top: 20px; right: 15%; transform: translateX(50%);}
         .strike-invisible-button { top: 20px; right: 50%; transform: translateX(50%);}
-        .descent-button { display: none; bottom: 20px; left: 15%; transform: translateX(-50%);}
-        .raise-button { display: none; bottom: 20px; right: 15%; transform: translateX(50%);}
     </style>
 </head>
 <body>
     <div class="button create-delete-button">Create</div>
     <div class="button mode-button">Plane</div>
     <div class="button strike-invisible-button">Invisible</div>
-    <div class="button descent-button">Descent</div>
-    <div class="button raise-button">Raise</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
     <script>
@@ -254,8 +250,6 @@
     }
 
     // --- ВЕРТИКАЛЬНОЕ СМЕЩЕНИЕ ---
-    const raiseBtn = document.querySelector('.raise-button');
-    const descentBtn = document.querySelector('.descent-button');
     let verticalDirection = 0;
     const VERTICAL_SPEED = 0.002;
     const VERTICAL_OFFSET_LIMIT = 8;
