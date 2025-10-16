@@ -580,22 +580,19 @@
         }
 
         function updateRelatedContent() {
-            const lang = document.body.getAttribute('lang') || 'en';
-            const userContent = document.getElementById('user-content');
-            if (relevantPeer && relevantPeer.memories.length > 0) {
-                const latestMemory = relevantPeer.memories[relevantPeer.memories.length - 1];
-                userContent.innerHTML = `
-                    <strong>${latestMemory.title || 'Untitled'}</strong> (${translations[lang].from} ${relevantPeer.profile?.nickname || translations[lang].nickname_label}): ${latestMemory.description || 'No description'}
-                `;
-            } else if (memories.length > 0 && !memories[0].fromPeer) {
-                const latestMemory = memories[memories.length - 1];
-                userContent.innerHTML = `
-                    <strong>${latestMemory.title || 'Untitled'}</strong> (${translations[lang].from} ${profile.nickname || translations[lang].nickname_label}): ${latestMemory.description || 'No description'}
-                `;
-            } else {
-                userContent.innerHTML = '';
-            }
-        }
+    const lang = document.body.getAttribute('lang') || 'en';
+    const userContent = document.getElementById('user-content');
+
+    // Проверяем наличие релевантного пользователя и его мемов
+    if (relevantPeer && relevantPeer.memories.length > 0) {
+        const latestMemory = relevantPeer.memories[relevantPeer.memories.length - 1];
+        userContent.innerHTML = `
+            <strong>${latestMemory.title || 'Untitled'}</strong> (${translations[lang].from} ${relevantPeer.profile?.nickname || translations[lang].nickname_label}): ${latestMemory.description || 'No description'}
+        `;
+    } else {
+        // Если нет данных от других пользователей
+        userContent.innerHTML = `<p>${translations[lang].related_content_title}: Empty</p>`;
+    }
 
         function findRelevantPeer() {
             if (!peers.length) {
