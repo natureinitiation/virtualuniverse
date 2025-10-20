@@ -38,7 +38,7 @@
         <p id="startNode">Start Node</p>
         <p id="connectNode">Connect to Node</p>
         <p id="toggleMode">Drop</p>
-        <p id="toggleMovement">Move</p>
+
         <p id="withdrawButton">Withdraw</p>
     </div>
     <div id="object-counter">Tockens: 100</div>
@@ -286,11 +286,7 @@
             }
         });
 
-        // Добавляем обработчик для кнопки Go/Stop
-        document.getElementById('toggleMovement').addEventListener('click', () => {
-            isMovingForward = !isMovingForward;
-            document.getElementById('toggleMovement').innerText = isMovingForward ? 'Stop' : 'Go';
-        });
+
         
         document.getElementById('withdrawButton').addEventListener('click', async () => {
   const amount = prompt("Enter amount to withdraw:");
