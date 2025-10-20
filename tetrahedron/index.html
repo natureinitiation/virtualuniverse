@@ -65,7 +65,8 @@
         const material = new THREE.MeshStandardMaterial({
             color: 0x808080, // Серый цвет
             side: THREE.DoubleSide,
-            flatShading: true
+            flatShading: false,
+            wireframe: true
         });
         let icosahedron = new THREE.Mesh(geometry, material);
         scene.add(icosahedron);
