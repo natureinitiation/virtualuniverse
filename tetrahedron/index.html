@@ -64,20 +64,11 @@
         const geometry = new THREE.IcosahedronGeometry(100);
 
 // Обычный материал без wireframe
-const materialSolid = new THREE.MeshStandardMaterial({
+const material = new THREE.MeshStandardMaterial({
     color: 0x808080,
-    flatShading: true
+    side: THREE.DoubleSide,
+    flatShading: true,
 });
-const meshSolid = new THREE.Mesh(geometry, materialSolid);
-scene.add(meshSolid);
-
-// Материал для wireframe с белым цветом
-const materialWireframe = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    wireframe: true
-});
-const meshWireframe = new THREE.Mesh(geometry, materialWireframe);
-scene.add(meshWireframe);
 
         let icosahedron = new THREE.Mesh(geometry, material);
         scene.add(icosahedron);
