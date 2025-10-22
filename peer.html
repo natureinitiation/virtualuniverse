@@ -15,17 +15,24 @@
             cursor: pointer;
             z-index: 1000; 
         }
+        #wallet-panel { 
+            position: fixed; 
+            bottom: 50px; 
+            right: 10px; 
+            cursor: pointer;
+            z-index: 1000; 
+        }
 
         #object-counter {
             position: fixed;
-            bottom: 200px;
+            top: 15px;
             left: 10px;
             z-index: 1000;
         }
         #help-link {
             position: fixed;
-            bottom: 15px;
-            left: 10px;
+            top: 15px;
+            right: 10px;
             z-index: 1000;
             color: white;
             text-decoration: none;
@@ -34,12 +41,13 @@
     </style>
 </head>
 <body>
-        <div id="object-counter">Tokens: 100</div>
+    <div id="object-counter">Tokens: 100</div>
     <div id="control-panel">
         <p id="startNode">Start Node</p>
         <p id="connectNode">Connect to Node</p>
+    </div>
+    <div id="wallet-panel">
         <p id="toggleMode">Drop</p>
-
         <p id="withdrawButton">Withdraw</p>
     </div>
 
