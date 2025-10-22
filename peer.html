@@ -290,7 +290,7 @@
         
         document.getElementById('withdrawButton').addEventListener('click', async () => {
   const amount = prompt("Enter amount to withdraw:");
-  const recipient = prompt("Enter Tron address (например: TR8...):");
+  const recipient = prompt("Enter Tron address:");
 
   if (amount > personalObjects) {
     alert("Insufficient balance!");
