@@ -157,7 +157,7 @@
 
         function createObject() {
             if (personalObjects <= 0) {
-                alert('No more objects available to throw.');
+                alert('No more objects available to drop.');
                 return;
             }
 
@@ -276,7 +276,7 @@
             if (isFreeMode) {
                 isFreeMode = false;
                 isThrowMode = true;
-                document.getElementById('toggleMode').innerText = 'Throw';
+                document.getElementById('toggleMode').innerText = 'Drop';
             } else if (isThrowMode) {
                 isThrowMode = false;
                 document.getElementById('toggleMode').innerText = 'Pick Up';
