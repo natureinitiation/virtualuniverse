@@ -174,7 +174,7 @@
 
         function createObject() {
             if (personalObjects <= 0) {
-                alert('No more objects available to drop.');
+                alert('No more tokens available to drop.');
                 return;
             }
 
@@ -238,7 +238,7 @@
 
         // Остальные функции (updateObjectCounter, анимация, управление) 
         function updateObjectCounter() {
-            document.getElementById('object-counter').innerText = `Objects: ${personalObjects}`;
+            document.getElementById('object-counter').innerText = `Tokens: ${personalObjects}`;
         }
 
         // Управление камерой с плавностью и инертностью
