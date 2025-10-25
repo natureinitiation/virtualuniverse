@@ -103,29 +103,38 @@
       wordElement.style.fontSize = size + 'px';
     }
 
-    function showNextWordInstant() {
-      if (index >= words.length) {
-        index = 0; // Зацикливание
-      }
+function showNextWordInstant() {
+  if (index >= words.length) {
+    index = 0; // Зацикливание
+  }
 
-      let currentWord = words[index];
-      wordElement.textContent = currentWord;
-      setFontSize(currentWord);
+  let currentWord = words[index];
+  wordElement.textContent = currentWord;
+  setFontSize(currentWord);
 
-      // Проверяем, содержит ли слово знак препинания
-      const punctuation = /[.,—:;!?]/;
-      const hasPunctuation = punctuation.test(currentWord);
-      // Динамический множитель паузы: больше для меньших интервалов
-      const pauseMultiplier = interval <= 300 ? 4 : interval <= 500 ? 3 : 2;
-      const currentInterval = hasPunctuation ? interval * pauseMultiplier : interval;
+  // Проверяем, содержит ли слово знак препинания
+  const punctuation = /[.,—:;!?]/;
+  const hasPunctuation = punctuation.test(currentWord);
 
-      index++;
+  // Проверяем длину слова для удвоенного интервала
+  const longWord = currentWord.length > 15;
 
-      // Очищаем предыдущий таймер
-      clearTimeout(timer);
-      // Устанавливаем новый таймер
-      timer = setTimeout(showNextWordInstant, currentInterval);
-    }
+  // Динамический множитель паузы (уже есть для пунктуации)
+  const pauseMultiplier = interval <= 300 ? 4 : interval <= 500 ? 3 : 2;
+
+  // Устанавливаем базовый интервал для текущего слова
+  let currentInterval = hasPunctuation ? interval * pauseMultiplier : interval;
+
+  // Если слово длинное, удваиваем интервал
+  if (longWord) {
+    currentInterval *= 2;
+  }
+
+  index++;
+
+  clearTimeout(timer);
+  timer = setTimeout(showNextWordInstant, currentInterval);
+}
 
     function startAnimation() {
       words = inputText.value.trim().split(/\s+/);
