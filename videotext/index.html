@@ -118,7 +118,10 @@
       // Динамический множитель паузы: больше для меньших интервалов
       const pauseMultiplier = interval <= 300 ? 4 : interval <= 500 ? 3 : 2;
       const currentInterval = hasPunctuation ? interval * pauseMultiplier : interval;
-
+      // Если длина слова больше 15, увеличиваем задержку втрое
+      if (currentWord.length > 15) {
+      currentInterval *= 3;
+      }
       index++;
 
       // Очищаем предыдущий таймер
