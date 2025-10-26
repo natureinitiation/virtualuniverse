@@ -14,9 +14,9 @@
       background-color: #000088;
       color: #fff;
       font-family: Arial, sans-serif;
-      touch-action: pan-x pan-y; /* Отключает масштабирование жестами */
-      -webkit-user-select: none; /* Отключает выбор текста на iOS */
-      user-select: none; /* Отключает выбор текста */
+      touch-action: pan-x pan-y;
+      -webkit-user-select: none;
+      user-select: none;
     }
     #inputContainer {
       padding: 15px;
@@ -43,6 +43,7 @@
       max-width: 90%;
       word-wrap: break-word;
       transition: none;
+      white-space: nowrap;
     }
     #buttonsContainer {
       padding: 10px;
@@ -57,7 +58,7 @@
       padding: 8px 12px;
       outline: none;
       cursor: pointer;
-      touch-action: manipulation; /* Отключает масштабирование на кнопках */
+      touch-action: manipulation;
     }
   </style>
 </head>
@@ -66,13 +67,12 @@
     <input type="text" id="inputText" value="Speed reading. Just put the text above and click «Start» below." />
   </div>
   
-
-  
   <div id="container">
     <div id="word"></div>
   </div>
   
-  <div style="text-align: center; margin-bottom: 70px; color: rgba(255, 255, 255, 0.5);"><a href="https://eugenebox.t.me" target="_blank" style="text-decoration: none;">@eugenebox</a>
+  <div style="text-align: center; margin-bottom: 70px; color: rgba(255, 255, 255, 0.5);">
+    <a href="https://eugenebox.t.me" target="_blank" style="text-decoration: none;">@eugenebox</a>
   </div>
 
   <div id="buttonsContainer">
@@ -88,64 +88,63 @@
     const fasterBtn = document.getElementById('fasterBtn');
     const slowerBtn = document.getElementById('slowerBtn');
 
-    let words = inputText.value.split(' ');
+    let words = [];
     let index = 0;
-    let interval = 150; // начальная скорость в мс
+    let interval = 150; // базовая скорость в мс
     let timer = null;
 
-function setFontSize(word) {
-  const baseSize = window.innerWidth / 10;
-  const wordLength = word.length;
-  let size = baseSize / Math.sqrt(wordLength);
+    function setFontSize(word) {
+      const maxWidth = window.innerWidth * 0.9; // 90% ширины экрана
+      const baseFontSize = 40; // базовый размер шрифта в px
 
-  const minSize = 12; // минимальный размер в px
-  const maxSize = 40; // максимальный размер в px
+      const tempSpan = document.createElement('span');
+      tempSpan.style.position = 'absolute';
+      tempSpan.style.visibility = 'hidden';
+      tempSpan.style.whiteSpace = 'nowrap';
+      tempSpan.style.fontSize = baseFontSize + 'px';
+      tempSpan.textContent = word;
 
-  if (size < minSize) size = minSize;
-  if (size > maxSize) size = maxSize;
+      document.body.appendChild(tempSpan);
+      const wordWidth = tempSpan.offsetWidth;
+      document.body.removeChild(tempSpan);
 
-  // особая проверка для тире или одиночных очень широких символов
-  if (word === '—' || word === '-') {
-    size = Math.min(size, maxSize / 2); // например, ограничить размер тире
-  }
+      let fontSize = baseFontSize;
+      if (wordWidth > maxWidth) {
+        fontSize = baseFontSize * (maxWidth / wordWidth);
+      }
 
-  wordElement.style.fontSize = size + 'px';
-}
+      const minFontSize = 12;
+      if (fontSize < minFontSize) fontSize = minFontSize;
 
+      wordElement.style.fontSize = fontSize + 'px';
+    }
 
+    function getDelay(word) {
+      const baseDelay = interval;
+      return baseDelay * Math.max(word.length, 1);
+    }
 
-function showNextWordInstant() {
-  if (index >= words.length) {
-    index = 0; // Зацикливание
-  }
+    function showNextWordInstant() {
+      if (index >= words.length) {
+        index = 0; // Зацикливание
+      }
 
-  let currentWord = words[index];
-  wordElement.textContent = currentWord;
-  setFontSize(currentWord);
+      const currentWord = words[index];
+      wordElement.textContent = currentWord;
+      setFontSize(currentWord);
 
-  // Проверяем, содержит ли слово знак препинания
-  const punctuation = /[.,—:;!?]/;
-  const hasPunctuation = punctuation.test(currentWord);
+      let currentInterval = getDelay(currentWord);
 
-  // Проверяем длину слова для удвоенного интервала
-  const longWord = currentWord.length > 15;
+      // Дополнительная пауза для знаков препинания
+      if (/[.,—:;!?]/.test(currentWord)) {
+        currentInterval *= 1.5;
+      }
 
-  // Динамический множитель паузы (уже есть для пунктуации)
-  const pauseMultiplier = interval <= 300 ? 4 : interval <= 500 ? 3 : 2;
+      index++;
 
-  // Устанавливаем базовый интервал для текущего слова
-  let currentInterval = hasPunctuation ? interval * pauseMultiplier : interval;
-
-  // Если слово длинное, удваиваем интервал
-  if (longWord) {
-    currentInterval *= 7;
-  }
-
-  index++;
-
-  clearTimeout(timer);
-  timer = setTimeout(showNextWordInstant, currentInterval);
-}
+      clearTimeout(timer);
+      timer = setTimeout(showNextWordInstant, currentInterval);
+    }
 
     function startAnimation() {
       words = inputText.value.trim().split(/\s+/);
@@ -158,15 +157,15 @@ function showNextWordInstant() {
     startBtn.onclick = startAnimation;
 
     fasterBtn.onclick = () => {
-      if (interval > 100) {
-        interval -= 100;
+      if (interval > 50) {
+        interval -= 50;
         clearTimeout(timer);
         showNextWordInstant();
       }
     };
 
     slowerBtn.onclick = () => {
-      interval += 200;
+      interval += 50;
       clearTimeout(timer);
       showNextWordInstant();
     };
@@ -180,19 +179,16 @@ function showNextWordInstant() {
       }
     };
 
-    // Предотвращаем масштабирование при двойном нажатии
     document.addEventListener('touchstart', (e) => {
-      // Проверяем, что событие не от одного пальца (для двойного нажатия или жестов)
       if (e.touches.length > 1 || e.detail > 1) {
         e.preventDefault();
       }
     }, { passive: false });
 
-    // Обеспечиваем работу кнопок без масштабирования
     [startBtn, fasterBtn, slowerBtn].forEach(button => {
       button.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // Предотвращаем стандартное поведение
-        button.click(); // Программно вызываем клик
+        e.preventDefault();
+        button.click();
       }, { passive: false });
     });
   </script>
