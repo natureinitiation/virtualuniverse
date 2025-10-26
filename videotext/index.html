@@ -93,28 +93,25 @@
     let timer = null;
 
     function setFontSize(word) {
-      const maxWidth = window.innerWidth * 0.9; // 90% ширины экрана
-      let fontSize = 40; // стартовый размер шрифта
-      const minFontSize = 10;
+  const maxWidth = window.innerWidth * 0.9; // 90% ширины экрана
+  const baseFontSize = 40; // базовый размер шрифта
+  
+  const tempSpan = document.createElement('span');
+  tempSpan.style.position = 'absolute';
+  tempSpan.style.visibility = 'hidden';
+  tempSpan.style.whiteSpace = 'nowrap';
+  tempSpan.style.fontSize = baseFontSize + 'px';
+  tempSpan.textContent = word;
 
-      const tempSpan = document.createElement('span');
-      tempSpan.style.position = 'absolute';
-      tempSpan.style.visibility = 'hidden';
-      tempSpan.style.whiteSpace = 'nowrap';
-      tempSpan.textContent = word;
-      document.body.appendChild(tempSpan);
+  document.body.appendChild(tempSpan);
+  const wordWidth = tempSpan.offsetWidth;
+  document.body.removeChild(tempSpan);
+  
+  let fontSize = (wordWidth > maxWidth) ? baseFontSize * (maxWidth / wordWidth) : baseFontSize;
+  fontSize = Math.max(fontSize, 8); // минимальный размер шрифта 12px
+  wordElement.style.fontSize = fontSize + 'px';
+}
 
-      while (fontSize >= minFontSize) {
-        tempSpan.style.fontSize = fontSize + 'px';
-        if (tempSpan.offsetWidth <= maxWidth) {
-          break;
-        }
-        fontSize -= 1;
-      }
-
-      document.body.removeChild(tempSpan);
-      wordElement.style.fontSize = fontSize + 'px';
-    }
 
     function getDelay(word) {
       const baseDelay = interval;
