@@ -107,10 +107,14 @@
   const wordWidth = tempSpan.offsetWidth;
   document.body.removeChild(tempSpan);
   
-  let fontSize = (wordWidth > maxWidth) ? baseFontSize * (maxWidth / wordWidth) : baseFontSize;
-  fontSize = Math.max(fontSize, 8); // минимальный размер шрифта 12px
+  let fontSize = baseFontSize;
+  if (wordWidth > maxWidth) {
+    fontSize = baseFontSize * (maxWidth / wordWidth);
+  }
+  
   wordElement.style.fontSize = fontSize + 'px';
 }
+
 
 
     function getDelay(word) {
