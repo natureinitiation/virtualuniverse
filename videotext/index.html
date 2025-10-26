@@ -42,7 +42,7 @@
       text-align: center;
       white-space: nowrap;
       max-width: 90vw; /* максимум 90% ширины viewport */
-      overflow: hidden;
+      overflow: visible;
       word-wrap: break-word;
       transition: none;
       white-space: nowrap;
@@ -97,24 +97,30 @@
     let timer = null;
 
     function setFontSize(word) {
-      const maxWidth = window.innerWidth * 0.9; // 90% ширины экрана
-      const baseFontSize = 40; // базовый размер шрифта в px
+  const maxWidth = window.innerWidth * 0.9; // 90% ширины экрана
+  const baseFontSize = 40; // базовый размер шрифта
 
-      const tempSpan = document.createElement('span');
-      tempSpan.style.position = 'absolute';
-      tempSpan.style.visibility = 'hidden';
-      tempSpan.style.whiteSpace = 'nowrap';
-      tempSpan.style.fontSize = baseFontSize + 'px';
-      tempSpan.textContent = word;
+  const tempSpan = document.createElement('span');
+  tempSpan.style.position = 'absolute';
+  tempSpan.style.visibility = 'hidden';
+  tempSpan.style.whiteSpace = 'nowrap';
+  tempSpan.style.fontSize = baseFontSize + 'px';
+  tempSpan.textContent = word;
 
-      document.body.appendChild(tempSpan);
-      const wordWidth = tempSpan.offsetWidth;
-      document.body.removeChild(tempSpan);
+  document.body.appendChild(tempSpan);
+  const wordWidth = tempSpan.offsetWidth;
+  document.body.removeChild(tempSpan);
 
-      let fontSize = baseFontSize;
-      if (wordWidth > maxWidth) {
-        fontSize = baseFontSize * (maxWidth / wordWidth);
-      }
+  let fontSize = baseFontSize;
+  if (wordWidth > maxWidth) {
+    fontSize = baseFontSize * (maxWidth / wordWidth);
+  }
+
+  if (fontSize < 12) fontSize = 12; // минимальный шрифт
+
+  wordElement.style.fontSize = fontSize + 'px';
+}
+
 
       const minFontSize = 12;
       if (fontSize < minFontSize) fontSize = minFontSize;
