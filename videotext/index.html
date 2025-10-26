@@ -89,7 +89,7 @@
 
     let words = [];
     let index = 0;
-    let interval = 50; // базовая скорость в мс
+    let interval = 30; // базовая скорость в мс
     let timer = null;
 
     function setFontSize(word) {
@@ -144,15 +144,15 @@
     startBtn.onclick = startAnimation;
 
     fasterBtn.onclick = () => {
-      if (interval > 25) {
-        interval -= 25;
+      if (interval > 10) {
+        interval -= 10;
         clearTimeout(timer);
         showNextWordInstant();
       }
     };
 
     slowerBtn.onclick = () => {
-      interval += 50;
+      interval += 10;
       clearTimeout(timer);
       showNextWordInstant();
     };
