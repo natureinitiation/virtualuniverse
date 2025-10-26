@@ -37,17 +37,13 @@
       align-items: center;
     }
     #word {
-      opacity: 1;
       font-weight: bold;
       text-align: center;
       white-space: nowrap;
-      max-width: 90vw; /* максимум 90% ширины viewport */
+      max-width: 90vw;
       overflow: visible;
-      word-wrap: break-word;
       transition: none;
-      white-space: nowrap;
     }
-
     #buttonsContainer {
       padding: 10px;
       text-align: center;
@@ -97,62 +93,28 @@
     let timer = null;
 
     function setFontSize(word) {
-  const maxWidth = window.innerWidth * 0.9; // 90% ширины экрана
-  const baseFontSize = 40; // базовый размер шрифта
-
-  const tempSpan = document.createElement('span');
-  tempSpan.style.position = 'absolute';
-  tempSpan.style.visibility = 'hidden';
-  tempSpan.style.whiteSpace = 'nowrap';
-  tempSpan.style.fontSize = baseFontSize + 'px';
-  tempSpan.textContent = word;
-
-  document.body.appendChild(tempSpan);
-  const wordWidth = tempSpan.offsetWidth;
-  document.body.removeChild(tempSpan);
-
-  let fontSize = baseFontSize;
-  if (wordWidth > maxWidth) {
-    fontSize = baseFontSize * (maxWidth / wordWidth);
-  }
-
-  if (fontSize < 12) fontSize = 12; // минимальный шрифт
-
-  wordElement.style.fontSize = fontSize + 'px';
-}
-
-
+      const maxWidth = window.innerWidth * 0.9; // 90% ширины экрана
+      let fontSize = 40; // стартовый размер шрифта
       const minFontSize = 12;
-      if (fontSize < minFontSize) fontSize = minFontSize;
 
+      const tempSpan = document.createElement('span');
+      tempSpan.style.position = 'absolute';
+      tempSpan.style.visibility = 'hidden';
+      tempSpan.style.whiteSpace = 'nowrap';
+      tempSpan.textContent = word;
+      document.body.appendChild(tempSpan);
+
+      while (fontSize >= minFontSize) {
+        tempSpan.style.fontSize = fontSize + 'px';
+        if (tempSpan.offsetWidth <= maxWidth) {
+          break;
+        }
+        fontSize -= 1;
+      }
+
+      document.body.removeChild(tempSpan);
       wordElement.style.fontSize = fontSize + 'px';
     }
-    
-    function setFontSize(word) {
-  const maxWidth = window.innerWidth * 0.9; // 90% ширины
-  const baseFontSize = 40;
-
-  const tempSpan = document.createElement('span');
-  tempSpan.style.position = 'absolute';
-  tempSpan.style.visibility = 'hidden';
-  tempSpan.style.whiteSpace = 'nowrap';
-  tempSpan.style.fontSize = baseFontSize + 'px';
-  tempSpan.textContent = word;
-  document.body.appendChild(tempSpan);
-
-  const wordWidth = tempSpan.offsetWidth;
-  document.body.removeChild(tempSpan);
-
-  let fontSize = baseFontSize;
-  if (wordWidth > maxWidth) {
-    fontSize = baseFontSize * (maxWidth / wordWidth);
-  }
-
-  if (fontSize < 12) fontSize = 12; // минимальный размер
-
-  wordElement.style.fontSize = fontSize + 'px';
-}
-
 
     function getDelay(word) {
       const baseDelay = interval;
@@ -170,7 +132,6 @@
 
       let currentInterval = getDelay(currentWord);
 
-      // Дополнительная пауза для знаков препинания
       if (/[.,—:;!?]/.test(currentWord)) {
         currentInterval *= 1.5;
       }
