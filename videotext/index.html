@@ -40,11 +40,14 @@
       opacity: 1;
       font-weight: bold;
       text-align: center;
-      max-width: 90%;
+      white-space: nowrap;
+      max-width: 90vw; /* максимум 90% ширины viewport */
+      overflow: hidden;
       word-wrap: break-word;
       transition: none;
       white-space: nowrap;
     }
+
     #buttonsContainer {
       padding: 10px;
       text-align: center;
@@ -118,6 +121,32 @@
 
       wordElement.style.fontSize = fontSize + 'px';
     }
+    
+    function setFontSize(word) {
+  const maxWidth = window.innerWidth * 0.9; // 90% ширины
+  const baseFontSize = 40;
+
+  const tempSpan = document.createElement('span');
+  tempSpan.style.position = 'absolute';
+  tempSpan.style.visibility = 'hidden';
+  tempSpan.style.whiteSpace = 'nowrap';
+  tempSpan.style.fontSize = baseFontSize + 'px';
+  tempSpan.textContent = word;
+  document.body.appendChild(tempSpan);
+
+  const wordWidth = tempSpan.offsetWidth;
+  document.body.removeChild(tempSpan);
+
+  let fontSize = baseFontSize;
+  if (wordWidth > maxWidth) {
+    fontSize = baseFontSize * (maxWidth / wordWidth);
+  }
+
+  if (fontSize < 12) fontSize = 12; // минимальный размер
+
+  wordElement.style.fontSize = fontSize + 'px';
+}
+
 
     function getDelay(word) {
       const baseDelay = interval;
