@@ -96,10 +96,22 @@
 function setFontSize(word) {
   const baseSize = window.innerWidth / 10;
   const wordLength = word.length;
-  // Чем длиннее слово, тем меньше размер, например, делим на корень из длины слова
-  const size = baseSize / Math.sqrt(wordLength);
+  let size = baseSize / Math.sqrt(wordLength);
+
+  const minSize = 12; // минимальный размер в px
+  const maxSize = 40; // максимальный размер в px
+
+  if (size < minSize) size = minSize;
+  if (size > maxSize) size = maxSize;
+
+  // особая проверка для тире или одиночных очень широких символов
+  if (word === '—' || word === '-') {
+    size = Math.min(size, maxSize / 2); // например, ограничить размер тире
+  }
+
   wordElement.style.fontSize = size + 'px';
 }
+
 
 
 function showNextWordInstant() {
