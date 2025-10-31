@@ -7,6 +7,10 @@
   <link rel="manifest" href="manifest.json" />
   <title>Code Viewer</title>
   <style>
+    html, body {
+    overscroll-behavior: none;
+    }
+
     body {
       margin: 0;
       display: flex;
@@ -18,20 +22,28 @@
       position: relative;
     }
 
-    #controlPanel > div {
-      bottom: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-  flex-direction: auto;
-  gap: 20px;
-      justify-content: space-between;
-      align-items: left;
-      padding: 10px 10px;
-      background-color: black;
-      box-sizing: border-box;
-      z-index: 10;
-    }
+#controlPanel > div {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: flex-start; /* лучше использовать flex-start вместо left */
+  padding: 10px 10px;
+  background-color: black;
+  box-sizing: border-box;
+  z-index: 10;
+  flex-direction: row; /* по умолчанию горизонтально (портрет) */
+}
+
+/* При ландшафтной ориентации меняем на вертикальное расположение */
+@media (orientation: landscape) {
+  #controlPanel > div {
+    flex-direction: column;
+  }
+}
+
 
     #editor {
       flex: 38.2;
@@ -57,7 +69,7 @@
     #fileFormat {
       font-size: 14px;
       padding: 5px;
-      width: 62px;
+      width: 70px;
     }
 
     #saveButton {
