@@ -8,84 +8,98 @@
   <style>
   html, body {
     overscroll-behavior: none;
-    }
-    body, html {
-      height: 100%;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      background-color: #000088;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      touch-action: pan-x pan-y;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-    #inputContainer {
-      padding: 15px;
-      text-align: center;
-    }
-    #inputText {
-      width: 90%;
-      max-width: 1000px;
-      padding: 8px;
-      font-size: 16px;
-      border-radius: 0px;
-      border: none;
-    }
-    
-    #colorSelectorContainer {
-  user-select: none;
-}
-
-#colorWord {
-  font-weight: bold;
-  cursor: pointer;
-  color: #444444; /* тёмно-серый по умолчанию */
-  transition: color 0.3s ease;
-}
-    
-    #container {
-      flex-grow: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    #word {
-      font-weight: bold;
-      text-align: center;
-      white-space: nowrap;
-      max-width: 90vw;
-      overflow: visible;
-      transition: none;
-    }
-    #buttonsContainer {
-      padding: 10px;
-      text-align: center;
-    }
-    button {
-      font-size: 16px;
-      background-color: transparent;
-      color: white;
-      border-radius: 8px;
-      border: 1px solid white;
-      padding: 8px 12px;
-      outline: none;
-      cursor: pointer;
-      touch-action: manipulation;
-    }
+  }
+  body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: #000088;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    touch-action: pan-x pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #inputContainer {
+    padding: 15px;
+    text-align: center;
+  }
+  #inputText {
+    width: 90%;
+    max-width: 1000px;
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 0px;
+    border: none;
+  }
+  #colorControl {
+    color: #666666; /* тёмно-серый */
+    text-align: center;
+    margin: 10px 0;
+    font-weight: bold;
+    user-select: none;
+  }
+  #colorControl label {
+    margin-right: 10px;
+  }
+  #colorControl select {
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #666;
+    background-color: #222;
+    color: #eee;
+    cursor: pointer;
+  }
+  #container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #word {
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    max-width: 90vw;
+    overflow: visible;
+    transition: none;
+  }
+  #buttonsContainer {
+    padding: 10px;
+    text-align: center;
+  }
+  button {
+    font-size: 16px;
+    background-color: transparent;
+    color: white;
+    border-radius: 8px;
+    border: 1px solid white;
+    padding: 8px 12px;
+    outline: none;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
   </style>
 </head>
 <body>
   <div id="inputContainer">
     <input type="text" id="inputText" value="Speed reading. Just put the text above and click «Start» below." />
   </div>
-  <div id="colorSelectorContainer" style="text-align:center; margin: 10px 0;">
-  <span id="colorWord" style="color: #444444; font-weight: bold; cursor: pointer;">
-    Color
-  </span>
-</div>
 
+  <div id="colorControl">
+    <label for="bgColorSelect">Color</label>
+    <select id="bgColorSelect" aria-label="Выбор цвета фона">
+      <option value="#8B0000">Тёмно-красный</option>
+      <option value="#00008B">Тёмно-синий</option>
+      <option value="#006400">Тёмно-зелёный</option>
+      <option value="#A9A9A9">Тёмно-серый</option>
+      <option value="#808080">Серый</option>
+      <option value="#000000">Чёрный</option>
+    </select>
+  </div>
+  
   <div id="container">
     <div id="word"></div>
   </div>
@@ -106,6 +120,23 @@
     const startBtn = document.getElementById('startBtn');
     const fasterBtn = document.getElementById('fasterBtn');
     const slowerBtn = document.getElementById('slowerBtn');
+    const bgColorSelect = document.getElementById('bgColorSelect');
+
+    // Функция для изменения фона
+    function changeBackgroundColor(color) {
+      document.body.style.backgroundColor = color;
+    }
+
+    // Обработчик изменения селектора
+    bgColorSelect.addEventListener('change', (e) => {
+      changeBackgroundColor(e.target.value);
+    });
+
+    // Инициализируем цвет фона при загрузке страницы
+    window.onload = () => {
+      changeBackgroundColor(bgColorSelect.value);
+      startAnimation();
+    };
 
     let words = [];
     let index = 0;
@@ -113,19 +144,16 @@
     let timer = null;
 
     function setFontSize(word) {
-  const baseSize = window.innerWidth / 10;
-  let size = baseSize;
+      const baseSize = window.innerWidth / 10;
+      let size = baseSize;
 
-  if (word.length > 17) size = baseSize / 1.2;
-  if (word.length > 18) size = baseSize / 1.3;
-  if (word.length > 19) size = baseSize / 1.4;
-  if (word.length > 20) size = baseSize / 1.5;
+      if (word.length > 17) size = baseSize / 1.2;
+      if (word.length > 18) size = baseSize / 1.3;
+      if (word.length > 19) size = baseSize / 1.4;
+      if (word.length > 20) size = baseSize / 1.5;
 
-  wordElement.style.fontSize = size + 'px';
-}
-
-
-
+      wordElement.style.fontSize = size + 'px';
+    }
 
     function getDelay(word) {
       const baseDelay = interval;
@@ -177,8 +205,6 @@
       showNextWordInstant();
     };
 
-    window.onload = startAnimation;
-
     window.onresize = () => {
       if (words.length > 0) {
         let currentWord = wordElement.textContent || words[index];
@@ -198,29 +224,6 @@
         button.click();
       }, { passive: false });
     });
-    
-    const colorWord = document.getElementById('colorWord');
-
-const colors = {
-  'darkred': '#8B0000',
-  'darkblue': '#00008B',
-  'darkgreen': '#006400',
-  'darkgray': '#444444',
-  'gray': '#888888',
-  'black': '#000000'
-};
-
-let currentColorIndex = 3; // тёмно-серый (#444444) по умолчанию
-const colorKeys = Object.keys(colors);
-
-function changeColor() {
-  currentColorIndex = (currentColorIndex + 1) % colorKeys.length;
-  const newColor = colors[colorKeys[currentColorIndex]];
-  colorWord.style.color = newColor;
-}
-
-colorWord.addEventListener('click', changeColor);
-
   </script>
 </body>
 </html>
