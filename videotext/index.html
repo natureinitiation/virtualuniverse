@@ -33,6 +33,18 @@
       border-radius: 0px;
       border: none;
     }
+    
+    #colorSelectorContainer {
+  user-select: none;
+}
+
+#colorWord {
+  font-weight: bold;
+  cursor: pointer;
+  color: #444444; /* тёмно-серый по умолчанию */
+  transition: color 0.3s ease;
+}
+    
     #container {
       flex-grow: 1;
       display: flex;
@@ -68,7 +80,12 @@
   <div id="inputContainer">
     <input type="text" id="inputText" value="Speed reading. Just put the text above and click «Start» below." />
   </div>
-  
+  <div id="colorSelectorContainer" style="text-align:center; margin: 10px 0;">
+  <span id="colorWord" style="color: #444444; font-weight: bold; cursor: pointer;">
+    Color
+  </span>
+</div>
+
   <div id="container">
     <div id="word"></div>
   </div>
@@ -181,6 +198,29 @@
         button.click();
       }, { passive: false });
     });
+    
+    const colorWord = document.getElementById('colorWord');
+
+const colors = {
+  'darkred': '#8B0000',
+  'darkblue': '#00008B',
+  'darkgreen': '#006400',
+  'darkgray': '#444444',
+  'gray': '#888888',
+  'black': '#000000'
+};
+
+let currentColorIndex = 3; // тёмно-серый (#444444) по умолчанию
+const colorKeys = Object.keys(colors);
+
+function changeColor() {
+  currentColorIndex = (currentColorIndex + 1) % colorKeys.length;
+  const newColor = colors[colorKeys[currentColorIndex]];
+  colorWord.style.color = newColor;
+}
+
+colorWord.addEventListener('click', changeColor);
+
   </script>
 </body>
 </html>
