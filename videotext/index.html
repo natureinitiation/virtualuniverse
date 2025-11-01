@@ -34,23 +34,12 @@
     border: none;
   }
   #colorControl {
-    color: #666666; /* тёмно-серый */
+    color: #333333; /* тёмно-серый */
+    cursor: pointer;
     text-align: center;
     margin: 10px 0;
     font-weight: bold;
     user-select: none;
-  }
-  #colorControl label {
-    margin-right: 10px;
-  }
-  #colorControl select {
-    font-size: 16px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid #666;
-    background-color: #222;
-    color: #eee;
-    cursor: pointer;
   }
   #container {
     flex-grow: 1;
@@ -88,17 +77,7 @@
     <input type="text" id="inputText" value="Speed reading. Just put the text above and click «Start» below." />
   </div>
 
-  <div id="colorControl">
-    <label for="bgColorSelect">Color</label>
-    <select id="bgColorSelect" aria-label="Выбор цвета фона">
-      <option value="#8B0000">Тёмно-красный</option>
-      <option value="#00008B">Тёмно-синий</option>
-      <option value="#006400">Тёмно-зелёный</option>
-      <option value="#A9A9A9">Тёмно-серый</option>
-      <option value="#808080">Серый</option>
-      <option value="#000000">Чёрный</option>
-    </select>
-  </div>
+  <div id="colorControl">Color</div>
   
   <div id="container">
     <div id="word"></div>
@@ -120,23 +99,15 @@
     const startBtn = document.getElementById('startBtn');
     const fasterBtn = document.getElementById('fasterBtn');
     const slowerBtn = document.getElementById('slowerBtn');
-    const bgColorSelect = document.getElementById('bgColorSelect');
+    const colorControl = document.getElementById('colorControl');
 
-    // Функция для изменения фона
-    function changeBackgroundColor(color) {
-      document.body.style.backgroundColor = color;
-    }
+    const colors = ['#8B0000', '#00008B', '#006400', '#A9A9A9', '#000000']; // заданные цвета
+    let colorIndex = 0;
 
-    // Обработчик изменения селектора
-    bgColorSelect.addEventListener('change', (e) => {
-      changeBackgroundColor(e.target.value);
+    colorControl.addEventListener('click', () => {
+      colorIndex = (colorIndex + 1) % colors.length;
+      document.body.style.backgroundColor = colors[colorIndex];
     });
-
-    // Инициализируем цвет фона при загрузке страницы
-    window.onload = () => {
-      changeBackgroundColor(bgColorSelect.value);
-      startAnimation();
-    };
 
     let words = [];
     let index = 0;
@@ -203,6 +174,10 @@
       interval += 10;
       clearTimeout(timer);
       showNextWordInstant();
+    };
+
+    window.onload = () => {
+      startAnimation();
     };
 
     window.onresize = () => {
