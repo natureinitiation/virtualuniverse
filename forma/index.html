@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Forma: 3D-Редактор с Жестами и Сложным Освещением</title>
+    <title>Forma: 3D-Редактор с Жестами и Реалистичным Приближением</title>
     <style>
         /* Стиль для стабильной работы и кнопок */
         html, body {
@@ -28,36 +28,34 @@
             text-decoration: none;
             padding: 10px 20px;
             text-align: center;
-            z-index: 100; /* Гарантируем, что кнопки поверх холста */
+            z-index: 100;
         }
         #start-button { top: 30px; left: 30px; }
-        #help-button { top: 30px; right: 30px; }
-        #fly-button { bottom: 30px; left: 50%; transform: translateX(-50%); }
+        #readme-button { top: 30px; right: 30px; } /* Переименовано */
+        #step-button { bottom: 30px; left: 50%; transform: translateX(-50%); } /* Переименовано */
     </style>
 </head>
 <body>
 
     <canvas id="cubeCanvas"></canvas> 
     <a id="start-button" class="control-button" onclick="home(); return false;">start</a>
-    <a id="help-button" class="control-button" href="https://natureinitiation.github.io/virtualuniverse/forma/readme.md" target="_blank">help</a>
-    <a id="fly-button" class="control-button" onclick="toggleFlyMode(); return false;">fly</a>
-
-    <script>
+    <a id="readme-button" class="control-button" href="https://natureinitiation.github.io/virtualuniverse/forma/readme.md" target="_blank">readme</a> <a id="step-button" class="control-button" onclick="stepForward(); return false;">step</a> <script>
         const canvas = document.getElementById('cubeCanvas');
         const ctx = canvas.getContext('2d');
         
         // --- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ---
         let width, height, center = {};
         let angleX = 0.8, angleY = 1.0; 
-        const A = 100; // Базовый размер куба
+        
+        const BASE_CUBE_SIZE = 100; 
+        let Z_OFFSET = 0; // Смещение объекта по оси Z (управляет приближением/отдалением)
+        const MIN_Z_OFFSET = -300; // Ограничение: предотвращает "прохождение" сквозь объект
+        const STEP_DISTANCE = 30; // Расстояние для пошагового перемещения
         
         // --- КОНСТАНТЫ КАМЕРЫ И ПОЛЕТА ---
-        const HOME_STATE = { angleX: 0.8, angleY: 1.0, offsetX: 0, offsetY: 0, scaleFactor: 1.0 };
-        const MAX_SCALE = 5.0;
-        const MIN_SCALE = 0.5;
-        let isFlying = false;
-
-        // --- ИСТОЧНИКИ СВЕТА ---
+        const HOME_STATE = { angleX: 0.8, angleY: 1.0, offsetX: 0, offsetY: 0, zOffset: 0 }; 
+        
+        // --- ИСТОЧНИКИ СВЕТА (без изменений) ---
         const lights = [
             { dir: normalizeVector([1, 1, 1]), color: [255, 255, 255] }, 
             { dir: normalizeVector([-1, 0, 1]), color: [255, 0, 0] },     
@@ -66,16 +64,16 @@
         ];
         const AMBIENT_INTENSITY = 0.3; 
         
-        // --- ИСТОРИЯ И ЖЕСТЫ (переменные) ---
+        // --- ПЕРЕМЕННЫЕ УПРАВЛЕНИЯ ---
         let history = [];
         let historyIndex = -1;
         const MAX_HISTORY = 20;
 
         let pointers = {}; 
-        let lastScale = 1;
-        let scaleFactor = HOME_STATE.scaleFactor;
+        let lastDistance = 0; // Для Pinch-Zoom
         let offsetX = HOME_STATE.offsetX; 
         let offsetY = HOME_STATE.offsetY; 
+        
         let pressTimer = null;
         let isLongPress = false;
         let selectedFaceIndexForExtrusion = -1;
@@ -86,67 +84,93 @@
         const TAP_INTERVAL = 300; 
         const MOVE_THRESHOLD = 5; 
         
-        let geometry = createCube(A);
+        let geometry = createCube(BASE_CUBE_SIZE);
         saveState(); 
 
-        // --- ФУНКЦИИ ИСТОРИИ И НАВИГАЦИИ ---
-        function saveState() { /* ... */
+        // --- ФУНКЦИИ ИСТОРИИ И НАВИГАЦИИ (обновлена home) ---
+        function saveState() { 
             if (historyIndex < history.length - 1) { history = history.slice(0, historyIndex + 1); }
-            history.push(JSON.stringify(geometry));
+            // Сохраняем Z_OFFSET как часть состояния, чтобы можно было отменить/повторить
+            history.push(JSON.stringify({ geometry: geometry, zOffset: Z_OFFSET }));
             if (history.length > MAX_HISTORY) { history.shift(); } else { historyIndex++; }
         }
 
-        function undo() { if (historyIndex > 0) { historyIndex--; loadState(historyIndex); } }
-        function redo() { if (historyIndex < history.length - 1) { historyIndex++; loadState(historyIndex); } }
-        function loadState(index) { geometry = JSON.parse(history[index]); }
+        function undo() { 
+            if (historyIndex > 0) { 
+                historyIndex--; 
+                loadState(historyIndex); 
+            } 
+        }
+        function redo() { 
+            if (historyIndex < history.length - 1) { 
+                historyIndex++; 
+                loadState(historyIndex); 
+            } 
+        }
+        function loadState(index) { 
+            const state = JSON.parse(history[index]);
+            geometry = state.geometry; 
+            Z_OFFSET = state.zOffset; 
+        }
         
         function home() {
             angleX = HOME_STATE.angleX;
             angleY = HOME_STATE.angleY;
             offsetX = HOME_STATE.offsetX;
             offsetY = HOME_STATE.offsetY;
-            scaleFactor = HOME_STATE.scaleFactor;
-            isFlying = false;
+            Z_OFFSET = HOME_STATE.zOffset;
         }
 
-        function toggleFlyMode() {
-            isFlying = !isFlying;
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ ДЛЯ КНОПКИ STEP
+        function stepForward() {
+            Z_OFFSET = Math.max(MIN_Z_OFFSET, Z_OFFSET - STEP_DISTANCE);
+            saveState(); // Сохраняем новое Z-смещение
         }
 
-        // --- МАТЕМАТИКА 3D ---
-        function normalizeVector(v) {
+        // --- МАТЕМАТИКА 3D (обновлена project) ---
+        function normalizeVector(v) { /* ... */
             const length = Math.sqrt(v[0]**2 + v[1]**2 + v[2]**2);
             return (length === 0) ? [0, 0, 0] : [v[0] / length, v[1] / length, v[2] / length];
         }
 
-        function dotProduct(v1, v2) {
+        function dotProduct(v1, v2) { /* ... */
             return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
         }
 
-        function rotateX(point, angle) {
+        function rotateX(point, angle) { /* ... */
             const [x, y, z] = point;
             const cos = Math.cos(angle);
             const sin = Math.sin(angle);
             return [x, y * cos - z * sin, z * cos + y * sin];
         }
 
-        function rotateY(point, angle) {
+        function rotateY(point, angle) { /* ... */
             const [x, y, z] = point;
             const cos = Math.cos(angle);
             const sin = Math.sin(angle);
             return [x * cos + z * sin, y, z * cos - x * sin];
         }
 
+        // КЛЮЧЕВАЯ ФУНКЦИЯ ПРОЕКЦИИ
         function project(point) {
             const fov = 500; 
-            const scale = fov / (fov + point[2]); 
+            // Эффективная глубина = Z объекта + Z смещение
+            const effectiveZ = point[2] + Z_OFFSET; 
+            const scale = fov / (fov + effectiveZ); 
+            
+            // Отсечение за плоскостью ближнего клиппинга
+            if (effectiveZ <= -fov + 1) { 
+                return [center.x, center.y]; 
+            }
+
+            // Убрали scaleFactor. Приближение/Отдаление теперь происходит ТОЛЬКО через Z_OFFSET.
             return [
-                (point[0]) * scale * scaleFactor + center.x + offsetX, 
-                (point[1]) * scale * scaleFactor + center.y + offsetY
+                (point[0]) * scale + center.x + offsetX, 
+                (point[1]) * scale + center.y + offsetY
             ];
         }
         
-        function getFaceNormal(p1, p2, p3) { 
+        function getFaceNormal(p1, p2, p3) { /* ... */
             const v1 = [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]];
             const v2 = [p3[0] - p1[0], p3[1] - p1[1], p3[2] - p1[2]];
             return [
@@ -156,9 +180,9 @@
             ];
         }
         
-        // --- ГЕОМЕТРИЯ И РЕДАКТИРОВАНИЕ ---
+        // --- ГЕОМЕТРИЯ И РЕДАКТИРОВАНИЕ (без изменений) ---
 
-        function createCube(a) {
+        function createCube(a) { /* ... */
             const vertices = [
                 [-a, -a, -a], [ a, -a, -a], [ a,  a, -a], [-a,  a, -a], 
                 [-a, -a,  a], [ a, -a,  a], [ a,  a,  a], [-a,  a,  a]  
@@ -188,17 +212,16 @@
             for (const vIndex of oldVerticesIndices) {
                 const oldV = geometry.vertices[vIndex];
                 const newV = [
-                    oldV[0] + unitNormal[0] * A,
-                    oldV[1] + unitNormal[1] * A,
-                    oldV[2] + unitNormal[2] * A // ИСПРАВЛЕНИЕ: Убрано дублирование oldV[2]
+                    oldV[0] + unitNormal[0] * BASE_CUBE_SIZE, 
+                    oldV[1] + unitNormal[1] * BASE_CUBE_SIZE,
+                    oldV[2] + unitNormal[2] * BASE_CUBE_SIZE 
                 ];
                 newVertices.push(newV);
             }
-
+            
             const newVerticesStartIdx = geometry.vertices.length;
             geometry.vertices.push(...newVertices);
 
-            // ... (Логика создания новых граней без изменений)
             const newFace = { indices: [newVerticesStartIdx, newVerticesStartIdx + 1, newVerticesStartIdx + 2, newVerticesStartIdx + 3], color: face.color, opacity: face.opacity, specular: face.specular };
             geometry.faces.push(newFace);
 
@@ -237,7 +260,7 @@
             }
         }
         
-        // --- ОТРИСОВКА ---
+        // --- ОТРИСОВКА (Убрано автоматическое движение) ---
         
         function resizeCanvas() {
             width = window.innerWidth;
@@ -250,15 +273,8 @@
         let projectedFacesData = []; 
 
         function drawCube() {
-            // Очистка холста перед отрисовкой
             ctx.clearRect(0, 0, width, height); 
             
-            // АВТОМАТИЧЕСКИЙ ПОЛЕТ
-            if (isFlying) {
-                scaleFactor += 0.005; 
-                if (scaleFactor > MAX_SCALE) scaleFactor = MIN_SCALE;
-            }
-
             const transformedVertices = [];
             for (const vertex of geometry.vertices) {
                 let p = [...vertex]; 
@@ -281,13 +297,13 @@
                 
                 const faceNormal = normalizeVector(getFaceNormal(p1, p2, p3));
                 
+                // ... (расчет освещения)
                 let finalR = 0, finalG = 0, finalB = 0;
                 const baseColor = parseInt(face.color.substring(1), 16);
                 const baseR = (baseColor >> 16) & 255;
                 const baseG = (baseColor >> 8) & 255;
                 const baseB = baseColor & 255;
 
-                // Ambient light
                 finalR += baseR * AMBIENT_INTENSITY;
                 finalG += baseG * AMBIENT_INTENSITY;
                 finalB += baseB * AMBIENT_INTENSITY;
@@ -296,13 +312,11 @@
                     const NdotL = dotProduct(faceNormal, light.dir);
                     
                     if (NdotL > 0) {
-                        // Диффузный свет
                         finalR += baseR * light.color[0] / 255 * NdotL;
                         finalG += baseG * light.color[1] / 255 * NdotL;
                         finalB += baseB * light.color[2] / 255 * NdotL;
 
                         if (face.specular) {
-                            // Бликовый свет (Specular)
                             const viewDir = normalizeVector([0, 0, 1]); 
                             const H = normalizeVector([light.dir[0] + viewDir[0], light.dir[1] + viewDir[1], light.dir[2] + viewDir[2]]); 
                             const NdotH = dotProduct(faceNormal, H);
@@ -324,6 +338,9 @@
                 finalB = Math.min(255, finalB);
 
                 const projectedCoords = vIndices.map(idx => project(transformedVertices[idx]));
+                
+                if (projectedCoords.some(c => !isFinite(c[0]) || !isFinite(c[1]))) continue;
+
 
                 projectedFacesData.push({
                     index: i,
@@ -353,18 +370,17 @@
             }
             ctx.globalAlpha = 1.0; 
             
-            // Кнопки отрисованы через HTML/CSS, поэтому здесь только анимация
             requestAnimationFrame(drawCube);
         }
         
-        // --- ЛОГИКА УПРАВЛЕНИЯ ЖЕСТАМИ (без изменений) ---
+        // --- ЛОГИКА УПРАВЛЕНИЯ ЖЕСТАМИ (обновлен Pinch-Zoom) ---
         
         function getCanvasPosition(e) { /* ... */
             const rect = canvas.getBoundingClientRect();
             return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         }
 
-        function getPointerCenter() {
+        function getPointerCenter() { /* ... */
             const keys = Object.keys(pointers);
             if (keys.length < 2) return null;
             const p1 = pointers[keys[0]];
@@ -372,7 +388,7 @@
             return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
         }
 
-        function getPointerDistance() {
+        function getPointerDistance() { /* ... */
             const keys = Object.keys(pointers);
             if (keys.length < 2) return 0;
             const p1 = pointers[keys[0]];
@@ -380,7 +396,7 @@
             return Math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2);
         }
 
-        function getFaceIndexAtPoint(pos) { /* ... */
+        function getFaceIndexAtPoint(pos) { 
             for (let i = projectedFacesData.length - 1; i >= 0; i--) { 
                 const faceData = projectedFacesData[i];
                 if (pos.y > 80 && pos.y < height - 80 && isPointInPolygon({x: pos.x, y: pos.y}, faceData.coords)) {
@@ -390,7 +406,7 @@
             return -1;
         }
 
-        function isPointInPolygon(point, polygon) { /* ... */
+        function isPointInPolygon(point, polygon) { 
             let x = point.x, y = point.y;
             let inside = false;
             for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -423,13 +439,11 @@
                 if (faceIndex !== -1) {
                     pressTimer = setTimeout(() => { isLongPress = true; }, LONG_PRESS_THRESHOLD);
                 }
-                isFlying = false;
             } else if (pointerCount === 2) {
                 clearTimeout(pressTimer);
                 isLongPress = false;
                 tapCount = 0;
-                lastScale = getPointerDistance();
-                isFlying = false;
+                lastDistance = getPointerDistance(); // Обновлено
             }
         });
 
@@ -457,21 +471,25 @@
                 angleX += dy * 0.008;
 
             } else if (pointerCount >= 2) {
-                const newScale = getPointerDistance();
-                const scaleDelta = newScale / lastScale;
+                const newDistance = getPointerDistance();
+                const distanceDelta = newDistance - lastDistance; // Изменение расстояния
                 
-                const centerBefore = getPointerCenter();
-                scaleFactor = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleFactor * scaleDelta));
-                const centerAfter = getPointerCenter();
-                offsetX += centerBefore.x - centerAfter.x; 
-                offsetY += centerBefore.y - centerAfter.y; 
+                // ZOOM (Приближение/Отдаление через Z-смещение)
+                const zoomSpeed = 2; // Чувствительность зума
                 
+                // Изменение Z_OFFSET для приближения/отдаления
+                Z_OFFSET -= distanceDelta * zoomSpeed; 
+                
+                // Ограничение: предотвращение прохождения сквозь объект
+                Z_OFFSET = Math.max(MIN_Z_OFFSET, Z_OFFSET);
+                
+                // Pan
                 const dx = e.clientX - oldX;
                 const dy = e.clientY - oldY;
                 offsetX += dx;
                 offsetY += dy;
                 
-                lastScale = newScale;
+                lastDistance = newDistance; // Обновлено
             }
         });
 
@@ -527,7 +545,8 @@
             }
 
             selectedFaceIndexForExtrusion = -1;
-            if (Object.keys(pointers).length === 1) { lastScale = 1; }
+            // Сохраняем состояние после завершения жеста, чтобы можно было отменить/повторить
+            if (Object.keys(pointers).length === 0) { saveState(); } 
         });
         
         canvas.addEventListener('contextmenu', (e) => e.preventDefault());
