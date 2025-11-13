@@ -38,23 +38,38 @@
             right: auto;
         }
 
-        /* Start - по центру */
-        .start-button {
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
         /* Closer - справа */
         .closer-button {
             right: 5%; 
             left: auto;
         }
             
+        /* Reset - верхний левый угол */
+        .reset-button {
+            position: fixed;
+            top: 20px;
+            left: 5%;
+            transform: none;
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Help - верхний правый угол */
         .help-button {
             position: fixed;
             top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            right: 5%;
+            left: auto;
+            transform: none;
             z-index: 1000;
             cursor: pointer;
             width: auto;
@@ -89,9 +104,8 @@
 </head>
 <body>
     <div class="button control-button further-button">Further</div> 
-    <div class="button control-button start-button">Start</div> 
     <div class="button control-button closer-button">Closer</div> 
-
+    <div class="button reset-button">Reset</div> 
     <a href="https://eugenebox.t.me/" style="text-decoration: none;" class="help-button" target="_blank">Help</a>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -113,7 +127,7 @@ let historyIndex = -1;
 const MAX_HISTORY = 20;
 // -------------------------
 
-// Background color change (оставлено без изменений)
+// Background color change (без изменений)
 const colors = ['#006ee5', '#f84d54', '#000033', '#f84d54'];
 let currentColorIndex = 0;
 function changeBackgroundColor() {
@@ -135,7 +149,7 @@ function animateBackgroundColor(targetColor) {
 }
 setInterval(changeBackgroundColor, 100000);
 
-// --- Controls and lights (без изменений) ---
+// --- Controls and lights ---
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.005;
@@ -145,25 +159,38 @@ controls.enablePan = true;
 controls.zoomSpeed = 0.5; 
 controls.panSpeed = 0.3;  
 
+// **ПРИВЯЗКА СВЕТА К КАМЕРЕ**
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
+
+// Создаем группу для света, который будет двигаться с камерой
+const cameraLightGroup = new THREE.Group();
+camera.add(cameraLightGroup); // Привязываем группу к камере
+scene.add(camera); // Добавляем камеру (с привязанными объектами) в сцену
+
+// Направленный свет, идущий "от" камеры
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(10, 10, 10);
-scene.add(directionalLight);
+directionalLight.position.set(0, 0, 10); // Позиция относительно камеры
+cameraLightGroup.add(directionalLight);
+
 const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 0.8);
-ultramarineLight.position.set(-10, -10, -10);
-scene.add(ultramarineLight);
+ultramarineLight.position.set(0, 0, -10); // Свет сзади
+cameraLightGroup.add(ultramarineLight);
+
+// Дополнительные источники света (также привязаны к камере)
 const lights = [
     { color: 0xff0000, position: [10, 0, 0] },
     { color: 0x00ff00, position: [0, 10, 0] },
     { color: 0x0000ff, position: [0, 0, 10] },
     { color: 0x3f00ff, position: [-10, -10, -10] },
 ];
+
 lights.forEach(({ color, position }) => {
     const light = new THREE.DirectionalLight(color, 0.8);
     light.position.set(...position);
-    scene.add(light);
+    cameraLightGroup.add(light);
 });
+// -----------------------------
 
 // Word-links (оставлено без изменений)
 const secrets = ['slowly', 'focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'];
@@ -177,10 +204,9 @@ const collisionRaycaster = new THREE.Raycaster();
 // --- ЛОГИКА КУБА ИЗ 6 ГРАНЕЙ (Forma Base) ---
 let formaCubeGroup = null; 
 const CUBE_SIZE = 5; 
+// const FACE_COLOR = 0x888888; // Удалено
 
-// КОНФИГУРАЦИЯ ГРАНЕЙ
-// Идентификаторы граней:
-// 0: +X, 1: -X, 2: +Y, 3: -Y, 4: +Z, 5: -Z
+// КОНФИГУРАЦИЯ ГРАНЕЙ (Цвета ВОССТАНОВЛЕНЫ)
 const FACE_CONFIGS = [
     { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) },     
     { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) },    
@@ -190,16 +216,13 @@ const FACE_CONFIGS = [
     { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) },      
 ];
 
-// Функция для определения, какую грань исключить при "наращивании"
+// Функция для определения, какую грань исключить при "наращивании" (без изменений)
 const getOppositeFaceId = (normal) => {
     let bestMatchId = -1;
-    // Находим грань, чья нормаль наиболее противоположна нормали тапа
     let minDot = Infinity; 
 
     FACE_CONFIGS.forEach(config => {
-        // Скалярное произведение (Dot Product). 
-        // Если векторы противоположны (смотрит один на другой), dot product = -1.
-        const dot = config.normal.dot(normal);
+        const dot = config.normal.dot(normal); 
         
         if (dot < minDot) {
             minDot = dot;
@@ -207,9 +230,6 @@ const getOppositeFaceId = (normal) => {
         }
     });
     
-    // Возвращаем ID грани, чья нормаль наиболее противоположна нормали тапа.
-    // Это будет та грань нового куба, которая окажется "внутри" старого,
-    // и которую, следовательно, надо исключить.
     return bestMatchId;
 };
 
@@ -221,13 +241,16 @@ const createFormaCube = (position, excludeIndex = -1) => {
     newFormaCubeGroup.position.copy(position);
 
     FACE_CONFIGS.forEach((config, index) => {
-        if (config.id === excludeIndex) return; // Используем ID для исключения
+        if (config.id === excludeIndex) return;
 
+        // **Восстановленные цвета и металлический/прозрачный материал**
         const material = new THREE.MeshStandardMaterial({
-            color: config.color,
-            roughness: 0.5,
-            metalness: 0.5,
+            color: config.color, // Индивидуальный цвет
+            roughness: 0.2,    
+            metalness: 0.8,    
             side: THREE.DoubleSide, 
+            transparent: true, 
+            opacity: 1.0,      
         });
         
         const face = new THREE.Mesh(faceGeometry, material);
@@ -244,25 +267,24 @@ const createFormaCube = (position, excludeIndex = -1) => {
 };
 
 const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
-    // Удаляем старые объекты, если они есть
     if (formaCubeGroup) {
         scene.remove(formaCubeGroup);
         formaCubeFaces.forEach(face => face.geometry.dispose());
         formaCubeFaces = [];
         formaCubeGroup = null;
     }
-    // Создаем новый куб (все 6 граней)
     formaCubeGroup = createFormaCube(position, -1); 
     controls.target.set(position.x, position.y, position.z); 
     controls.update();
     
-    // Сохраняем начальное состояние
+    history = [];
+    historyIndex = -1;
     saveState();
 }
 // --- КОНЕЦ ЛОГИКИ КУБА ---
 
 
-// --- ЛОГИКА ИСТОРИИ И СОСТОЯНИЯ (без изменений) ---
+// --- ЛОГИКА ИСТОРИИ И СОСТОЯНИЯ (Обновлена для сохранения прозрачности) ---
 
 const saveState = () => {
     if (historyIndex < history.length - 1) {
@@ -278,7 +300,8 @@ const saveState = () => {
                     id: parseInt(face.name.split('_')[1]),
                     position: face.position.clone(),
                     rotation: face.rotation.clone(),
-                    color: face.material.color.getHex()
+                    color: face.material.color.getHex(),
+                    opacity: face.material.opacity 
                 }));
             
             if (facesData.length > 0) {
@@ -309,7 +332,6 @@ const restoreState = (index) => {
     
     const state = history[index];
     
-    // 1. Удаляем все текущие грани и группы
     formaCubeFaces.forEach(face => face.geometry.dispose());
     formaCubeFaces.length = 0;
     scene.children
@@ -317,7 +339,6 @@ const restoreState = (index) => {
         .forEach(group => scene.remove(group));
     formaCubeGroup = null; 
 
-    // 2. Восстанавливаем объекты (группы и грани)
     state.groups.forEach(groupData => {
         const newGroup = new THREE.Group();
         newGroup.position.copy(groupData.position);
@@ -326,9 +347,11 @@ const restoreState = (index) => {
             const faceGeometry = new THREE.PlaneGeometry(CUBE_SIZE, CUBE_SIZE);
             const material = new THREE.MeshStandardMaterial({
                 color: faceData.color,
-                roughness: 0.5,
-                metalness: 0.5,
+                roughness: 0.2, 
+                metalness: 0.8, 
                 side: THREE.DoubleSide, 
+                transparent: true,
+                opacity: faceData.opacity || 1.0, 
             });
             
             const face = new THREE.Mesh(faceGeometry, material);
@@ -346,7 +369,6 @@ const restoreState = (index) => {
         }
     });
 
-    // 3. Восстанавливаем позицию камеры и таргет контролов
     camera.position.copy(state.cameraPos);
     controls.target.copy(state.controlsTarget);
     controls.update();
@@ -369,14 +391,85 @@ const redo = () => {
 // --- КОНЕЦ ЛОГИКИ ИСТОРИИ ---
 
 
-// --- ЛОГИКА ОБРАБОТКИ ТАПОВ (Обновлено) ---
+// --- ЛОГИКА ТАПА И УДЕРЖАНИЯ (Исправлена) ---
 let tapTimeout;
+let longPressTimer;
 let tapCount = 0;
 const TAP_DELAY = 400; 
+const LONG_PRESS_DELAY = 700; 
+let isLongPress = false;
+
+// 1. Обработчик начала касания/нажатия
+renderer.domElement.addEventListener('pointerdown', (event) => {
+    if (event.target.closest('.control-button, .help-button, .reset-button')) return;
+    event.preventDefault(); // Предотвращаем стандартное поведение (например, выделение)
+    
+    // Сброс и установка флага
+    isLongPress = false;
+    clearTimeout(longPressTimer);
+    
+    longPressTimer = setTimeout(() => {
+        isLongPress = true;
+        handleLongPress(event);
+    }, LONG_PRESS_DELAY);
+});
+
+// 2. Обработчик окончания касания/отпускания
+renderer.domElement.addEventListener('pointerup', (event) => {
+    clearTimeout(longPressTimer); // Всегда отменяем таймер при pointerup
+    
+    // **Ключевое исправление:** // Если флаг isLongPress установлен, это было удержание, и мы не обрабатываем это как тап.
+    if (isLongPress) {
+        isLongPress = false;
+        return; 
+    }
+
+    // Если не было долгого нажатия, обрабатываем как тап (для одиночного/двойного/тройного)
+    handleInteraction(event);
+});
+
+// 3. Обработчик перемещения 
+renderer.domElement.addEventListener('pointermove', (event) => {
+    // Если палец сдвинулся, сбрасываем таймер долгого нажатия, 
+    // но позволяем дальнейшей обработке pointerup понять, что это был обычный тап.
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+    }
+    isLongPress = false;
+});
+
+
+const handleLongPress = (event) => {
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    
+    const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(formaCubeFaces, false);
+    
+    if (intersects.length > 0) {
+        const face = intersects[0].object;
+        
+        // Переключаем прозрачность
+        if (face.material.opacity === 1.0) {
+            face.material.opacity = 0.2;
+        } else {
+            face.material.opacity = 1.0;
+        }
+        
+        saveState();
+    }
+    
+    // Важно: сброс счетчика тапов, чтобы не вызывать tapTimeout после завершения longPress
+    tapCount = 0; 
+};
+
 
 const handleInteraction = (event) => {
-    if (event.target.closest('.control-button, .help-button')) return;
-    event.preventDefault(); 
+    if (event.target.closest('.control-button, .help-button, .reset-button')) return;
+    // event.preventDefault() уже вызван в pointerdown, но здесь можно для верности
     
     const clientX = event.touches ? event.touches[0].clientX : event.clientX;
     const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -404,24 +497,15 @@ const handleInteraction = (event) => {
 
             if (currentTapCount === 2) {
                 // ДВОЙНОЙ ТАП НА ГРАНЬ: Наращивание нового куба
-                
-                // 1. Получаем нормаль грани в мировых координатах
                 const faceNormal = intersection.face.normal.clone();
                 faceNormal.transformDirection(obj.matrixWorld); 
                 faceNormal.normalize();
                 
-                // 2. Рассчитываем новую позицию для центра новой группы
-                // Новая позиция = (Центр старой группы) + (Нормаль грани * CUBE_SIZE)
-                // Группа уже находится в мировых координатах
                 const groupWorldPos = group.position.clone();
                 const newGroupPosition = groupWorldPos.clone().add(faceNormal.clone().multiplyScalar(CUBE_SIZE));
                 
-                // 3. Определяем, какую грань нового куба исключить (ту, что смотрит назад)
-                // *faceNormal* - это нормаль существующей грани, смотрящая наружу.
-                // *Исключаемая грань* нового куба должна смотреть в противоположную сторону (назад).
                 const excludeId = getOppositeFaceId(faceNormal);
 
-                // 4. Создаем новый куб, приклеенный к старому
                 createFormaCube(newGroupPosition, excludeId);
                 
                 saveState();
@@ -429,7 +513,6 @@ const handleInteraction = (event) => {
             } else if (currentTapCount === 1) {
                 // ОДИНОЧНЫЙ ТАП НА ГРАНЬ: Удаление отдельной грани
                 
-                // 1. Удаление грани
                 if (group) {
                     group.remove(obj);
                     obj.geometry.dispose(); 
@@ -439,7 +522,6 @@ const handleInteraction = (event) => {
                     formaCubeFaces.splice(index, 1);
                 }
                 
-                // 2. Проверка удаления группы
                 if (group.children.length === 0) {
                     scene.remove(group);
                     if (group === formaCubeGroup) {
@@ -447,7 +529,6 @@ const handleInteraction = (event) => {
                     }
                 }
 
-                // 3. Спаун слова
                 if (Math.random() < wordSpawnProbability) {
                     const wordPos3D = intersection.point.clone(); 
                     const wordPos2D = wordPos3D.project(camera);
@@ -462,17 +543,15 @@ const handleInteraction = (event) => {
         } else {
             // --- ТАП ВНЕ ГРАНЕЙ (UNDO/REDO) ---
             if (currentTapCount === 2) {
-                // ДВОЙНОЙ ТАП ВНЕ ГРАНЕЙ: UNDO
                 undo();
             } else if (currentTapCount === 3) {
-                // ТРОЙНОЙ ТАП ВНЕ ГРАНЕЙ: REDO
                 redo();
             }
         }
     }, TAP_DELAY);
 };
 
-// ... (Word spawning functions, опущено для краткости) ...
+// ... (Word spawning functions, без изменений) ...
 function createSecret(x, y) {
     const secret = document.createElement('a');
     secret.className = 'secret';
@@ -557,7 +636,7 @@ const applyCameraRepulsion = (startPosition, direction, distanceToMove) => {
 };
 
 
-// Camera movement (Closer/Further)
+// Camera movement (Closer/Further) (без изменений)
 const moveCamera = (directionVector, distance) => {
     const initialPosition = camera.position.clone();
     
@@ -574,7 +653,7 @@ const moveCamera = (directionVector, distance) => {
 
 const closerButton = document.querySelector('.closer-button');
 const furtherButton = document.querySelector('.further-button');
-const startButton = document.querySelector('.start-button'); 
+const resetButton = document.querySelector('.reset-button'); 
 
 closerButton.addEventListener('click', () => {
     const direction = new THREE.Vector3();
@@ -589,8 +668,8 @@ furtherButton.addEventListener('click', () => {
     moveCamera(direction, CUBE_SIZE); 
 });
 
-startButton.addEventListener('click', () => {
-    initFormaCube(); 
+resetButton.addEventListener('click', () => {
+    window.location.reload(); 
 });
 
 
@@ -610,10 +689,6 @@ renderer.domElement.addEventListener('wheel', (event) => {
     
     controls.update();
 });
-
-
-// Interaction handling (заменено на handleInteraction)
-renderer.domElement.addEventListener('pointerdown', handleInteraction);
 
 
 // Animation loop
