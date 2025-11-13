@@ -121,10 +121,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffe
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- ИСТОРИЯ ДЕЙСТВИЙ ---
-let history = [];
-let historyIndex = -1;
-const MAX_HISTORY = 20;
+// --- ИСТОРИЯ ДЕЙСТВИЙ (УДАЛЕНА) ---
 // -------------------------
 
 // Background color change (без изменений)
@@ -149,7 +146,7 @@ function animateBackgroundColor(targetColor) {
 }
 setInterval(changeBackgroundColor, 100000);
 
-// --- Controls and lights ---
+// --- Controls and lights (без изменений) ---
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.005;
@@ -192,7 +189,7 @@ lights.forEach(({ color, position }) => {
 });
 // -----------------------------
 
-// Word-links (оставлено без изменений)
+// Word-links (без изменений)
 const secrets = ['slowly', 'focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'];
 
 
@@ -201,10 +198,9 @@ let formaCubeFaces = [];
 const activePoints = [];
 const collisionRaycaster = new THREE.Raycaster();
 
-// --- ЛОГИКА КУБА ИЗ 6 ГРАНЕЙ (Forma Base) ---
+// --- ЛОГИКА КУБА ИЗ 6 ГРАНЕЙ (Forma Base) (без изменений) ---
 let formaCubeGroup = null; 
 const CUBE_SIZE = 5; 
-// const FACE_COLOR = 0x888888; // Удалено
 
 // КОНФИГУРАЦИЯ ГРАНЕЙ (Цвета ВОССТАНОВЛЕНЫ)
 const FACE_CONFIGS = [
@@ -276,122 +272,20 @@ const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15
     formaCubeGroup = createFormaCube(position, -1); 
     controls.target.set(position.x, position.y, position.z); 
     controls.update();
-    
-    history = [];
-    historyIndex = -1;
-    saveState();
-}
+};
 // --- КОНЕЦ ЛОГИКИ КУБА ---
 
 
-// --- ЛОГИКА ИСТОРИИ И СОСТОЯНИЯ (Обновлена для сохранения прозрачности) ---
+// --- ЛОГИКА ИСТОРИИ И СОСТОЯНИЯ (Обновлена: удалены Undo/Redo/History) ---
 
 const saveState = () => {
-    if (historyIndex < history.length - 1) {
-        history = history.slice(0, historyIndex + 1);
-    }
-
-    const groupsData = [];
-    scene.traverse(obj => {
-        if (obj.isGroup && obj.name !== 'wordGroup') { 
-            const facesData = obj.children
-                .filter(child => child.isMesh && child.name.startsWith('face_'))
-                .map(face => ({
-                    id: parseInt(face.name.split('_')[1]),
-                    position: face.position.clone(),
-                    rotation: face.rotation.clone(),
-                    color: face.material.color.getHex(),
-                    opacity: face.material.opacity 
-                }));
-            
-            if (facesData.length > 0) {
-                 groupsData.push({
-                    position: obj.position.clone(),
-                    faces: facesData
-                });
-            }
-        }
-    });
-
-    const newState = {
-        cameraPos: camera.position.clone(),
-        controlsTarget: controls.target.clone(),
-        groups: groupsData
-    };
-    
-    if (history.length >= MAX_HISTORY) {
-        history.shift();
-    } else {
-        historyIndex++;
-    }
-    history[historyIndex] = newState;
-};
-
-const restoreState = (index) => {
-    if (index < 0 || index >= history.length) return;
-    
-    const state = history[index];
-    
-    formaCubeFaces.forEach(face => face.geometry.dispose());
-    formaCubeFaces.length = 0;
-    scene.children
-        .filter(obj => obj.isGroup && obj.name !== 'wordGroup')
-        .forEach(group => scene.remove(group));
-    formaCubeGroup = null; 
-
-    state.groups.forEach(groupData => {
-        const newGroup = new THREE.Group();
-        newGroup.position.copy(groupData.position);
-        
-        groupData.faces.forEach(faceData => {
-            const faceGeometry = new THREE.PlaneGeometry(CUBE_SIZE, CUBE_SIZE);
-            const material = new THREE.MeshStandardMaterial({
-                color: faceData.color,
-                roughness: 0.2, 
-                metalness: 0.8, 
-                side: THREE.DoubleSide, 
-                transparent: true,
-                opacity: faceData.opacity || 1.0, 
-            });
-            
-            const face = new THREE.Mesh(faceGeometry, material);
-            face.position.copy(faceData.position);
-            face.rotation.copy(faceData.rotation);
-            face.name = `face_${faceData.id}`;
-            
-            newGroup.add(face);
-            formaCubeFaces.push(face);
-        });
-        
-        scene.add(newGroup);
-        if (state.groups.indexOf(groupData) === 0) {
-            formaCubeGroup = newGroup;
-        }
-    });
-
-    camera.position.copy(state.cameraPos);
-    controls.target.copy(state.controlsTarget);
-    controls.update();
-
-    historyIndex = index;
-};
-
-const undo = () => {
-    if (historyIndex > 0) {
-        restoreState(historyIndex - 1);
-    }
-};
-
-const redo = () => {
-    if (historyIndex < history.length - 1) {
-        restoreState(historyIndex + 1);
-    }
+    // Пустая функция для совместимости.
 };
 
 // --- КОНЕЦ ЛОГИКИ ИСТОРИИ ---
 
 
-// --- ЛОГИКА ТАПА И УДЕРЖАНИЯ (Исправлена) ---
+// --- ЛОГИКА ТАПА И УДЕРЖАНИЯ (ИЗМЕНЕНА: LongPress теперь удаляет грань, Tap теперь меняет прозрачность) ---
 let tapTimeout;
 let longPressTimer;
 let tapCount = 0;
@@ -399,39 +293,34 @@ const TAP_DELAY = 400;
 const LONG_PRESS_DELAY = 700; 
 let isLongPress = false;
 
-// 1. Обработчик начала касания/нажатия
+// 1. Обработчик начала касания/нажатия (без изменений)
 renderer.domElement.addEventListener('pointerdown', (event) => {
     if (event.target.closest('.control-button, .help-button, .reset-button')) return;
-    event.preventDefault(); // Предотвращаем стандартное поведение (например, выделение)
+    event.preventDefault(); 
     
-    // Сброс и установка флага
     isLongPress = false;
     clearTimeout(longPressTimer);
     
     longPressTimer = setTimeout(() => {
         isLongPress = true;
-        handleLongPress(event);
+        handleLongPress(event); // Теперь удаление грани
     }, LONG_PRESS_DELAY);
 });
 
-// 2. Обработчик окончания касания/отпускания
+// 2. Обработчик окончания касания/отпускания (без изменений)
 renderer.domElement.addEventListener('pointerup', (event) => {
-    clearTimeout(longPressTimer); // Всегда отменяем таймер при pointerup
+    clearTimeout(longPressTimer); 
     
-    // **Ключевое исправление:** // Если флаг isLongPress установлен, это было удержание, и мы не обрабатываем это как тап.
     if (isLongPress) {
         isLongPress = false;
         return; 
     }
 
-    // Если не было долгого нажатия, обрабатываем как тап (для одиночного/двойного/тройного)
     handleInteraction(event);
 });
 
-// 3. Обработчик перемещения 
+// 3. Обработчик перемещения (без изменений)
 renderer.domElement.addEventListener('pointermove', (event) => {
-    // Если палец сдвинулся, сбрасываем таймер долгого нажатия, 
-    // но позволяем дальнейшей обработке pointerup понять, что это был обычный тап.
     if (longPressTimer) {
         clearTimeout(longPressTimer);
     }
@@ -450,26 +339,36 @@ const handleLongPress = (event) => {
     const intersects = raycaster.intersectObjects(formaCubeFaces, false);
     
     if (intersects.length > 0) {
-        const face = intersects[0].object;
-        
-        // Переключаем прозрачность
-        if (face.material.opacity === 1.0) {
-            face.material.opacity = 0.2;
-        } else {
-            face.material.opacity = 1.0;
+        // *** НОВАЯ ЛОГИКА: ТАП С УДЕРЖАНИЕМ = УДАЛЕНИЕ ГРАНИ ***
+        const intersection = intersects[0];
+        const obj = intersection.object;
+        const group = obj.parent; 
+
+        if (group) {
+            group.remove(obj);
+            obj.geometry.dispose(); 
+        }
+        const index = formaCubeFaces.indexOf(obj);
+        if (index > -1) {
+            formaCubeFaces.splice(index, 1);
         }
         
-        saveState();
+        if (group.children.length === 0) {
+            scene.remove(group);
+            if (group === formaCubeGroup) {
+                formaCubeGroup = null;
+            }
+        }
+        
+        // saveState(); // Вызов оставлен, но функция пуста
     }
     
-    // Важно: сброс счетчика тапов, чтобы не вызывать tapTimeout после завершения longPress
     tapCount = 0; 
 };
 
 
 const handleInteraction = (event) => {
     if (event.target.closest('.control-button, .help-button, .reset-button')) return;
-    // event.preventDefault() уже вызван в pointerdown, но здесь можно для верности
     
     const clientX = event.touches ? event.touches[0].clientX : event.clientX;
     const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -496,7 +395,7 @@ const handleInteraction = (event) => {
             const group = obj.parent; 
 
             if (currentTapCount === 2) {
-                // ДВОЙНОЙ ТАП НА ГРАНЬ: Наращивание нового куба
+                // ДВОЙНОЙ ТАП НА ГРАНЬ: Наращивание нового куба (Логика не менялась)
                 const faceNormal = intersection.face.normal.clone();
                 faceNormal.transformDirection(obj.matrixWorld); 
                 faceNormal.normalize();
@@ -508,27 +407,18 @@ const handleInteraction = (event) => {
 
                 createFormaCube(newGroupPosition, excludeId);
                 
-                saveState();
+                // saveState(); 
                 
             } else if (currentTapCount === 1) {
-                // ОДИНОЧНЫЙ ТАП НА ГРАНЬ: Удаление отдельной грани
+                // *** НОВАЯ ЛОГИКА: ОДИНОЧНЫЙ ТАП = ПЕРЕКЛЮЧЕНИЕ ПРОЗРАЧНОСТИ ***
+                const face = obj;
                 
-                if (group) {
-                    group.remove(obj);
-                    obj.geometry.dispose(); 
-                }
-                const index = formaCubeFaces.indexOf(obj);
-                if (index > -1) {
-                    formaCubeFaces.splice(index, 1);
+                if (face.material.opacity === 1.0) {
+                    face.material.opacity = 0.2;
+                } else {
+                    face.material.opacity = 1.0;
                 }
                 
-                if (group.children.length === 0) {
-                    scene.remove(group);
-                    if (group === formaCubeGroup) {
-                        formaCubeGroup = null;
-                    }
-                }
-
                 if (Math.random() < wordSpawnProbability) {
                     const wordPos3D = intersection.point.clone(); 
                     const wordPos2D = wordPos3D.project(camera);
@@ -537,16 +427,11 @@ const handleInteraction = (event) => {
                     createSecret(wordX, wordY);
                 }
                 
-                saveState();
+                // saveState(); 
             }
             
         } else {
-            // --- ТАП ВНЕ ГРАНЕЙ (UNDO/REDO) ---
-            if (currentTapCount === 2) {
-                undo();
-            } else if (currentTapCount === 3) {
-                redo();
-            }
+            // --- ТАП ВНЕ ГРАНЕЙ (действий нет) ---
         }
     }, TAP_DELAY);
 };
@@ -698,7 +583,7 @@ const animate = () => {
     requestAnimationFrame(animate);
 };
 
-// Resize handling (оставлено без изменений)
+// Resize handling (без изменений)
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
