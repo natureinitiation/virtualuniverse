@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Forma Base - Reflected V10 - Warm Internal Light</title>
+    <link rel="manifest" href="manifest.json"> 
+    <style>
+        body {
+            user-select: none; 
+            margin: 0;
+            overflow: hidden;
+            -webkit-user-select: none; 
+            -moz-user-select: none; 
+            -ms-user-select: none; 
+        }
+        body { margin: 0; overflow: hidden; background: #000; }
+
+        .control-button { 
+            position: fixed;
+            bottom: 20px;
+            z-index: 1000;
+            cursor: pointer;
+            width: 80px; 
+            height: auto;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Further - слева */
+        .further-button {
+            left: 5%; 
+            right: auto;
+        }
+
+        /* Closer - справа */
+        .closer-button {
+            right: 5%; 
+            left: auto;
+        }
+            
+        /* Reset - верхний левый угол */
+        .reset-button {
+            position: fixed;
+            top: 20px;
+            left: 5%;
+            transform: none;
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Help - верхний правый угол */
+        .help-button {
+            position: fixed;
+            top: 20px;
+            right: 5%;
+            left: auto;
+            transform: none;
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+            
+        .hidden {
+            display: none;
+        }
+        .secret {
+            position: fixed;
+            transform: translate(-50%, -50%);
+            font-family: monospace;
+            font-size: 18px;
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            pointer-events: auto;
+            z-index: 1000;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="button control-button further-button">Further</div> 
+    <div class="button control-button closer-button">Closer</div> 
+    <div class="button reset-button">Reset</div> 
+    <a href="https://t.me/eqlectika/157" style="text-decoration: none;" class="help-button" target="_blank">Help</a>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+    <script>
+
+// Imports 
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x007bff);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 30; 
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// --- Background color change (без изменений) ---
+const colors = ['#006ee5', '#f84d54', '#000033', '#f84d54'];
+let currentColorIndex = 0;
+function changeBackgroundColor() {
+    currentColorIndex = (currentColorIndex + 1) % colors.length;
+    const targetColor = new THREE.Color(colors[currentColorIndex]);
+    animateBackgroundColor(targetColor);
+}
+function animateBackgroundColor(targetColor) {
+    const startColor = scene.background.clone();
+    const duration = 5;
+    const startTime = performance.now();
+    function updateBackgroundColor() {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const progress = Math.min(elapsed / duration, 1);
+        scene.background.lerpColors(startColor, targetColor, progress);
+        if (progress < 1) requestAnimationFrame(updateBackgroundColor);
+    }
+    updateBackgroundColor();
+}
+setInterval(changeBackgroundColor, 100000);
+
+// --- Controls and lights (БАЗОВОЕ ВНЕШНЕЕ ОСВЕЩЕНИЕ) ---
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.005;
+
+controls.enableZoom = false;
+controls.enablePan = true;
+controls.zoomSpeed = 0.5; 
+controls.panSpeed = 0.3;  
+
+// 1. Общий свет (AmbientLight): Базовая яркость
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
+scene.add(ambientLight);
+
+// Создаем группу для света, который будет двигаться с камерой
+const cameraLightGroup = new THREE.Group();
+camera.add(cameraLightGroup); 
+scene.add(camera); 
+
+// 2. Внешний Directional Light (для бликов)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+directionalLight.position.set(0, 0, 10); 
+cameraLightGroup.add(directionalLight);
+
+// 3. Внешний Цветной Directional Light (сзади)
+const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 1.0);
+ultramarineLight.position.set(0, 0, -10); 
+cameraLightGroup.add(ultramarineLight);
+// -----------------------------
+
+// Word-links (без изменений)
+const secrets = ['slowly', 'focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'];
+
+
+// Object storage
+let formaCubeFaces = []; 
+const activePoints = [];
+const collisionRaycaster = new THREE.Raycaster();
+
+// --- ЛОГИКА КУБА ИЗ 6 ГРАНЕЙ (Forma Base) ---
+let formaCubeGroup = null; 
+const CUBE_SIZE = 5; 
+
+// Функция для добавления внутреннего света (НОВЫЙ: Слабый Теплый Свет)
+function addInternalLights(group) {
+    // Теплый свет: Цвет 0xffaa00 (теплый оранжевый), Интенсивность 1.0 (очень низкая), Дистанция 0 (бесконечная)
+    const warmInternalLight = new THREE.PointLight(0xffaa00, 1.0, 0); 
+    
+    // Располагаем его точно в центре группы/куба
+    warmInternalLight.position.set(0, 0, 0); 
+    
+    group.add(warmInternalLight);
+}
+
+
+// КОНФИГУРАЦИЯ ГРАНЕЙ (без изменений)
+const FACE_CONFIGS = [
+    { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) },     
+    { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) },    
+    { color: 0x0000ff, pos: [0, CUBE_SIZE/2, 0], rot: [-Math.PI / 2, 0, 0], id: 2, normal: new THREE.Vector3(0, 1, 0) },    
+    { color: 0xffff00, pos: [0, -CUBE_SIZE/2, 0], rot: [Math.PI / 2, 0, 0], id: 3, normal: new THREE.Vector3(0, -1, 0) },    
+    { color: 0x00ffff, pos: [0, 0, CUBE_SIZE/2], rot: [0, 0, 0], id: 4, normal: new THREE.Vector3(0, 0, 1) },             
+    { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) },      
+];
+
+// Функция для определения, какую грань исключить при "наращивании" (без изменений)
+const getOppositeFaceId = (normal) => {
+    let bestMatchId = -1;
+    let minDot = Infinity; 
+
+    FACE_CONFIGS.forEach(config => {
+        const dot = config.normal.dot(normal); 
+        
+        if (dot < minDot) {
+            minDot = dot;
+            bestMatchId = config.id;
+        }
+    });
+    
+    return bestMatchId;
+};
+
+
+const createFormaCube = (position, excludeIndex = -1) => {
+    const faceGeometry = new THREE.PlaneGeometry(CUBE_SIZE, CUBE_SIZE);
+    
+    const newFormaCubeGroup = new THREE.Group();
+    newFormaCubeGroup.position.copy(position);
+
+    FACE_CONFIGS.forEach((config, index) => {
+        if (config.id === excludeIndex) return;
+
+        // **МАТЕРИАЛ: roughness 0.5 (полированный металл) для рассеивания света**
+        const material = new THREE.MeshStandardMaterial({
+            color: config.color, 
+            roughness: 0.5,    // Полированный металл для рассеянного отражения
+            metalness: 1.0,    
+            side: THREE.DoubleSide, 
+            transparent: true, 
+            opacity: 1.0,      
+            envMap: scene.background, // Отражение фона
+        });
+        
+        const face = new THREE.Mesh(faceGeometry, material);
+        face.position.set(...config.pos);
+        face.rotation.set(...config.rot);
+        face.name = `face_${config.id}`; 
+        
+        newFormaCubeGroup.add(face);
+        formaCubeFaces.push(face); 
+    });
+    
+    scene.add(newFormaCubeGroup);
+    return newFormaCubeGroup;
+};
+
+const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
+    if (formaCubeGroup) {
+        scene.remove(formaCubeGroup);
+        // Удаляем свет из старой группы (если он был добавлен)
+        formaCubeGroup.children.filter(child => child.isLight).forEach(light => formaCubeGroup.remove(light));
+
+        formaCubeFaces.forEach(face => face.geometry.dispose());
+        formaCubeFaces = [];
+        formaCubeGroup = null;
+    }
+    formaCubeGroup = createFormaCube(position, -1); 
+    controls.target.set(position.x, position.y, position.z); 
+    controls.update();
+
+    // *** ВЫЗЫВАЕМ ВНУТРЕННИЙ СВЕТ ***
+    addInternalLights(formaCubeGroup); 
+};
+// --- КОНЕЦ ЛОГИКИ КУБА ---
+
+
+// --- ЛОГИКА ТАПА И УДЕРЖАНИЯ (Обработка envMap при прозрачности) ---
+let tapTimeout;
+let longPressTimer;
+let tapCount = 0;
+const TAP_DELAY = 400; 
+const LONG_PRESS_DELAY = 700; 
+let isLongPress = false;
+
+// 1. Обработчик начала касания/нажатия (без изменений)
+renderer.domElement.addEventListener('pointerdown', (event) => {
+    if (event.target.closest('.control-button, .help-button, .reset-button')) return;
+    event.preventDefault(); 
+    
+    isLongPress = false;
+    clearTimeout(longPressTimer);
+    
+    longPressTimer = setTimeout(() => {
+        isLongPress = true;
+        handleLongPress(event); // Теперь удаление грани
+    }, LONG_PRESS_DELAY);
+});
+
+// 2. Обработчик окончания касания/отпускания (без изменений)
+renderer.domElement.addEventListener('pointerup', (event) => {
+    clearTimeout(longPressTimer); 
+    
+    if (isLongPress) {
+        isLongPress = false;
+        return; 
+    }
+
+    handleInteraction(event);
+});
+
+// 3. Обработчик перемещения (без изменений)
+renderer.domElement.addEventListener('pointermove', (event) => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+    }
+    isLongPress = false;
+});
+
+
+const handleLongPress = (event) => {
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    
+    const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(formaCubeFaces, false);
+    
+    if (intersects.length > 0) {
+        // *** ТАП С УДЕРЖАНИЕМ = УДАЛЕНИЕ ГРАНИ ***
+        const intersection = intersects[0];
+        const obj = intersection.object;
+        const group = obj.parent; 
+
+        if (group) {
+            group.remove(obj);
+            obj.geometry.dispose(); 
+        }
+        const index = formaCubeFaces.indexOf(obj);
+        if (index > -1) {
+            formaCubeFaces.splice(index, 1);
+        }
+        
+        if (group.children.length === 0) {
+            scene.remove(group);
+            if (group === formaCubeGroup) {
+                formaCubeGroup = null;
+            }
+        }
+    }
+    
+    tapCount = 0; 
+};
+
+
+const handleInteraction = (event) => {
+    if (event.target.closest('.control-button, .help-button, .reset-button')) return;
+    
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    
+    const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(formaCubeFaces, false);
+    const wordSpawnProbability = 0.3;
+    
+    tapCount++;
+    
+    if (tapTimeout) clearTimeout(tapTimeout);
+
+    tapTimeout = setTimeout(() => {
+        const currentTapCount = tapCount;
+        tapCount = 0; 
+        
+        if (intersects.length > 0) {
+            // --- ТАП НА ГРАНЬ ---
+            const intersection = intersects[0];
+            const obj = intersection.object;
+            const group = obj.parent; 
+
+            if (currentTapCount === 2) {
+                // ДВОЙНОЙ ТАП НА ГРАНЬ: Наращивание нового куба (Логика не менялась)
+                const faceNormal = intersection.face.normal.clone();
+                faceNormal.transformDirection(obj.matrixWorld); 
+                faceNormal.normalize();
+                
+                const groupWorldPos = group.position.clone();
+                const newGroupPosition = groupWorldPos.clone().add(faceNormal.clone().multiplyScalar(CUBE_SIZE));
+                
+                const excludeId = getOppositeFaceId(faceNormal);
+
+                createFormaCube(newGroupPosition, excludeId);
+                
+            } else if (currentTapCount === 1) {
+                // *** ОДИНОЧНЫЙ ТАП = ПЕРЕКЛЮЧЕНИЕ ПРОЗРАЧНОСТИ + ENVMAP ***
+                const face = obj;
+                
+                if (face.material.opacity === 1.0) {
+                    face.material.opacity = 0.5;
+                    // Уменьшаем отражение при полупрозрачности
+                    face.material.envMapIntensity = 0.5; 
+                } else {
+                    face.material.opacity = 1.0;
+                    // Возвращаем полную интенсивность отражения
+                    face.material.envMapIntensity = 1.0; 
+                }
+                face.material.needsUpdate = true;
+                
+                if (Math.random() < wordSpawnProbability) {
+                    const wordPos3D = intersection.point.clone(); 
+                    const wordPos2D = wordPos3D.project(camera);
+                    const wordX = (wordPos2D.x * 0.5 + 0.5) * window.innerWidth;
+                    const wordY = (-wordPos2D.y * 0.5 + 0.5) * window.innerHeight;
+                    createSecret(wordX, wordY);
+                }
+            }
+            
+        } else {
+            // --- ТАП ВНЕ ГРАНЕЙ (действий нет) ---
+        }
+    }, TAP_DELAY);
+};
+
+// ... (Word spawning functions, без изменений) ...
+function createSecret(x, y) {
+    const secret = document.createElement('a');
+    secret.className = 'secret';
+    const word = secrets[Math.floor(Math.random() * secrets.length)];
+    secret.textContent = word;
+
+    secret.target = '_blank';
+    secret.style.cssText = `
+        position: fixed; left: ${x}px; top: ${y}px; transform: translate(-50%, -50%); opacity: 0;
+        font-family: monospace; font-size: 18px; color: white; text-decoration: none;
+        padding: 10px; border-radius: 8px; pointer-events: auto; z-index: 1000;
+    `;
+    document.body.appendChild(secret);
+
+    const rect = secret.getBoundingClientRect();
+    const minWordDistance = Math.max(rect.width, rect.height) + 20;
+    if (isWordOccupied(x, y, minWordDistance)) {
+        secret.remove();
+        return;
+    }
+
+    activePoints.push({ x, y, timestamp: Date.now(), isWord: true });
+
+    setTimeout(() => {
+        secret.style.opacity = 1;
+        secret.style.transform = 'translate(-50%, -50%) scale(1)';
+    }, 10);
+
+    setTimeout(() => {
+        secret.style.opacity = 0;
+        secret.style.transform = 'translate(-50%, -50%) scale(0.8)';
+    }, 8000);
+
+    setTimeout(() => {
+        secret.remove();
+        const index = activePoints.findIndex(p => p.x === x && p.y === y && p.isWord);
+        if (index !== -1) activePoints.splice(index, 1);
+    }, 8500);
+
+    secret.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (!e.ctrlKey && !e.metaKey && secret.href === window.location.href + '#') {
+            secret.remove();
+        }
+    });
+}
+
+function isWordOccupied(x, y, minDistance) {
+    return activePoints.some(point => {
+        if (!point.isWord) return false;
+        const dx = point.x - x;
+        const dy = point.y - y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < minDistance;
+    });
+}
+// ... (конец Word spawning functions) ...
+
+
+// --- ЛОГИКА КОЛЛИЗИЙ (без изменений) ---
+const applyCameraRepulsion = (startPosition, direction, distanceToMove) => {
+    const safeDistance = 0.5; 
+    
+    if (formaCubeFaces.length === 0) return distanceToMove; 
+
+    collisionRaycaster.set(startPosition, direction);
+    collisionRaycaster.far = Math.abs(distanceToMove) + safeDistance; 
+
+    const intersects = collisionRaycaster.intersectObjects(formaCubeFaces, false);
+    
+    if (intersects.length > 0) {
+        const intersection = intersects[0];
+        const distToIntersection = intersection.distance;
+        
+        if (distToIntersection < Math.abs(distanceToMove) + safeDistance) {
+            return Math.max(0, distToIntersection - safeDistance);
+        }
+    }
+    
+    return Math.abs(distanceToMove); 
+};
+
+
+// Camera movement (Closer/Further) (без изменений)
+const moveCamera = (directionVector, distance) => {
+    const initialPosition = camera.position.clone();
+    
+    const direction = directionVector.clone().normalize();
+    
+    const actualStepDistance = applyCameraRepulsion(initialPosition, direction, distance);
+    
+    if (actualStepDistance > 0) {
+        camera.position.add(direction.clone().multiplyScalar(actualStepDistance));
+        controls.target.add(direction.clone().multiplyScalar(actualStepDistance));
+        controls.update(); 
+    }
+};
+
+const closerButton = document.querySelector('.closer-button');
+const furtherButton = document.querySelector('.further-button');
+const resetButton = document.querySelector('.reset-button'); 
+
+closerButton.addEventListener('click', () => {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction); 
+    moveCamera(direction, CUBE_SIZE); 
+});
+
+furtherButton.addEventListener('click', () => {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction); 
+    direction.negate(); 
+    moveCamera(direction, CUBE_SIZE); 
+});
+
+resetButton.addEventListener('click', () => {
+    window.location.reload(); 
+});
+
+
+renderer.domElement.addEventListener('wheel', (event) => {
+    if (event.deltaY < 0) { 
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction); 
+        const initialPosition = camera.position.clone();
+        
+        const currentDistanceToCenter = camera.position.distanceTo(controls.target);
+
+        if (currentDistanceToCenter < 1 || applyCameraRepulsion(initialPosition, direction, 0.5) < 0.01) { 
+            event.preventDefault(); 
+            return;
+        }
+    }
+    
+    controls.update();
+});
+
+
+// Animation loop (ОТКЛЮЧЕНА CubeCamera)
+const animate = () => {
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+};
+
+// Resize handling (без изменений)
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+window.addEventListener('orientationchange', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ИНИЦИАЛИЗАЦИЯ КУБА
+initFormaCube();
+animate();
+
+    </script>
+</body>
+</html>
