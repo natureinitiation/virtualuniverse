@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Forma Base - Reflected V10 - Warm Internal Light</title>
+    <title>Forma Base - Reflected V14 - Ultra Smooth Flight</title>
     <link rel="manifest" href="manifest.json"> 
     <style>
         body {
@@ -44,6 +44,12 @@
             left: auto;
         }
             
+        /* Fly/Stop - внизу по центру */
+        .fly-button {
+            left: 50%; 
+            transform: translateX(-50%);
+        }
+
         /* Reset - верхний левый угол */
         .reset-button {
             position: fixed;
@@ -105,6 +111,7 @@
 <body>
     <div class="button control-button further-button">Further</div> 
     <div class="button control-button closer-button">Closer</div> 
+    <div class="button control-button fly-button">Fly</div> 
     <div class="button reset-button">Reset</div> 
     <a href="https://t.me/eqlectika/157" style="text-decoration: none;" class="help-button" target="_blank">Help</a>
 
@@ -120,6 +127,14 @@ camera.position.z = 30;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+// --- Настройки полета (НОВЫЕ: УЛЬТРА-ПЛАВНАЯ ДИНАМИКА) ---
+let isFlying = false;
+let currentSpeed = 0.0;             // Начинаем с 0
+const MAX_SPEED = 0.3;              // Снижена
+const ACCELERATION = 0.00033;        // Сильно снижена для очень медленного разгона
+const DECCELERATION = 0.00033;        // Сильно снижена для медленного, плавного торможения
+// -------------------------------------------------------------
 
 // --- Background color change (без изменений) ---
 const colors = ['#006ee5', '#f84d54', '#000033', '#f84d54'];
@@ -143,7 +158,7 @@ function animateBackgroundColor(targetColor) {
 }
 setInterval(changeBackgroundColor, 100000);
 
-// --- Controls and lights (БАЗОВОЕ ВНЕШНЕЕ ОСВЕЩЕНИЕ) ---
+// --- Controls and lights (без изменений) ---
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.005;
@@ -153,7 +168,7 @@ controls.enablePan = true;
 controls.zoomSpeed = 0.5; 
 controls.panSpeed = 0.3;  
 
-// 1. Общий свет (AmbientLight): Базовая яркость
+// 1. Общий свет (AmbientLight)
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
 scene.add(ambientLight);
 
@@ -186,14 +201,10 @@ const collisionRaycaster = new THREE.Raycaster();
 let formaCubeGroup = null; 
 const CUBE_SIZE = 5; 
 
-// Функция для добавления внутреннего света (НОВЫЙ: Слабый Теплый Свет)
+// Функция для добавления внутреннего света (Слабый Теплый Свет)
 function addInternalLights(group) {
-    // Теплый свет: Цвет 0xffaa00 (теплый оранжевый), Интенсивность 1.0 (очень низкая), Дистанция 0 (бесконечная)
     const warmInternalLight = new THREE.PointLight(0xffaa00, 1.0, 0); 
-    
-    // Располагаем его точно в центре группы/куба
     warmInternalLight.position.set(0, 0, 0); 
-    
     group.add(warmInternalLight);
 }
 
@@ -208,7 +219,6 @@ const FACE_CONFIGS = [
     { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) },      
 ];
 
-// Функция для определения, какую грань исключить при "наращивании" (без изменений)
 const getOppositeFaceId = (normal) => {
     let bestMatchId = -1;
     let minDot = Infinity; 
@@ -235,15 +245,15 @@ const createFormaCube = (position, excludeIndex = -1) => {
     FACE_CONFIGS.forEach((config, index) => {
         if (config.id === excludeIndex) return;
 
-        // **МАТЕРИАЛ: roughness 0.5 (полированный металл) для рассеивания света**
+        // **МАТЕРИАЛ: roughness 0.5 (полированный металл)**
         const material = new THREE.MeshStandardMaterial({
             color: config.color, 
-            roughness: 0.5,    // Полированный металл для рассеянного отражения
+            roughness: 0.5,    
             metalness: 1.0,    
             side: THREE.DoubleSide, 
             transparent: true, 
             opacity: 1.0,      
-            envMap: scene.background, // Отражение фона
+            envMap: scene.background, 
         });
         
         const face = new THREE.Mesh(faceGeometry, material);
@@ -256,13 +266,15 @@ const createFormaCube = (position, excludeIndex = -1) => {
     });
     
     scene.add(newFormaCubeGroup);
+    
+    addInternalLights(newFormaCubeGroup); 
+    
     return newFormaCubeGroup;
 };
 
 const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
     if (formaCubeGroup) {
         scene.remove(formaCubeGroup);
-        // Удаляем свет из старой группы (если он был добавлен)
         formaCubeGroup.children.filter(child => child.isLight).forEach(light => formaCubeGroup.remove(light));
 
         formaCubeFaces.forEach(face => face.geometry.dispose());
@@ -272,14 +284,11 @@ const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15
     formaCubeGroup = createFormaCube(position, -1); 
     controls.target.set(position.x, position.y, position.z); 
     controls.update();
-
-    // *** ВЫЗЫВАЕМ ВНУТРЕННИЙ СВЕТ ***
-    addInternalLights(formaCubeGroup); 
 };
 // --- КОНЕЦ ЛОГИКИ КУБА ---
 
 
-// --- ЛОГИКА ТАПА И УДЕРЖАНИЯ (Обработка envMap при прозрачности) ---
+// --- ЛОГИКА ТАПА И УДЕРЖАНИЯ (без изменений) ---
 let tapTimeout;
 let longPressTimer;
 let tapCount = 0;
@@ -287,7 +296,6 @@ const TAP_DELAY = 400;
 const LONG_PRESS_DELAY = 700; 
 let isLongPress = false;
 
-// 1. Обработчик начала касания/нажатия (без изменений)
 renderer.domElement.addEventListener('pointerdown', (event) => {
     if (event.target.closest('.control-button, .help-button, .reset-button')) return;
     event.preventDefault(); 
@@ -297,11 +305,10 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
     
     longPressTimer = setTimeout(() => {
         isLongPress = true;
-        handleLongPress(event); // Теперь удаление грани
+        handleLongPress(event); 
     }, LONG_PRESS_DELAY);
 });
 
-// 2. Обработчик окончания касания/отпускания (без изменений)
 renderer.domElement.addEventListener('pointerup', (event) => {
     clearTimeout(longPressTimer); 
     
@@ -313,7 +320,6 @@ renderer.domElement.addEventListener('pointerup', (event) => {
     handleInteraction(event);
 });
 
-// 3. Обработчик перемещения (без изменений)
 renderer.domElement.addEventListener('pointermove', (event) => {
     if (longPressTimer) {
         clearTimeout(longPressTimer);
@@ -333,7 +339,6 @@ const handleLongPress = (event) => {
     const intersects = raycaster.intersectObjects(formaCubeFaces, false);
     
     if (intersects.length > 0) {
-        // *** ТАП С УДЕРЖАНИЕМ = УДАЛЕНИЕ ГРАНИ ***
         const intersection = intersects[0];
         const obj = intersection.object;
         const group = obj.parent; 
@@ -381,13 +386,11 @@ const handleInteraction = (event) => {
         tapCount = 0; 
         
         if (intersects.length > 0) {
-            // --- ТАП НА ГРАНЬ ---
             const intersection = intersects[0];
             const obj = intersection.object;
             const group = obj.parent; 
 
             if (currentTapCount === 2) {
-                // ДВОЙНОЙ ТАП НА ГРАНЬ: Наращивание нового куба (Логика не менялась)
                 const faceNormal = intersection.face.normal.clone();
                 faceNormal.transformDirection(obj.matrixWorld); 
                 faceNormal.normalize();
@@ -397,19 +400,16 @@ const handleInteraction = (event) => {
                 
                 const excludeId = getOppositeFaceId(faceNormal);
 
-                createFormaCube(newGroupPosition, excludeId);
+                const newCube = createFormaCube(newGroupPosition, excludeId);
                 
             } else if (currentTapCount === 1) {
-                // *** ОДИНОЧНЫЙ ТАП = ПЕРЕКЛЮЧЕНИЕ ПРОЗРАЧНОСТИ + ENVMAP ***
                 const face = obj;
                 
                 if (face.material.opacity === 1.0) {
                     face.material.opacity = 0.5;
-                    // Уменьшаем отражение при полупрозрачности
                     face.material.envMapIntensity = 0.5; 
                 } else {
                     face.material.opacity = 1.0;
-                    // Возвращаем полную интенсивность отражения
                     face.material.envMapIntensity = 1.0; 
                 }
                 face.material.needsUpdate = true;
@@ -423,9 +423,7 @@ const handleInteraction = (event) => {
                 }
             }
             
-        } else {
-            // --- ТАП ВНЕ ГРАНЕЙ (действий нет) ---
-        }
+        } 
     }, TAP_DELAY);
 };
 
@@ -531,6 +529,7 @@ const moveCamera = (directionVector, distance) => {
 const closerButton = document.querySelector('.closer-button');
 const furtherButton = document.querySelector('.further-button');
 const resetButton = document.querySelector('.reset-button'); 
+const flyButton = document.querySelector('.fly-button');
 
 closerButton.addEventListener('click', () => {
     const direction = new THREE.Vector3();
@@ -568,12 +567,41 @@ renderer.domElement.addEventListener('wheel', (event) => {
 });
 
 
-// Animation loop (ОТКЛЮЧЕНА CubeCamera)
+// --- Обработчик кнопки "Fly" (без изменений) ---
+flyButton.addEventListener('click', () => {
+    isFlying = !isFlying;
+    if (isFlying) {
+        flyButton.textContent = 'Stop';
+    } else {
+        flyButton.textContent = 'Fly';
+    }
+});
+// ----------------------------------------------
+
+// Animation loop (НОВАЯ ЛОГИКА СКОРОСТИ)
 const animate = () => {
     controls.update();
+
+    // 1. ЛОГИКА РАЗГОНА И ТОРМОЖЕНИЯ
+    if (isFlying) {
+        // Разгон: Увеличиваем currentSpeed до MAX_SPEED (очень медленно)
+        currentSpeed = Math.min(currentSpeed + ACCELERATION, MAX_SPEED);
+    } else {
+        // Торможение: Уменьшаем currentSpeed до 0 (медленно, плавно)
+        currentSpeed = Math.max(currentSpeed - DECCELERATION, 0.0);
+    }
+    
+    // 2. ДВИЖЕНИЕ
+    if (currentSpeed > 0) {
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction); 
+        moveCamera(direction, currentSpeed); 
+    }
+    
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 };
+// ---------------------------------------------
 
 // Resize handling (без изменений)
 window.addEventListener('resize', () => {
