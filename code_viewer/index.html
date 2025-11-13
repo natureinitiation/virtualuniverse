@@ -96,11 +96,26 @@
   text-decoration: underline;
 }
 
+/* Новый стиль для поля поиска */
+#searchField {
+  padding: 5px;
+  font-size: 14px;
+  border: 1px solid #555;
+  background-color: #222;
+  color: white;
+  width: 100px;
+}
+
     @media (max-aspect-ratio: 1/1) {
       body {
         flex-direction: column;
       }
     }
+
+/* ПРАВКА: Добавление touch-action: manipulation; для предотвращения двойного тап-зума */
+html, body {
+    touch-action: manipulation; 
+}
   </style>
 </head>
 <body>
@@ -118,6 +133,7 @@
       </select>
       <button id="saveButton">Save</button>
       <a id="helpLink" href="https://t.me/eugenebox" target="_blank">Help</a>
+      <input type="text" id="searchField" placeholder="Search (Enter)">
 
     </div>
   </div>
@@ -128,6 +144,7 @@
     const preview = document.getElementById("preview");
     const saveButton = document.getElementById("saveButton");
     const fileFormat = document.getElementById("fileFormat");
+    const searchField = document.getElementById("searchField"); // НОВОЕ
 
     const mimeTypes = {
       html: "text/html",
@@ -154,6 +171,48 @@
       document.body.removeChild(a);
     });
 
+    // НОВОЕ: Логика поиска по нажатию Enter
+    searchField.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            const searchText = searchField.value;
+            performSearch(searchText);
+        }
+    });
+
+    function performSearch(searchText) {
+        if (searchText.trim() === "") {
+            // Очистка выделения, если строка поиска пуста (опционально)
+            clearSelection(editor);
+            return;
+        }
+
+        const editorContent = editor.value;
+        const startIndex = editorContent.indexOf(searchText);
+
+        if (startIndex !== -1) {
+            // Найдено: выделяем и скроллим к найденному тексту
+            editor.focus();
+            editor.setSelectionRange(startIndex, startIndex + searchText.length);
+            // ПРИМЕЧАНИЕ: Автоматический скролл к выделенному тексту часто работает, 
+            // но может потребовать дополнительных библиотек для точной настройки.
+        } else {
+            // Не найдено: можно добавить визуальный фидбек, например, мигание поля
+            searchField.style.backgroundColor = 'red';
+            setTimeout(() => {
+                searchField.style.backgroundColor = '#222';
+            }, 300);
+        }
+    }
+
+    function clearSelection(textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+
+        // Если что-то выделено, снимаем выделение, устанавливая курсор в начало
+        if (start !== end) {
+            textarea.setSelectionRange(start, start); 
+        }
+    }
 
   </script>
 </body>
