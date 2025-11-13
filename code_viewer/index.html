@@ -144,7 +144,7 @@ html, body {
     const preview = document.getElementById("preview");
     const saveButton = document.getElementById("saveButton");
     const fileFormat = document.getElementById("fileFormat");
-    const searchField = document.getElementById("searchField"); // НОВОЕ
+    const searchField = document.getElementById("searchField");
 
     const mimeTypes = {
       html: "text/html",
@@ -171,32 +171,39 @@ html, body {
       document.body.removeChild(a);
     });
 
-    // НОВОЕ: Логика поиска по нажатию Enter
+    // ИСПРАВЛЕНИЕ: Логика поиска по нажатию Enter
     searchField.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
+            // !!! ГЛАВНОЕ ИСПРАВЛЕНИЕ: Предотвращаем стандартное действие Enter
+            event.preventDefault(); 
             const searchText = searchField.value;
             performSearch(searchText);
+            // Опционально: убираем фокус с поля поиска, чтобы не было случайного удаления
+            searchField.blur(); 
         }
     });
 
     function performSearch(searchText) {
         if (searchText.trim() === "") {
-            // Очистка выделения, если строка поиска пуста (опционально)
             clearSelection(editor);
             return;
         }
 
         const editorContent = editor.value;
+        // Поиск с учетом регистра. Для поиска без учета регистра используйте регулярное выражение.
         const startIndex = editorContent.indexOf(searchText);
 
         if (startIndex !== -1) {
-            // Найдено: выделяем и скроллим к найденному тексту
+            // Найдено: устанавливаем фокус и выделяем текст
             editor.focus();
+            
+            // Задержка необходима, чтобы гарантировать, что браузер успел обработать фокус
+            // Но часто работает и без нее. Попробуем сначала без задержки.
             editor.setSelectionRange(startIndex, startIndex + searchText.length);
-            // ПРИМЕЧАНИЕ: Автоматический скролл к выделенному тексту часто работает, 
-            // но может потребовать дополнительных библиотек для точной настройки.
+            
+            // Прокрутка к выделенному тексту (работает автоматически в большинстве браузеров)
         } else {
-            // Не найдено: можно добавить визуальный фидбек, например, мигание поля
+            // Не найдено: визуальный фидбек
             searchField.style.backgroundColor = 'red';
             setTimeout(() => {
                 searchField.style.backgroundColor = '#222';
@@ -205,15 +212,11 @@ html, body {
     }
 
     function clearSelection(textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-
-        // Если что-то выделено, снимаем выделение, устанавливая курсор в начало
-        if (start !== end) {
-            textarea.setSelectionRange(start, start); 
-        }
+        // Снимаем выделение, устанавливая курсор в начало
+        textarea.setSelectionRange(0, 0); 
     }
 
   </script>
+
 </body>
 </html>
