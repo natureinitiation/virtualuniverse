@@ -10,7 +10,7 @@
     html, body {
     overscroll-behavior: none;
     }
- { touch-action: manipulation; }
+/* ИСПРАВЛЕНИЕ 1: Убираем touch-action: manipulation; со всего body/html */
     body {
       margin: 0;
       display: flex;
@@ -21,6 +21,23 @@
       color: white;
       position: relative;
     }
+
+/* НОВОЕ ПРАВИЛО: Применяем touch-action только к неинтерактивным областям */
+#preview {
+  touch-action: manipulation; /* ИСПРАВЛЕНИЕ 2: Применяем правило к iframe-превью */
+  flex: 61.8;
+  border: none;
+  background-color: #333333;
+  overflow: auto;
+}
+#controlPanel {
+  touch-action: manipulation;
+}
+/* Костыль для предотвращения зума на всей странице, кроме редактора */
+body > :not(#editor) {
+    touch-action: manipulation;
+}
+
 
 #controlPanel > div {
   max-width: 300px;
@@ -59,13 +76,6 @@
       position: relative;
     }
 
-    #preview {
-      flex: 61.8;
-      border: none;
-      background-color: #333333;
-      overflow: auto;
-    }
-
     #fileFormat {
       font-size: 14px;
       padding: 5px;
@@ -96,7 +106,7 @@
   text-decoration: underline;
 }
 
-/* Новый стиль для поля поиска */
+/* Стиль для поля поиска */
 #searchField {
   padding: 5px;
   font-size: 14px;
@@ -111,11 +121,6 @@
         flex-direction: column;
       }
     }
-
-/* ПРАВКА: Добавление touch-action: manipulation; для предотвращения двойного тап-зума */
-html, body {
-    touch-action: manipulation; 
-}
   </style>
 </head>
 <body>
@@ -171,14 +176,12 @@ html, body {
       document.body.removeChild(a);
     });
 
-    // ИСПРАВЛЕНИЕ: Логика поиска по нажатию Enter
+    // Логика поиска по нажатию Enter
     searchField.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
-            // !!! ГЛАВНОЕ ИСПРАВЛЕНИЕ: Предотвращаем стандартное действие Enter
             event.preventDefault(); 
             const searchText = searchField.value;
             performSearch(searchText);
-            // Опционально: убираем фокус с поля поиска, чтобы не было случайного удаления
             searchField.blur(); 
         }
     });
@@ -190,20 +193,12 @@ html, body {
         }
 
         const editorContent = editor.value;
-        // Поиск с учетом регистра. Для поиска без учета регистра используйте регулярное выражение.
         const startIndex = editorContent.indexOf(searchText);
 
         if (startIndex !== -1) {
-            // Найдено: устанавливаем фокус и выделяем текст
             editor.focus();
-            
-            // Задержка необходима, чтобы гарантировать, что браузер успел обработать фокус
-            // Но часто работает и без нее. Попробуем сначала без задержки.
             editor.setSelectionRange(startIndex, startIndex + searchText.length);
-            
-            // Прокрутка к выделенному тексту (работает автоматически в большинстве браузеров)
         } else {
-            // Не найдено: визуальный фидбек
             searchField.style.backgroundColor = 'red';
             setTimeout(() => {
                 searchField.style.backgroundColor = '#222';
@@ -212,11 +207,9 @@ html, body {
     }
 
     function clearSelection(textarea) {
-        // Снимаем выделение, устанавливая курсор в начало
         textarea.setSelectionRange(0, 0); 
     }
 
   </script>
-
 </body>
 </html>
