@@ -49,15 +49,20 @@
   text-align: right;
   font-family: monospace;
   font-size: 14px;
-  line-height: 1.2; /* Важно! */
+  line-height: 1.2; 
   color: #666; 
   background-color: #111;
-  overflow: hidden;
   user-select: none;
   white-space: pre-wrap;
-  position: sticky;
-  top: 0;
-  bottom: 0;
+  
+  /* ИСПРАВЛЕНИЕ: Разрешаем прокрутку, чтобы scrollTop работал */
+  overflow-y: scroll;
+}
+/* ИСПРАВЛЕНИЕ: Скрываем полосу прокрутки для WebKit (iOS/iPadOS) */
+#lineNumbering::-webkit-scrollbar {
+  display: none;
+  width: 0; 
+  height: 0;
 }
 
 
@@ -77,18 +82,23 @@
 }
 
 /* При ландшафтной ориентации меняем на вертикальное расположение */
-@media (orientation: landscape) {
-  #controlPanel > div {
+@media (max-aspect-ratio: 1/1) {
+  body {
     flex-direction: column;
+  }
+  
+  /* Гарантируем, что скролл остается внутри элементов */
+  #editorContainer, #preview {
+    min-height: 0; 
   }
 }
 
 #preview, #controlPanel {
-  touch-action: manipulation; /* Сохраняем, чтобы предотвратить скролл при двойном тапе */
+  touch-action: manipulation; 
 }
 
     #editor {
-      flex: 1; /* Занимает оставшееся место в контейнере */
+      flex: 1; 
       padding: 10px;
       border: none;
       resize: none;
@@ -99,9 +109,9 @@
       outline: none;
       caret-color: white;
       position: relative;
-      line-height: 1.2; /* Важно! */
+      line-height: 1.2; 
       box-sizing: border-box;
-      overflow-y: auto; /* Позволяет редактору прокручиваться */
+      overflow-y: auto; 
     }
     
     /* Добавляем стили для кнопок навигации по поиску */
@@ -214,7 +224,7 @@
     const searchField = document.getElementById("searchField");
     const prevMatchButton = document.getElementById("prevMatchButton");
     const nextMatchButton = document.getElementById("nextMatchButton");
-    const lineNumbering = document.getElementById("lineNumbering"); // НОВОЕ
+    const lineNumbering = document.getElementById("lineNumbering"); 
 
     let searchMatches = []; 
     let currentMatchIndex = -1; 
@@ -241,6 +251,7 @@
         resetSearch();
     });
 
+    // Теперь, когда у lineNumbering есть overflow-y: scroll, эта синхронизация должна работать
     editor.addEventListener('scroll', () => {
         lineNumbering.scrollTop = editor.scrollTop;
     });
@@ -263,7 +274,7 @@
     });
     
     // =========================================================================
-    // ЛОГИКА ПОИСКА (УЛУЧШЕНА ДЛЯ СТАБИЛЬНОСТИ)
+    // ЛОГИКА ПОИСКА
     // =========================================================================
 
     function resetSearch() {
@@ -304,16 +315,14 @@
         editor.setSelectionRange(start, end);
         
         // Автоматическая прокрутка:
-        // Устанавливаем прокрутку, чтобы найденный фрагмент был виден.
         const targetLine = editor.value.substring(0, start).split('\n').length;
-        const lineHeight = 1.2 * parseFloat(getComputedStyle(editor).fontSize); // Точнее считаем высоту строки
+        const fontSize = parseFloat(getComputedStyle(editor).fontSize);
+        const lineHeight = 1.2 * fontSize; 
         
-        // Скроллим так, чтобы строка была примерно посередине
         editor.scrollTop = targetLine * lineHeight - editor.clientHeight / 2;
     }
 
     function startSearch(searchText) {
-        // Если текст не менялся, переходим к следующему
         if (searchText === currentSearchTerm && searchMatches.length > 0) {
             nextMatch();
             return;
@@ -327,7 +336,6 @@
             highlightMatch(currentMatchIndex);
             searchField.style.backgroundColor = '#333333';
         } else {
-            // Не найдено: визуальный фидбек
             searchField.style.backgroundColor = 'red';
             setTimeout(() => {
                 searchField.style.backgroundColor = '#333333';
