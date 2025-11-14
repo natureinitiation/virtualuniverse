@@ -307,7 +307,6 @@
 
         preview.srcdoc = editor.value;
         updateLineNumbers();
-        // resetSearch() УДАЛЕН отсюда, чтобы курсор не сбрасывался
 
         // 2. ВОССТАНАВЛИВАЕМ позицию курсора
         editor.setSelectionRange(start, end);
@@ -346,10 +345,12 @@
     }
     
     function findAllMatches(searchText) {
+        // Примечание: searchText здесь уже обрезан от внешних пробелов.
         searchMatches = [];
         currentSearchTerm = searchText;
 
-        if (searchText.trim() === "") return;
+        // Пустой поиск уже обработан в startSearch, но оставим на всякий случай
+        if (searchText === "") return;
 
         const editorContent = editor.value;
         const normalizedContent = editorContent.toLowerCase();
@@ -373,26 +374,37 @@
         const end = start + currentSearchTerm.length;
         
         editor.focus();
+        // setSelectionRange автоматически прокручивает к выделенному тексту
         editor.setSelectionRange(start, end);
-        
-        // Автоматическая прокрутка: 
-        // Ручная прокрутка удалена, полагаемся на нативное поведение браузера при setSelectionRange
     }
 
     function startSearch(searchText) {
-        if (searchText === currentSearchTerm && searchMatches.length > 0) {
+        // Обязательно обрезаем пробелы с краев
+        const trimmedText = searchText.trim();
+
+        // Сброс, если поиск пустой (или содержит только пробелы)
+        if (trimmedText === "") {
+            resetSearch();
+            searchField.style.backgroundColor = '#333333';
+            return;
+        }
+        
+        // 1. Проверяем, ищем ли мы следующий результат для текущего термина
+        if (trimmedText === currentSearchTerm && searchMatches.length > 0) {
             nextMatch();
             return;
         }
-
+        
+        // 2. Запускаем новый поиск
         resetSearch();
-        findAllMatches(searchText);
+        findAllMatches(trimmedText); // Используем обрезанный текст
 
         if (searchMatches.length > 0) {
             currentMatchIndex = 0;
             highlightMatch(currentMatchIndex);
             searchField.style.backgroundColor = '#333333';
         } else {
+            // Нет совпадений (вызывает мигание красным)
             searchField.style.backgroundColor = 'red';
             setTimeout(() => {
                 searchField.style.backgroundColor = '#333333';
@@ -423,8 +435,8 @@
     });
     
     nextMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); // ФИКС: Предотвращает взятие фокуса кнопкой -> предотвращает появление клавиатуры
-        if (currentSearchTerm !== searchField.value) {
+        e.preventDefault(); 
+        if (searchField.value.trim() !== currentSearchTerm) {
             startSearch(searchField.value);
         } else {
             nextMatch();
@@ -432,8 +444,8 @@
     });
 
     prevMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); // ФИКС: Предотвращает взятие фокуса кнопкой -> предотвращает появление клавиатуры
-        if (currentSearchTerm !== searchField.value) {
+        e.preventDefault(); 
+        if (searchField.value.trim() !== currentSearchTerm) {
             startSearch(searchField.value);
         } else {
             prevMatch();
@@ -442,10 +454,8 @@
 
 
     function clearSelection(textarea) {
-        // Снимаем выделение, устанавливая курсор в текущую позицию
-        // Вместо setSelectionRange(0, 0), что сбросит его.
+        // Снимаем выделение, сохраняя курсор на месте
         const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
         textarea.setSelectionRange(start, start); 
     }
 
