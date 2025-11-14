@@ -222,9 +222,10 @@
   }
   
   /* В ПОРТРЕТНОМ РЕЖИМЕ: Позволяем поисковому блоку заполнить оставшееся место */
+  /* ТЕПЕРЬ ОН СТОИТ ПЕРВЫМ И ЕМУ ДАНО ВСЁ ПРОСТРАНСТВО */
   #searchControls {
       flex-grow: 1; /* РАСТЯГИВАЕТ контейнер поиска на оставшуюся часть строки */
-      /* min-width: 120px; УДАЛЕНО: Теперь он может сжиматься, если необходимо */
+      /* min-width отсутствует */
   }
   
   /* В ПОРТРЕТНОМ РЕЖИМЕ: Разрешаем полю поиска растягиваться внутри своего контейнера */
@@ -251,6 +252,12 @@
   <div id="controlPanel">
     <div>
       
+      <div id="searchControls">
+        <input type="text" id="searchField" placeholder="Search">
+        <button id="prevMatchButton" title="Previous Match">▲</button>
+        <button id="nextMatchButton" title="Next Match">▼</button>
+      </div>
+      
       <div id="fileActions">
         <select id="fileFormat">
           <option value="html">HTML</option>
@@ -261,12 +268,6 @@
         </select>
         <button id="saveButton">Save</button>
         </div>
-      
-      <div id="searchControls">
-        <input type="text" id="searchField" placeholder="Search">
-        <button id="prevMatchButton" title="Previous Match">▲</button>
-        <button id="nextMatchButton" title="Next Match">▼</button>
-      </div>
       
     </div>
   </div>
@@ -312,6 +313,7 @@
     });
 
     // Инициализация номеров строк при загрузке
+    updateLineровки
     updateLineNumbers();
 
 
