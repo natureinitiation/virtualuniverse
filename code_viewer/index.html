@@ -85,13 +85,14 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: space-between;
+  /* ИЗМЕНЕНИЕ: Сортировка элементов по вертикали */
+  justify-content: flex-start; 
   align-items: flex-start;
   padding: 10px;
   background-color: black;
   box-sizing: border-box;
   z-index: 10;
-  flex-direction: row;
+  flex-direction: column; /* КРИТИЧЕСКОЕ ИЗМЕНЕНИЕ: Вертикальный список */
 }
 
 #preview, #controlPanel {
@@ -198,6 +199,12 @@
   
   #controlPanel {
     flex: 0 0 auto; 
+  }
+  
+  /* В ПОРТРЕТНОМ РЕЖИМЕ ВЕРНУТЬ ЭЛЕМЕНТЫ УПРАВЛЕНИЯ К ГОРИЗОНТАЛЬНОЙ СОРТИРОВКЕ (для экономии места по высоте) */
+  #controlPanel > div {
+    flex-direction: row; 
+    justify-content: space-between;
   }
 }
   </style>
