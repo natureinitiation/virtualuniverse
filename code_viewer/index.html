@@ -13,7 +13,7 @@
     body {
       margin: 0;
       display: flex;
-      flex-direction: row;
+      flex-direction: row; /* Default: Horizontal */
       height: 100vh;
       font-family: Arial, sans-serif;
       background-color: black;
@@ -35,14 +35,26 @@
   color: black; 
 }
 
-/* НОВЫЕ СТИЛИ ДЛЯ НУМЕРАЦИИ СТРОК */
+/* Глобальные flex-параметры для горизонтального режима (по умолчанию) */
 #editorContainer {
   flex: 38.2;
   display: flex;
   position: relative;
   background-color: black;
 }
+#preview {
+  flex: 61.8;
+  border: none;
+  background-color: #333333;
+  overflow: auto;
+}
+#controlPanel {
+  /* Чтобы не участвовал в распределении ширины/высоты */
+  flex: 0 0 auto; 
+}
 
+
+/* СТИЛИ ДЛЯ НУМЕРАЦИИ СТРОК */
 #lineNumbering {
   width: 30px; 
   padding: 10px 5px 10px 10px;
@@ -54,11 +66,8 @@
   background-color: #111;
   user-select: none;
   white-space: pre-wrap;
-  
-  /* ИСПРАВЛЕНИЕ: Разрешаем прокрутку, чтобы scrollTop работал */
   overflow-y: scroll;
 }
-/* ИСПРАВЛЕНИЕ: Скрываем полосу прокрутки для WebKit (iOS/iPadOS) */
 #lineNumbering::-webkit-scrollbar {
   display: none;
   width: 0; 
@@ -68,7 +77,6 @@
 
 #controlPanel > div {
   max-width: 450px; 
-  
   display: flex;
   gap: 10px;
   align-items: center;
@@ -79,18 +87,6 @@
   box-sizing: border-box;
   z-index: 10;
   flex-direction: row;
-}
-
-/* При ландшафтной ориентации меняем на вертикальное расположение */
-@media (max-aspect-ratio: 1/1) {
-  body {
-    flex-direction: column;
-  }
-  
-  /* Гарантируем, что скролл остается внутри элементов */
-  #editorContainer, #preview {
-    min-height: 0; 
-  }
 }
 
 #preview, #controlPanel {
@@ -114,7 +110,7 @@
       overflow-y: auto; 
     }
     
-    /* Добавляем стили для кнопок навигации по поиску */
+    /* ... стили кнопок поиска и других элементов без изменений ... */
     #prevMatchButton, #nextMatchButton {
       width: 40px;
       height: 40px;
@@ -131,14 +127,6 @@
     #prevMatchButton:hover, #nextMatchButton:hover {
       background-color: #555555;
     }
-
-    #preview {
-      flex: 61.8;
-      border: none;
-      background-color: #333333;
-      overflow: auto;
-    }
-
     #fileFormat {
       font-size: 14px;
       padding: 5px;
@@ -158,8 +146,6 @@
     #saveButton:hover {
       background-color: #0056b3;
     }
-
-    /* Стили для поля поиска */
     #searchField {
       padding: 5px;
       font-size: 14px;
@@ -171,22 +157,40 @@
       box-sizing: border-box;
       border-radius: 5px;
     }
-
-#helpLink {
-  color: yellow;
-  text-decoration: none;
-  font-weight: normal;
-  font-size: 16px;
-}
-#helpLink:hover {
-  text-decoration: underline;
-}
-
-    @media (max-aspect-ratio: 1/1) {
-      body {
-        flex-direction: column;
-      }
+    #helpLink {
+      color: yellow;
+      text-decoration: none;
+      font-weight: normal;
+      font-size: 16px;
     }
+    #helpLink:hover {
+      text-decoration: underline;
+    }
+
+
+/* ВЕРТИКАЛЬНАЯ ОРИЕНТАЦИЯ (ПОРТРЕТ) */
+@media (max-aspect-ratio: 1/1) {
+  body {
+    flex-direction: column;
+  }
+  
+  /* ИСПРАВЛЕНИЕ: Принудительное распределение высоты и предотвращение растяжения */
+  #editorContainer {
+    /* flex-grow: 38.2, flex-shrink: 1, flex-basis: 0. Это разделяет оставшееся пространство */
+    flex: 38.2 1 0; 
+    min-height: 0; /* ГЛАВНЫЙ ФИКС: Предотвращает растяжение при переполнении контентом */
+  }
+  
+  #preview {
+    flex: 61.8 1 0;
+    min-height: 0;
+  }
+  
+  #controlPanel {
+    /* Гарантирует, что панель управления займет только необходимую высоту */
+    flex: 0 0 auto; 
+  }
+}
   </style>
 </head>
 <body>
@@ -251,7 +255,6 @@
         resetSearch();
     });
 
-    // Теперь, когда у lineNumbering есть overflow-y: scroll, эта синхронизация должна работать
     editor.addEventListener('scroll', () => {
         lineNumbering.scrollTop = editor.scrollTop;
     });
