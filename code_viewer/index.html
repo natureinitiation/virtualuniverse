@@ -42,6 +42,7 @@
   display: flex;
   position: relative;
   background-color: black;
+  /* ФИКС: Разрешаем сжатие контейнера */
   min-width: 0; 
 }
 #preview {
@@ -49,6 +50,7 @@
   border: none;
   background-color: #333333;
   overflow: auto;
+  /* ФИКС: Разрешаем сжатие предпросмотра */
   min-width: 0; 
 }
 #controlPanel {
@@ -79,6 +81,7 @@
 
 
 #controlPanel > div {
+  max-width: 450px; 
   display: flex;
   gap: 10px;
   align-items: center;
@@ -92,25 +95,6 @@
   flex-direction: column; 
 }
 
-/* Группировка элементов управления файлами */
-#fileActions {
-    display: flex;
-    gap: 10px;
-    flex-direction: row; 
-    align-items: center;
-    /* В ландшафте - минимальная ширина */
-    flex-shrink: 0; 
-}
-
-/* Группировка элементов поиска */
-#searchControls {
-    display: flex;
-    gap: 10px;
-    flex-direction: row; 
-    align-items: center;
-    /* В ландшафте - минимальная ширина */
-    flex-shrink: 0; 
-}
 
 #preview, #controlPanel {
   touch-action: manipulation; 
@@ -131,6 +115,7 @@
       line-height: 1.2; 
       box-sizing: border-box;
       overflow-y: auto; 
+      /* КРИТИЧЕСКИЙ ФИКС ЛАНДШАФТА: Позволяем содержимому сжиматься */
       min-width: 0;
     }
     
@@ -147,6 +132,7 @@
       text-align: center;
       border-radius: 5px;
       padding: 0;
+      /* Гарантируем, что кнопки не сжимаются, сохраняя свой размер */
       flex-shrink: 0; 
     }
     #prevMatchButton:hover, #nextMatchButton:hover {
@@ -177,15 +163,11 @@
       border: 1px solid #555;
       background-color: #333333;
       color: white;
+      /* ВОЗВРАЩАЕМ ПРОБЛЕМНОЕ ЗНАЧЕНИЕ ШИРИНЫ, ВЫЗЫВАЮЩЕЕ ПЕРЕПОЛНЕНИЕ В ПОРТРЕТЕ */
+      width: 100px; 
       height: 30px;
       box-sizing: border-box;
       border-radius: 5px;
-      
-      /* ФИКС ДЛЯ ЛАНДШАФТА: Фиксируем минимальную ширину в символах */
-      width: 10ch; 
-      flex-grow: 0;
-      flex-shrink: 0;
-      min-width: 0;
     }
 
 
@@ -199,12 +181,14 @@
   #editorContainer {
     flex: 38.2 1 0; 
     min-height: 0; 
+    /* Сброс горизонтальных фиксов */
     min-width: auto;
   }
   
   #preview {
     flex: 61.8 1 0;
     min-height: 0;
+    /* Сброс горизонтальных фиксов */
     min-width: auto;
   }
   
@@ -212,31 +196,15 @@
     flex: 0 0 auto; 
   }
   
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Элементы управления в одну строку (File Actions + Search Controls) */
+  /* В ПОРТРЕТНОМ РЕЖИМЕ: Элементы управления в одну строку */
   #controlPanel > div {
     flex-direction: row; 
+    /* Используем space-between для распределения элементов */
     justify-content: space-between;
+    /* Добавляем flex-wrap, чтобы предотвратить переполнение на очень маленьких экранах */
     flex-wrap: wrap; 
     align-items: center;
-    width: 100%;
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Позволяем поисковому блоку заполнить оставшееся место */
-  #searchControls {
-      flex-grow: 1; 
-      min-width: 120px; 
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Разрешаем полю поиска растягиваться внутри своего контейнера */
-  #searchField {
-      flex-grow: 1; 
-      width: auto; /* Сбрасываем фиксированную ширину 10ch */
-      min-width: 40px; 
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Группа действий с файлами остается минимальной */
-  #fileActions {
-      flex-shrink: 0;
+    max-width: none; /* Снимаем ограничение для портрета */
   }
 }
   </style>
@@ -250,23 +218,17 @@
 
   <div id="controlPanel">
     <div>
-      
-      <div id="fileActions">
-        <select id="fileFormat">
-          <option value="html">HTML</option>
-          <option value="json">JSON</option>
-          <option value="txt">TXT</option>
-          <option value="js">JS</option>
-          <option value="css">CSS</option>
-        </select>
-        <button id="saveButton">Save</button>
-      </div>
-      
-      <div id="searchControls">
-        <input type="text" id="searchField" placeholder="Search">
-        <button id="prevMatchButton" title="Previous Match">▲</button>
-        <button id="nextMatchButton" title="Next Match">▼</button>
-      </div>
+      <select id="fileFormat">
+        <option value="html">HTML</option>
+        <option value="json">JSON</option>
+        <option value="txt">TXT</option>
+        <option value="js">JS</option>
+        <option value="css">CSS</option>
+      </select>
+      <button id="saveButton">Save</button>
+      <input type="text" id="searchField" placeholder="Search (Enter)">
+      <button id="prevMatchButton" title="Previous Match">▲</button>
+      <button id="nextMatchButton" title="Next Match">▼</button>
       
     </div>
   </div>
