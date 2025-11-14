@@ -13,7 +13,7 @@
     body {
       margin: 0;
       display: flex;
-      flex-direction: row; /* Default: Horizontal */
+      flex-direction: row; /* Default: Horizontal (Landscape) */
       height: 100vh;
       font-family: Arial, sans-serif;
       background-color: black;
@@ -35,18 +35,20 @@
   color: black; 
 }
 
-/* Глобальные flex-параметры для горизонтального режима (по умолчанию) */
+/* Глобальные flex-параметры для горизонтального режима (ландшафт) */
 #editorContainer {
   flex: 38.2;
   display: flex;
   position: relative;
   background-color: black;
+  min-width: 0; /* Разрешаем сжатие контейнера */
 }
 #preview {
   flex: 61.8;
   border: none;
   background-color: #333333;
   overflow: auto;
+  min-width: 0; /* Разрешаем сжатие предпросмотра */
 }
 #controlPanel {
   /* Чтобы не участвовал в распределении ширины/высоты */
@@ -108,6 +110,8 @@
       line-height: 1.2; 
       box-sizing: border-box;
       overflow-y: auto; 
+      /* Фикс для предотвращения растяжения в ландшафтном режиме */
+      min-width: 0; 
     }
     
     /* ... стили кнопок поиска и других элементов без изменений ... */
@@ -169,7 +173,7 @@
 
 
 /* ВЕРТИКАЛЬНАЯ ОРИЕНТАЦИЯ (ПОРТРЕТ) */
-@media (max-aspect-ratio: 1/1) {
+@media (orientation: portrait) {
   body {
     flex-direction: column;
   }
