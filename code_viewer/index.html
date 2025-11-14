@@ -22,9 +22,9 @@
       position: relative;
     }
 
-/* ЯРКАЯ ПОДСВЕТКА НАЙДЕННОГО ФРАГМЕНТА */
+/* ЯРКАЯ ПОДСВЕТКА НАЙДЕННОГО ФРАГМЕНТА (светло-желтый) */
 ::-webkit-selection { 
-  background: #FFFF00; /* Ярко-желтый */
+  background: #FFFF00;
   color: black;       
 }
 ::-moz-selection { 
@@ -345,11 +345,9 @@
     }
     
     function findAllMatches(searchText) {
-        // Примечание: searchText здесь уже обрезан от внешних пробелов.
         searchMatches = [];
         currentSearchTerm = searchText;
 
-        // Пустой поиск уже обработан в startSearch, но оставим на всякий случай
         if (searchText === "") return;
 
         const editorContent = editor.value;
@@ -373,38 +371,37 @@
         const start = searchMatches[index];
         const end = start + currentSearchTerm.length;
         
+        // ФИКС: Убедимся, что фокус установлен для прокрутки и выделения
         editor.focus();
-        // setSelectionRange автоматически прокручивает к выделенному тексту
         editor.setSelectionRange(start, end);
     }
 
     function startSearch(searchText) {
-        // Обязательно обрезаем пробелы с краев
         const trimmedText = searchText.trim();
 
-        // Сброс, если поиск пустой (или содержит только пробелы)
+        // Если поле пустое, сброс и выход
         if (trimmedText === "") {
             resetSearch();
             searchField.style.backgroundColor = '#333333';
             return;
         }
         
-        // 1. Проверяем, ищем ли мы следующий результат для текущего термина
+        // Если текст не менялся, просто переходим к следующему совпадению
         if (trimmedText === currentSearchTerm && searchMatches.length > 0) {
             nextMatch();
             return;
         }
         
-        // 2. Запускаем новый поиск
+        // Новый поиск: сброс и поиск всех совпадений
         resetSearch();
-        findAllMatches(trimmedText); // Используем обрезанный текст
+        findAllMatches(trimmedText);
 
         if (searchMatches.length > 0) {
             currentMatchIndex = 0;
             highlightMatch(currentMatchIndex);
             searchField.style.backgroundColor = '#333333';
         } else {
-            // Нет совпадений (вызывает мигание красным)
+            // Нет совпадений (красный мигающий индикатор)
             searchField.style.backgroundColor = 'red';
             setTimeout(() => {
                 searchField.style.backgroundColor = '#333333';
@@ -435,7 +432,8 @@
     });
     
     nextMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); 
+        e.preventDefault(); // ФИКС: Предотвращает взятие фокуса кнопкой
+        // Если текст в поле поиска изменился, запускаем новый поиск, иначе - следующий
         if (searchField.value.trim() !== currentSearchTerm) {
             startSearch(searchField.value);
         } else {
@@ -444,7 +442,8 @@
     });
 
     prevMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); 
+        e.preventDefault(); // ФИКС: Предотвращает взятие фокуса кнопкой
+        // Если текст в поле поиска изменился, запускаем новый поиск, иначе - предыдущий
         if (searchField.value.trim() !== currentSearchTerm) {
             startSearch(searchField.value);
         } else {
