@@ -13,7 +13,8 @@
     body {
       margin: 0;
       display: flex;
-      flex-direction: row; /* Default: Horizontal (Landscape) */
+      /* БАЗОВЫЙ РЕЖИМ: ГОРИЗОНТАЛЬНЫЙ (ЛАНДШАФТ) */
+      flex-direction: row; 
       height: 100vh;
       font-family: Arial, sans-serif;
       background-color: black;
@@ -41,17 +42,19 @@
   display: flex;
   position: relative;
   background-color: black;
-  min-width: 0; /* Разрешаем сжатие контейнера */
+  /* ФИКС: Разрешаем сжатие контейнера */
+  min-width: 0; 
 }
 #preview {
   flex: 61.8;
   border: none;
   background-color: #333333;
   overflow: auto;
-  min-width: 0; /* Разрешаем сжатие предпросмотра */
+  /* ФИКС: Разрешаем сжатие предпросмотра */
+  min-width: 0; 
 }
 #controlPanel {
-  /* Чтобы не участвовал в распределении ширины/высоты */
+  /* Занимает только необходимую ширину */
   flex: 0 0 auto; 
 }
 
@@ -110,8 +113,8 @@
       line-height: 1.2; 
       box-sizing: border-box;
       overflow-y: auto; 
-      /* Фикс для предотвращения растяжения в ландшафтном режиме */
-      min-width: 0; 
+      /* КРИТИЧЕСКИЙ ФИКС ЛАНДШАФТА: Позволяем содержимому сжиматься */
+      min-width: 0;
     }
     
     /* ... стили кнопок поиска и других элементов без изменений ... */
@@ -178,20 +181,22 @@
     flex-direction: column;
   }
   
-  /* ИСПРАВЛЕНИЕ: Принудительное распределение высоты и предотвращение растяжения */
+  /* Переопределение для вертикального деления по высоте */
   #editorContainer {
-    /* flex-grow: 38.2, flex-shrink: 1, flex-basis: 0. Это разделяет оставшееся пространство */
     flex: 38.2 1 0; 
-    min-height: 0; /* ГЛАВНЫЙ ФИКС: Предотвращает растяжение при переполнении контентом */
+    min-height: 0; 
+    /* Сброс горизонтальных фиксов */
+    min-width: auto;
   }
   
   #preview {
     flex: 61.8 1 0;
     min-height: 0;
+    /* Сброс горизонтальных фиксов */
+    min-width: auto;
   }
   
   #controlPanel {
-    /* Гарантирует, что панель управления займет только необходимую высоту */
     flex: 0 0 auto; 
   }
 }
