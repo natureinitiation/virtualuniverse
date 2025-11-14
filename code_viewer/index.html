@@ -301,9 +301,16 @@
 
     // Синхронизация прокрутки и обновления номеров
     editor.addEventListener('input', () => {
+        // 1. СОХРАНЯЕМ позицию курсора, чтобы он не прыгал
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+
         preview.srcdoc = editor.value;
         updateLineNumbers();
-        resetSearch();
+        // resetSearch() УДАЛЕН отсюда, чтобы курсор не сбрасывался
+
+        // 2. ВОССТАНАВЛИВАЕМ позицию курсора
+        editor.setSelectionRange(start, end);
     });
 
     editor.addEventListener('scroll', () => {
@@ -368,12 +375,8 @@
         editor.focus();
         editor.setSelectionRange(start, end);
         
-        // Автоматическая прокрутка:
-        const targetLine = editor.value.substring(0, start).split('\n').length;
-        const fontSize = parseFloat(getComputedStyle(editor).fontSize);
-        const lineHeight = 1.2 * fontSize; 
-        
-        editor.scrollTop = targetLine * lineHeight - editor.clientHeight / 2;
+        // Автоматическая прокрутка: 
+        // Ручная прокрутка удалена, полагаемся на нативное поведение браузера при setSelectionRange
     }
 
     function startSearch(searchText) {
@@ -419,7 +422,8 @@
         }
     });
     
-    nextMatchButton.addEventListener("click", () => {
+    nextMatchButton.addEventListener("click", (e) => {
+        e.preventDefault(); // ФИКС: Предотвращает взятие фокуса кнопкой -> предотвращает появление клавиатуры
         if (currentSearchTerm !== searchField.value) {
             startSearch(searchField.value);
         } else {
@@ -427,7 +431,8 @@
         }
     });
 
-    prevMatchButton.addEventListener("click", () => {
+    prevMatchButton.addEventListener("click", (e) => {
+        e.preventDefault(); // ФИКС: Предотвращает взятие фокуса кнопкой -> предотвращает появление клавиатуры
         if (currentSearchTerm !== searchField.value) {
             startSearch(searchField.value);
         } else {
@@ -437,8 +442,11 @@
 
 
     function clearSelection(textarea) {
-        // Снимаем выделение
-        textarea.setSelectionRange(0, 0); 
+        // Снимаем выделение, устанавливая курсор в текущую позицию
+        // Вместо setSelectionRange(0, 0), что сбросит его.
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        textarea.setSelectionRange(start, start); 
     }
 
   </script>
