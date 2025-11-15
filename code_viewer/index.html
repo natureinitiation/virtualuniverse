@@ -22,18 +22,18 @@
       position: relative;
     }
 
-/* ЯРКАЯ ПОДСВЕТКА НАЙДЕННОГО ФРАГМЕНТА (светло-желтый) */
+/* ПРОЗРАЧНО-ЖЕЛТАЯ ПОДСВЕТКА НАЙДЕННОГО ФРАГМЕНТА */
 ::-webkit-selection { 
-  background: #FFFF00;
-  color: black;       
+  background: rgba(255, 255, 0, 0.5); /* Желтый с 50% непрозрачности */
+  color: white; /* Сохраняем цвет текста редактора */       
 }
 ::-moz-selection { 
-  background: #FFFF00; 
-  color: black; 
+  background: rgba(255, 255, 0, 0.5);
+  color: white; 
 }
 ::selection { 
-  background: #FFFF00; 
-  color: black; 
+  background: rgba(255, 255, 0, 0.5); 
+  color: white; 
 }
 
 /* Глобальные flex-параметры для горизонтального режима (ландшафт) */
@@ -334,7 +334,7 @@
     });
     
     // =========================================================================
-    // ЛОГИКА ПОИСКА
+    // ЛОГИКА ПОИСКА (ОБНОВЛЕНА ДЛЯ ПРОКРУТКИ)
     // =========================================================================
 
     function resetSearch() {
@@ -371,9 +371,33 @@
         const start = searchMatches[index];
         const end = start + currentSearchTerm.length;
         
-        // ФИКС: Убедимся, что фокус установлен для прокрутки и выделения
         editor.focus();
         editor.setSelectionRange(start, end);
+
+        // =========================================================
+        // ЛОГИКА ПРОКРУТКИ К ТРЕТЬЕЙ СТРОКЕ 
+        // =========================================================
+        
+        // Получаем line-height, установленный в CSS (1.2 * 14px = 16.8px)
+        const computedStyle = getComputedStyle(editor);
+        const fontSize = parseFloat(computedStyle.fontSize);
+        const lineHeight = fontSize * parseFloat(computedStyle.lineHeight) || 16.8; 
+
+        // Находим строку, где находится выделение.
+        const textBefore = editor.value.substring(0, start);
+        const lineNumber = textBefore.split('\n').length - 1; 
+
+        // Вычисляем целевую позицию прокрутки. 
+        // Мы хотим, чтобы искомая строка была на 3-й позиции, поэтому отнимаем 2 (lineNumber - 2).
+        // Если lineNumber < 2, прокручиваем к самому началу (0).
+        const targetLineNumber = Math.max(0, lineNumber - 2); 
+
+        // Целевая позиция прокрутки = (Номер целевой строки) * (Высота строки)
+        const targetScrollTop = targetLineNumber * lineHeight;
+        
+        // Применяем прокрутку
+        editor.scrollTop = targetScrollTop; 
+        // =========================================================
     }
 
     function startSearch(searchText) {
@@ -431,9 +455,9 @@
         }
     });
     
+    // e.preventDefault() предотвращает потерю фокуса и появление клавиатуры
     nextMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); // ФИКС: Предотвращает взятие фокуса кнопкой
-        // Если текст в поле поиска изменился, запускаем новый поиск, иначе - следующий
+        e.preventDefault(); 
         if (searchField.value.trim() !== currentSearchTerm) {
             startSearch(searchField.value);
         } else {
@@ -441,9 +465,9 @@
         }
     });
 
+    // e.preventDefault() предотвращает потерю фокуса и появление клавиатуры
     prevMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); // ФИКС: Предотвращает взятие фокуса кнопкой
-        // Если текст в поле поиска изменился, запускаем новый поиск, иначе - предыдущий
+        e.preventDefault(); 
         if (searchField.value.trim() !== currentSearchTerm) {
             startSearch(searchField.value);
         } else {
