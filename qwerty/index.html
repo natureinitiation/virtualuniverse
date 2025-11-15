@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json" />
+    <title>Транслитератор Кириллицы (BlackBerry Style)</title>
+    <style>
+        /* --- НОЧНАЯ ТЕМА --- */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #121212; /* Темный фон */
+            color: #e0e0e0; /* Светлый текст */
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #1e1e1e; /* Чуть светлее, чем фон тела */
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            color: #bb86fc; /* Акцентный цвет для заголовка */
+            border-bottom: 2px solid #bb86fc;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+            resize: vertical;
+            background-color: #2c2c2c; /* Фон для текстовых полей */
+            color: #e0e0e0; /* Цвет текста в полях */
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        /* Стили для кнопки */
+        .copy-button {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #03dac6; /* Акцентный цвет кнопки */
+            color: #121212;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: -10px; /* Сместить ближе к полю вывода */
+            display: block;
+            width: 100%;
+        }
+        .copy-button:hover {
+            background-color: #039c8c;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Транслитератор (Фонетический Ввод)</h1>
+    <p>Введите текст, используя вашу раскладку, и он будет автоматически преобразован в кириллицу.</p>
+
+    <label for="latinInput">Латинский Ввод:</label>
+    <textarea id="latinInput" rows="6" placeholder="Введите ваш текст сюда..."></textarea>
+
+    <label for="cyrillicOutput">Кириллический Вывод:</label>
+    <textarea id="cyrillicOutput" rows="6" readonly placeholder="Результат появится здесь..."></textarea>
+    
+    <button id="copyButton" class="copy-button">
+        📋 Копировать Кириллицу
+    </button>
+</div>
+
+<script>
+    // ... (весь ваш существующий JavaScript-код) ...
+</script>
+
+</body>
+</html>
