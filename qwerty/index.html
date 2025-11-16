@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QWERTY в ЯШЕРТЫ</title>
     <style>
-        /* --- НОЧНАЯ ТЕМА --- */
+        /* --- ОСНОВНЫЕ СТИЛИ --- */
         body {
             font-family: Arial, sans-serif;
             margin-top: 30px;
@@ -46,6 +46,20 @@
             margin-bottom: 8px;
             font-weight: bold;
         }
+        /* --- СКРЫВАЕМ АКТИВНОЕ ПОЛЕ ВВОДА --- */
+        #latinInput {
+            opacity: 0; /* Делаем невидимым, но сохраняем размер и возможность ввода */
+            height: 0;
+            padding: 0;
+            margin-bottom: 0;
+            border: none;
+            overflow: hidden;
+            resize: none;
+        }
+        /* --- Стили для финального поля (для имитации активного ввода) --- */
+        #cyrillicOutput {
+            min-height: 120px; /* Увеличим высоту, так как оно теперь главное */
+        }
         .copy-button {
             padding: 10px 15px;
             font-size: 16px;
@@ -63,14 +77,14 @@
             background-color: #039c8c;
         }
 
-        /* --- Стили для подвала (новой ссылки) --- */
+        /* Стили для подвала (новой ссылки) */
         .page-footer {
             max-width: 800px;
-            margin: 20px auto 0; /* Центрируем подвал по ширине контейнера */
+            margin: 20px auto 0;
             padding: 0 30px;
         }
         .page-footer a {
-            color: #bb86fc; /* Цвет акцента */
+            color: #bb86fc;
             text-decoration: none;
             font-size: 14px;
         }
@@ -83,13 +97,13 @@
 
 <div class="container">
     <h1>QWERTY в ЯШЕРТЫ</h1>
-    <p>Введите комбинацию одинаковых букв, например, `ee` для преобразования в `э`, `eee` — в `ё` или `zz` — `ж`</p>
-
-    <label for="latinInput">Активный Ввод:</label>
+    <p>Введите комбинацию одинаковых букв, например, `ee` для преобразования в `э`, `eee` — в `ё` или `zz` — `ж`.</p>
+    
+    <label for="latinInput" style="display: none;">Активный Ввод:</label>
     <textarea id="latinInput" rows="2" placeholder="Начните вводить"></textarea>
 
-    <label for="cyrillicOutput">Финальный Кириллический Вывод:</label>
-    <textarea id="cyrillicOutput" rows="6" readonly placeholder="Финальный текст собирается здесь..."></textarea>
+    <label for="cyrillicOutput">Ваш Текст:</label>
+    <textarea id="cyrillicOutput" rows="6" readonly placeholder="Текст появится здесь..."></textarea>
     
     <button id="copyButton" class="copy-button">
         📋 Копировать Кириллицу
@@ -107,22 +121,40 @@
     
     // Базовые правила (строчные)
     const MAPPING_LOWERCASE = new Map([
+        // МНОГОСИМВОЛЬНЫЕ:
         ['eee', 'ё'], ['uu', 'ю'], ['zz', 'ж'], ['ww', 'щ'], ['ee', 'э'], ["''", 'ъ'],
+        // ОДИНОЧНЫЕ:
         ['a', 'а'], ['b', 'б'], ['v', 'в'], ['g', 'г'], ['d', 'д'], ['e', 'е'],
         ['z', 'з'], ['i', 'и'], ['j', 'й'], ['k', 'к'], ['l', 'л'], ['m', 'м'],
         ['n', 'н'], ['o', 'о'], ['p', 'п'], ['r', 'р'], ['s', 'с'], ['t', 'т'],
         ['u', 'у'], ['f', 'ф'], ['x', 'х'], ['c', 'ц'], ['h', 'ч'], ['w', 'ш'],
         ['y', 'ы'], ['q', 'я'], ["'", 'ь'], 
+        // ПРОЧИЕ:
         [' ', ' '], ['.', '.'], [',', ','], ['!', '!'], ['?', '?'],
         ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'],
         ['5', '5'], ['6', '6'], ['7', '7'], ['8', '8'], ['9', '9'],
     ]);
     
+    // Создание карты со всеми регистрами
     const MAPPING = new Map();
     for (const [lat, cyr] of MAPPING_LOWERCASE) MAPPING.set(lat, cyr);
+
     for (const [lat, cyr] of MAPPING_LOWERCASE) {
-        if (lat.length > 3 || !lat.match(/[a-z]/i)) continue;
-        MAPPING.set(lat.toUpperCase(), cyr.toUpperCase());
+        if (lat.length > 3 || !lat.match(/[a-z']/i)) continue; // Пропускаем пробелы/цифры и длинные комбинации
+        
+        const upperLat = lat.toUpperCase();
+        
+        // Логика регистра: если латинский ключ длинный (ee, zz), кириллица остается строчной
+        // Если латинский ключ одиночный (a, b, t), кириллица становится заглавной
+        let upperCyr;
+        if (lat.length > 1) {
+             // 'EE' -> 'э' (как будто пользователь не закончил комбинацию)
+            upperCyr = cyr; 
+        } else {
+            // 'A' -> 'А'
+            upperCyr = cyr.toUpperCase(); 
+        }
+        MAPPING.set(upperLat, upperCyr);
     }
     const sorted_keys = Array.from(MAPPING.keys()).sort((a, b) => b.length - a.length);
 
@@ -148,6 +180,7 @@
                 }
             }
             if (!foundMatch) {
+                // Если символ не найден, добавляем его как есть (например, @, #, %)
                 output.push(text[i]);
                 i++;
             }
@@ -203,6 +236,8 @@
         const decodedChunk = transcodeToCyrillic(currentActiveInput);
         
         finalizedCyrillicText += decodedChunk;
+        
+        // Вывод финального текста (больше не предпросмотр)
         cyrillicOutput.value = finalizedCyrillicText;
         
         latinInput.value = '';
@@ -216,15 +251,25 @@
             clearTimeout(inputTimeout);
         }
         
+        // Предпросмотр: показываем декодированный активный ввод + финальный текст
         const currentDecodedPreview = transcodeToCyrillic(latinInput.value);
         cyrillicOutput.value = finalizedCyrillicText + currentDecodedPreview;
 
         inputTimeout = setTimeout(finalizeInput, DELAY_MS);
     });
+    
+    // Устанавливаем обработчик для гарантированного фокуса
+    document.addEventListener('click', function() {
+        latinInput.focus();
+    });
+    document.addEventListener('touchstart', function() {
+        latinInput.focus();
+    });
 
 
     // 4. Функциональность Кнопки Копирования
     copyButton.addEventListener('click', function() {
+        // Принудительно финализируем активный ввод перед копированием
         const currentActiveInput = latinInput.value;
         if (currentActiveInput.length > 0) {
             const decodedChunk = transcodeToCyrillic(currentActiveInput);
@@ -249,9 +294,8 @@
         latinInput.focus();
     });
 
-    // Инициализация
+    // Инициализация: ставим фокус при загрузке
     latinInput.focus(); 
-
 </script>
 
 </body>
