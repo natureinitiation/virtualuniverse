@@ -210,37 +210,55 @@
 
 
     // 2. Функция Транслитерации
-    function transcodeToCyrillic(lat_text) {
-        if (!lat_text) return '';
+// 2. Функция Транслитерации
+function transcodeToCyrillic(lat_text) {
+    if (!lat_text) return '';
 
-        let output = [];
-        let i = 0;
-        const text = lat_text;
-        const len = text.length;
+    let output = [];
+    let i = 0;
+    const text = lat_text;
+    const len = text.length;
 
-        while (i < len) {
-            let foundMatch = false;
-            
-            for (const lat_key of sorted_keys) {
-                const key_len = lat_key.length;
-                const fragment = text.substring(i, i + key_len);
+    while (i < len) {
+        let foundMatch = false;
+        
+        for (const lat_key of sorted_keys) {
+            const key_len = lat_key.length;
+            const fragment = text.substring(i, i + key_len);
 
-                if (fragment === lat_key) {
-                    output.push(MAPPING.get(lat_key));
-                    i += key_len;
-                    foundMatch = true;
-                    break;
+            if (fragment === lat_key) {
+                // Получаем строчный кириллический символ из словаря
+                let cyr_char = MAPPING.get(lat_key);
+                
+                // --- НОВАЯ ЛОГИКА ДЛЯ ЗАГЛАВНЫХ БУКВ ---
+                // Проверяем, если фрагмент полностью состоит из заглавных букв 
+                // (Например, 'EEE', 'UU', 'A'). Используем проверку /[A-Z]/, чтобы исключить пробелы и цифры
+                const allUpper = fragment.toUpperCase() === fragment && fragment.match(/[A-Z]/);
+
+                if (allUpper) {
+                    // Если все заглавные, то делаем кириллический символ заглавным
+                    if (cyr_char.match(/[а-яёіїє]/)) {
+                        cyr_char = cyr_char.toUpperCase();
+                    }
                 }
-            }
-            
-            if (!foundMatch) {
-                output.push(text[i]);
-                i++;
+                // ----------------------------------------
+
+                output.push(cyr_char);
+                i += key_len;
+                foundMatch = true;
+                break;
             }
         }
         
-        return output.join('');
+        if (!foundMatch) {
+            // Если символ не найден, добавляем его как есть (например, пунктуацию, которую мы не определили)
+            output.push(text[i]);
+            i++;
+        }
     }
+    
+    return output.join('');
+}
 
 
     // 3. Управление Вводом (BlackBerry-стиль, с управлением паузой)
