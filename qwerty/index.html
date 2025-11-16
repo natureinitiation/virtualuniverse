@@ -48,17 +48,19 @@
         }
         /* --- СКРЫВАЕМ АКТИВНОЕ ПОЛЕ ВВОДА --- */
         #latinInput {
-            opacity: 0; /* Делаем невидимым, но сохраняем размер и возможность ввода */
+            opacity: 0; 
             height: 0;
             padding: 0;
             margin-bottom: 0;
             border: none;
             overflow: hidden;
             resize: none;
+            /* Важно: должен быть всегда активен, но невидим */
         }
         /* --- Стили для финального поля (для имитации активного ввода) --- */
         #cyrillicOutput {
-            min-height: 120px; /* Увеличим высоту, так как оно теперь главное */
+            min-height: 120px;
+            cursor: default; /* чтобы показать, что здесь нельзя редактировать напрямую */
         }
         .copy-button {
             padding: 10px 15px;
@@ -97,7 +99,7 @@
 
 <div class="container">
     <h1>QWERTY в ЯШЕРТЫ</h1>
-    <p>Введите комбинацию одинаковых букв, например, `ee` для преобразования в `э`, `eee` — в `ё` или `zz` — `ж`.</p>
+    <p>Введите комбинацию одинаковых букв: `e` (е), `ee` (э), `eee` (ё). Новые комбинации для `i`: `i` (и), `ii` (i), `iii` (ї).</p>
     
     <label for="latinInput" style="display: none;">Активный Ввод:</label>
     <textarea id="latinInput" rows="2" placeholder="Начните вводить"></textarea>
@@ -122,13 +124,15 @@
     // Базовые правила (строчные)
     const MAPPING_LOWERCASE = new Map([
         // МНОГОСИМВОЛЬНЫЕ:
-        ['eee', 'ё'], ['uu', 'ю'], ['zz', 'ж'], ['ww', 'щ'], ['ee', 'э'], ["''", 'ъ'],
+        ['eee', 'ё'], ['uuu', 'ї'], ['uu', 'ю'], ['zz', 'ж'], ['ww', 'щ'], ['ee', 'э'], 
+        ['iii', 'ии'], ['ii', 'i'], // Новые комбинации для 'i'
+        ["''", 'ъ'], ["'", 'ь'], // Исправлено: ' -> ь, '' -> ъ
         // ОДИНОЧНЫЕ:
         ['a', 'а'], ['b', 'б'], ['v', 'в'], ['g', 'г'], ['d', 'д'], ['e', 'е'],
         ['z', 'з'], ['i', 'и'], ['j', 'й'], ['k', 'к'], ['l', 'л'], ['m', 'м'],
         ['n', 'н'], ['o', 'о'], ['p', 'п'], ['r', 'р'], ['s', 'с'], ['t', 'т'],
         ['u', 'у'], ['f', 'ф'], ['x', 'х'], ['c', 'ц'], ['h', 'ч'], ['w', 'ш'],
-        ['y', 'ы'], ['q', 'я'], ["'", 'ь'], 
+        ['y', 'ы'], ['q', 'я'], 
         // ПРОЧИЕ:
         [' ', ' '], ['.', '.'], [',', ','], ['!', '!'], ['?', '?'],
         ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'],
@@ -137,29 +141,31 @@
     
     // Создание карты со всеми регистрами
     const MAPPING = new Map();
+    // Добавляем строчные
     for (const [lat, cyr] of MAPPING_LOWERCASE) MAPPING.set(lat, cyr);
 
+    // Добавляем заглавные
     for (const [lat, cyr] of MAPPING_LOWERCASE) {
-        if (lat.length > 3 || !lat.match(/[a-z']/i)) continue; // Пропускаем пробелы/цифры и длинные комбинации
+        if (!lat.match(/[a-z']/i) || lat.length > 3) continue; 
         
         const upperLat = lat.toUpperCase();
-        
-        // Логика регистра: если латинский ключ длинный (ee, zz), кириллица остается строчной
-        // Если латинский ключ одиночный (a, b, t), кириллица становится заглавной
         let upperCyr;
+
         if (lat.length > 1) {
-             // 'EE' -> 'э' (как будто пользователь не закончил комбинацию)
+             // МНОГОБУКВЕННЫЕ комбинации (ee, iii, zz): регистр ввода игнорируется, всегда строчные
             upperCyr = cyr; 
         } else {
-            // 'A' -> 'А'
+            // Одиночные символы (a, e, i, z): если ввод заглавный, вывод заглавный
             upperCyr = cyr.toUpperCase(); 
         }
         MAPPING.set(upperLat, upperCyr);
     }
+    
+    // Сортировка по длине для выбора самого длинного совпадения
     const sorted_keys = Array.from(MAPPING.keys()).sort((a, b) => b.length - a.length);
 
 
-    // 2. Функция Транслитерации (Надежный метод с самым длинным совпадением)
+    // 2. Функция Транслитерации
     function transcodeToCyrillic(lat_text) {
         if (!lat_text) return '';
 
@@ -170,26 +176,31 @@
 
         while (i < len) {
             let foundMatch = false;
+            
             for (const lat_key of sorted_keys) {
                 const key_len = lat_key.length;
-                if (text.substring(i, i + key_len) === lat_key) {
+                const fragment = text.substring(i, i + key_len);
+
+                if (fragment === lat_key) {
                     output.push(MAPPING.get(lat_key));
                     i += key_len;
                     foundMatch = true;
                     break;
                 }
             }
+            
             if (!foundMatch) {
-                // Если символ не найден, добавляем его как есть (например, @, #, %)
+                // Если символ не найден, добавляем его как есть
                 output.push(text[i]);
                 i++;
             }
         }
+        
         return output.join('');
     }
 
 
-    // 3. Управление Вводом (Автоматическая Финализация по Паузе)
+    // 3. Управление Вводом (Автоматическая Финализация по Паузе и Backspace)
     const latinInput = document.getElementById('latinInput');
     const cyrillicOutput = document.getElementById('cyrillicOutput');
     const copyButton = document.getElementById('copyButton'); 
@@ -198,8 +209,8 @@
     const DELAY_MS = 300; 
     let finalizedCyrillicText = ""; 
 
-    // Символы, для которых разрешена многосимвольная финализация (например, e, u, z, w, ')
-    const MULTI_CHAR_FINALIZE_WHITELIST = new Set(['e', 'u', 'z', 'w', "'"]); 
+    // Символы, для которых разрешена многосимвольная финализация
+    const MULTI_CHAR_FINALIZE_WHITELIST = new Set(['e', 'u', 'z', 'w', 'i', "'"]); 
 
     /**
      * Проверяет, состоит ли активный ввод только из одного повторяющегося символа
@@ -211,11 +222,8 @@
         const isRepeating = /^(.)\1*$/.test(text.toLowerCase());
         const isCombinationStarter = MULTI_CHAR_FINALIZE_WHITELIST.has(firstChar);
 
-        if (isRepeating && isCombinationStarter) {
-            return true;
-        }
-        
-        if (text.length === 1 && !isCombinationStarter) {
+        // Разрешаем повторяющуюся комбинацию ИЛИ одиночный символ (который не является началом комбинации)
+        if ((isRepeating && isCombinationStarter) || (text.length === 1 && !isCombinationStarter)) {
             return true;
         }
 
@@ -230,6 +238,7 @@
         if (currentActiveInput.length === 0) return;
 
         if (!isSingleRepeatingChar(currentActiveInput)) {
+            // Если это сложное слово, игнорируем паузу
             return; 
         }
 
@@ -237,12 +246,32 @@
         
         finalizedCyrillicText += decodedChunk;
         
-        // Вывод финального текста (больше не предпросмотр)
         cyrillicOutput.value = finalizedCyrillicText;
         
+        // Очистка и возврат фокуса
         latinInput.value = '';
         latinInput.focus();
     }
+
+
+    // ОБРАБОТЧИК BACKSPACE
+    latinInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Backspace') {
+            const currentInput = latinInput.value;
+            
+            if (currentInput.length === 0) {
+                // Если активное поле пусто, удаляем последний символ из финализированного текста
+                event.preventDefault(); // Предотвращаем стандартное действие (которое ничего не удалит, т.к. поле пусто)
+                
+                if (finalizedCyrillicText.length > 0) {
+                    finalizedCyrillicText = finalizedCyrillicText.slice(0, -1);
+                    cyrillicOutput.value = finalizedCyrillicText;
+                }
+            }
+            // Если активное поле НЕ пусто, браузер сам удалит символ из latinInput.
+            // При следующем событии 'input' предпросмотр обновится корректно.
+        }
+    });
 
 
     // Слушатель для автоматической финализации при паузе
@@ -258,7 +287,7 @@
         inputTimeout = setTimeout(finalizeInput, DELAY_MS);
     });
     
-    // Устанавливаем обработчик для гарантированного фокуса
+    // Гарантируем фокус
     document.addEventListener('click', function() {
         latinInput.focus();
     });
@@ -296,6 +325,7 @@
 
     // Инициализация: ставим фокус при загрузке
     latinInput.focus(); 
+
 </script>
 
 </body>
