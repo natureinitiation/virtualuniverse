@@ -9,7 +9,8 @@
         /* --- НОЧНАЯ ТЕМА --- */
         body {
             font-family: Arial, sans-serif;
-            margin: 40px;
+            margin-top: 30px;
+            margin-bottom: 30px;
             background-color: #121212; /* Темный фон */
             color: #e0e0e0; /* Светлый текст */
         }
@@ -17,7 +18,7 @@
             max-width: 800px;
             margin: auto;
             background: #1e1e1e; /* Чуть светлее, чем фон тела */
-            padding: 0px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
         }
@@ -81,7 +82,168 @@
 </div>
 
 <script>
-    // ... (весь ваш существующий JavaScript-код) ...
+    // 1. Определение Словаря Правил
+    
+    // Базовые правила (строчные)
+    const MAPPING_LOWERCASE = new Map([
+        ['eee', 'ё'], ['uu', 'ю'], ['zz', 'ж'], ['ww', 'щ'], ['ee', 'э'], ["''", 'ъ'],
+        ['a', 'а'], ['b', 'б'], ['v', 'в'], ['g', 'г'], ['d', 'д'], ['e', 'е'],
+        ['z', 'з'], ['i', 'и'], ['j', 'й'], ['k', 'к'], ['l', 'л'], ['m', 'м'],
+        ['n', 'н'], ['o', 'о'], ['p', 'п'], ['r', 'р'], ['s', 'с'], ['t', 'т'],
+        ['u', 'у'], ['f', 'ф'], ['x', 'х'], ['c', 'ц'], ['h', 'ч'], ['w', 'ш'],
+        ['y', 'ы'], ['q', 'я'], ["'", 'ь'], 
+        [' ', ' '], ['.', '.'], [',', ','], ['!', '!'], ['?', '?'],
+        ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'],
+        ['5', '5'], ['6', '6'], ['7', '7'], ['8', '8'], ['9', '9'],
+    ]);
+    
+    const MAPPING = new Map();
+    for (const [lat, cyr] of MAPPING_LOWERCASE) MAPPING.set(lat, cyr);
+    for (const [lat, cyr] of MAPPING_LOWERCASE) {
+        if (lat.length > 3 || !lat.match(/[a-z]/i)) continue;
+        MAPPING.set(lat.toUpperCase(), cyr.toUpperCase());
+    }
+    const sorted_keys = Array.from(MAPPING.keys()).sort((a, b) => b.length - a.length);
+
+
+    // 2. Функция Транслитерации (Надежный метод с самым длинным совпадением)
+    function transcodeToCyrillic(lat_text) {
+        if (!lat_text) return '';
+
+        let output = [];
+        let i = 0;
+        const text = lat_text;
+        const len = text.length;
+
+        while (i < len) {
+            let foundMatch = false;
+            for (const lat_key of sorted_keys) {
+                const key_len = lat_key.length;
+                if (text.substring(i, i + key_len) === lat_key) {
+                    output.push(MAPPING.get(lat_key));
+                    i += key_len;
+                    foundMatch = true;
+                    break;
+                }
+            }
+            if (!foundMatch) {
+                output.push(text[i]);
+                i++;
+            }
+        }
+        return output.join('');
+    }
+
+
+    // 3. Управление Вводом (Автоматическая Финализация по Паузе)
+    const latinInput = document.getElementById('latinInput');
+    const cyrillicOutput = document.getElementById('cyrillicOutput');
+    const copyButton = document.getElementById('copyButton'); 
+
+    let inputTimeout = null; 
+    const DELAY_MS = 300; 
+    let finalizedCyrillicText = ""; 
+
+    // Символы, для которых разрешена многосимвольная финализация (например, e, u, z, w, ')
+    const MULTI_CHAR_FINALIZE_WHITELIST = new Set(['e', 'u', 'z', 'w', "'"]); 
+
+    /**
+     * Проверяет, состоит ли активный ввод только из одного повторяющегося символа
+     */
+    function isSingleRepeatingChar(text) {
+        if (text.length === 0) return false;
+        
+        const firstChar = text[0].toLowerCase();
+        const isRepeating = /^(.)\1*$/.test(text.toLowerCase());
+        const isCombinationStarter = MULTI_CHAR_FINALIZE_WHITELIST.has(firstChar);
+
+        // Разрешаем, если это повторяющаяся комбинация из белого списка (eee, uu, zz)
+        if (isRepeating && isCombinationStarter) {
+            return true;
+        }
+        
+        // Разрешаем, если это просто одиночный символ, который не является началом комбинации (t, r, k)
+        if (text.length === 1 && !isCombinationStarter) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    // Функция финализации ввода
+    function finalizeInput() {
+        const currentActiveInput = latinInput.value;
+        
+        if (currentActiveInput.length === 0) return;
+
+        // --- ФИЛЬТР: Проверка на одиночный или многосимвольный ввод ---
+        if (!isSingleRepeatingChar(currentActiveInput)) {
+            // Если это сложное слово (например, 'test'), просто игнорируем паузу.
+            return; 
+        }
+
+        // Если фильтр пройден (это 'eee' или 't'), выполняем финализацию:
+        const decodedChunk = transcodeToCyrillic(currentActiveInput);
+        
+        finalizedCyrillicText += decodedChunk;
+        cyrillicOutput.value = finalizedCyrillicText;
+        
+        // Очищаем активное поле для новой комбинации (этот шаг реализует "сброс")
+        latinInput.value = '';
+        
+        // --- КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ВОЗВРАЩАЕМ ФОКУС ---
+        // Это необходимо, чтобы логика ввода не прерывалась
+        latinInput.focus();
+    }
+
+
+    // Слушатель для автоматической финализации при паузе
+    latinInput.addEventListener('input', function() {
+        // Сброс таймера при вводе нового символа
+        if (inputTimeout) {
+            clearTimeout(inputTimeout);
+        }
+        
+        // Предпросмотр: показываем декодированный активный ввод + финальный текст
+        const currentDecodedPreview = transcodeToCyrillic(latinInput.value);
+        cyrillicOutput.value = finalizedCyrillicText + currentDecodedPreview;
+
+        // Устанавливаем таймер для финализации
+        inputTimeout = setTimeout(finalizeInput, DELAY_MS);
+    });
+
+
+    // 4. Функциональность Кнопки Копирования
+    copyButton.addEventListener('click', function() {
+        // Принудительно финализируем активный ввод перед копированием
+        const currentActiveInput = latinInput.value;
+        if (currentActiveInput.length > 0) {
+            const decodedChunk = transcodeToCyrillic(currentActiveInput);
+            finalizedCyrillicText += decodedChunk;
+            latinInput.value = '';
+        }
+        
+        // Копируем только финализированный текст
+        const textToCopy = finalizedCyrillicText;
+        
+        if (navigator.clipboard && textToCopy) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                copyButton.textContent = '✅ Скопировано!';
+                setTimeout(() => {
+                    copyButton.textContent = '📋 Копировать Кириллицу';
+                }, 1500); 
+            }).catch(err => {
+                alert('Не удалось скопировать текст. Попробуйте вручную.');
+            });
+        } else {
+            alert('Нет текста для копирования.');
+        }
+        latinInput.focus();
+    });
+
+    // Инициализация
+    latinInput.focus(); 
 </script>
 
 </body>
