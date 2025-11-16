@@ -63,18 +63,19 @@
             background-color: #039c8c;
         }
 
-        /* Стили для логотипа */
-        .footer-logo {
-            position: fixed; /* Фиксированное позиционирование */
-            bottom: 20px;    /* 20px от нижнего края */
-            left: 20px;      /* 20px от левого края */
-            z-index: 1000;   /* Чтобы логотип был поверх других элементов */
+        /* --- Стили для подвала (новой ссылки) --- */
+        .page-footer {
+            max-width: 800px;
+            margin: 20px auto 0; /* Центрируем подвал по ширине контейнера */
+            padding: 0 30px;
         }
-        .footer-logo img {
-            width: 50px;     /* Размер логотипа */
-            height: auto;
-            border-radius: 8px; /* Немного скруглим углы */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Легкая тень */
+        .page-footer a {
+            color: #bb86fc; /* Цвет акцента */
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .page-footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -95,9 +96,9 @@
     </button>
 </div>
 
-<div class="footer-logo">
+<div class="page-footer">
     <a href="https://eqlectika.t.me/" target="_blank">
-        <img src="https://natureinitiation.github.io/virtualuniverse/cubes.WEBP" alt="Логотип">
+        @eqlectika
     </a>
 </div>
 
