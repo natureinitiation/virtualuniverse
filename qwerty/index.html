@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json" />
     <title>QWERTY в ЯШЕРТЫ</title>
     <style>
         /* --- НОЧНАЯ ТЕМА --- */
@@ -11,19 +10,20 @@
             font-family: Arial, sans-serif;
             margin-top: 30px;
             margin-bottom: 30px;
-            background-color: #121212; /* Темный фон */
-            color: #e0e0e0; /* Светлый текст */
+            background-color: #121212;
+            color: #e0e0e0;
         }
         .container {
             max-width: 800px;
             margin: auto;
-            background: #1e1e1e; /* Чуть светлее, чем фон тела */
-            padding: 15px;
+            background: #1e1e1e;
+            padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
         }
         h1 {
-            color: #bb86fc; /* Акцентный цвет для заголовка */
+            color: #bb86fc;
             border-bottom: 2px solid #bb86fc;
             padding-bottom: 10px;
             margin-bottom: 30px;
@@ -37,30 +37,44 @@
             box-sizing: border-box;
             font-size: 16px;
             resize: vertical;
-            background-color: #2c2c2c; /* Фон для текстовых полей */
-            color: #e0e0e0; /* Цвет текста в полях */
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            min-height: 80px;
         }
         label {
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
         }
-        /* Стили для кнопки */
         .copy-button {
             padding: 10px 15px;
             font-size: 16px;
-            background-color: #03dac6; /* Акцентный цвет кнопки */
+            background-color: #03dac6;
             color: #121212;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s;
-            margin-top: -10px; /* Сместить ближе к полю вывода */
+            margin-top: 5px;
             display: block;
             width: 100%;
         }
         .copy-button:hover {
             background-color: #039c8c;
+        }
+
+        /* Стили для логотипа */
+        .footer-logo {
+            position: fixed; /* Фиксированное позиционирование */
+            bottom: 20px;    /* 20px от нижнего края */
+            left: 20px;      /* 20px от левого края */
+            z-index: 1000;   /* Чтобы логотип был поверх других элементов */
+        }
+        .footer-logo img {
+            width: 50px;     /* Размер логотипа */
+            height: auto;
+            border-radius: 8px; /* Немного скруглим углы */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Легкая тень */
         }
     </style>
 </head>
@@ -68,17 +82,23 @@
 
 <div class="container">
     <h1>QWERTY в ЯШЕРТЫ</h1>
-    <p>Введите текст, используя вашу латинскую раскладку, и он будет автоматически преобразован в кириллицу.</p>
+    <p>Введите комбинацию одинаковых букв, например, `ee` для преобразования в `э`, `eee` — в `ё` или `zz` — `ж`</p>
 
-    <label for="latinInput">Латинский Ввод:</label>
-    <textarea id="latinInput" rows="6" placeholder="Введите ваш текст сюда..."></textarea>
+    <label for="latinInput">Активный Ввод:</label>
+    <textarea id="latinInput" rows="2" placeholder="Начните вводить"></textarea>
 
-    <label for="cyrillicOutput">Кириллический Вывод:</label>
-    <textarea id="cyrillicOutput" rows="6" readonly placeholder="Результат появится здесь..."></textarea>
+    <label for="cyrillicOutput">Финальный Кириллический Вывод:</label>
+    <textarea id="cyrillicOutput" rows="6" readonly placeholder="Финальный текст собирается здесь..."></textarea>
     
     <button id="copyButton" class="copy-button">
         📋 Копировать Кириллицу
     </button>
+</div>
+
+<div class="footer-logo">
+    <a href="https://eqlectika.t.me/" target="_blank">
+        <img src="https://natureinitiation.github.io/virtualuniverse/cubes.WEBP" alt="Логотип">
+    </a>
 </div>
 
 <script>
@@ -157,12 +177,10 @@
         const isRepeating = /^(.)\1*$/.test(text.toLowerCase());
         const isCombinationStarter = MULTI_CHAR_FINALIZE_WHITELIST.has(firstChar);
 
-        // Разрешаем, если это повторяющаяся комбинация из белого списка (eee, uu, zz)
         if (isRepeating && isCombinationStarter) {
             return true;
         }
         
-        // Разрешаем, если это просто одиночный символ, который не является началом комбинации (t, r, k)
         if (text.length === 1 && !isCombinationStarter) {
             return true;
         }
@@ -177,46 +195,35 @@
         
         if (currentActiveInput.length === 0) return;
 
-        // --- ФИЛЬТР: Проверка на одиночный или многосимвольный ввод ---
         if (!isSingleRepeatingChar(currentActiveInput)) {
-            // Если это сложное слово (например, 'test'), просто игнорируем паузу.
             return; 
         }
 
-        // Если фильтр пройден (это 'eee' или 't'), выполняем финализацию:
         const decodedChunk = transcodeToCyrillic(currentActiveInput);
         
         finalizedCyrillicText += decodedChunk;
         cyrillicOutput.value = finalizedCyrillicText;
         
-        // Очищаем активное поле для новой комбинации (этот шаг реализует "сброс")
         latinInput.value = '';
-        
-        // --- КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ВОЗВРАЩАЕМ ФОКУС ---
-        // Это необходимо, чтобы логика ввода не прерывалась
         latinInput.focus();
     }
 
 
     // Слушатель для автоматической финализации при паузе
     latinInput.addEventListener('input', function() {
-        // Сброс таймера при вводе нового символа
         if (inputTimeout) {
             clearTimeout(inputTimeout);
         }
         
-        // Предпросмотр: показываем декодированный активный ввод + финальный текст
         const currentDecodedPreview = transcodeToCyrillic(latinInput.value);
         cyrillicOutput.value = finalizedCyrillicText + currentDecodedPreview;
 
-        // Устанавливаем таймер для финализации
         inputTimeout = setTimeout(finalizeInput, DELAY_MS);
     });
 
 
     // 4. Функциональность Кнопки Копирования
     copyButton.addEventListener('click', function() {
-        // Принудительно финализируем активный ввод перед копированием
         const currentActiveInput = latinInput.value;
         if (currentActiveInput.length > 0) {
             const decodedChunk = transcodeToCyrillic(currentActiveInput);
@@ -224,7 +231,6 @@
             latinInput.value = '';
         }
         
-        // Копируем только финализированный текст
         const textToCopy = finalizedCyrillicText;
         
         if (navigator.clipboard && textToCopy) {
@@ -244,6 +250,7 @@
 
     // Инициализация
     latinInput.focus(); 
+
 </script>
 
 </body>
