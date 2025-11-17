@@ -3,201 +3,162 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Forma Base - V25 - Rhombus D-Pad</title>
-<link rel="manifest" href="manifest.json">
+<title>Forma Base – центр вращения закреплён</title>
 <style>
-    body { margin:0; overflow:hidden; background:#000; user-select:none; }
-    .control-button, .top-control { position:fixed; z-index:1000; cursor:pointer; font-family:monospace; font-size:18px; color:#fff; display:flex; align-items:center; justify-content:center; background:none; border:none; padding:0; }
-    .control-button { bottom:20px; }
-    .further-button { left:5%; }
-    .closer-button { right:5%; }
-    .fly-button { left:50%; transform:translateX(-50%); }
-    .top-control { top:20px; }
-    .load-button { left:5%; }
-    .reset-button { left:50%; transform:translateX(-50%); }
-    .save-button { right:5%; }
-    .dir-button { position:fixed; z-index:1001; background:none; border:none; padding:10px; }
-    .dir-button img { width:40px; height:40px; filter:brightness(0.9); }
-    .dir-up    { top:25%; left:50%; transform:translate(-50%,-50%); }
-    .dir-down  { bottom:25%; left:50%; transform:translate(-50%,50%); }
-    .dir-left  { left:5%; top:50%; transform:translateY(-50%); }
-    .dir-right { right:5%; top:50%; transform:translateY(-50%); }
-    .secret { position:fixed; font-family:monospace; font-size:18px; color:white; padding:10px; border-radius:8px; pointer-events:auto; z-index:1000; transition:opacity .3s, transform .3s; }
+    body{margin:0;overflow:hidden;background:#000}
+    button{position:fixed;z-index:999;cursor:pointer;background:none;border:none}
+    .c{bottom:20px;font:18px monospace;color:#fff}
+    .further{left:5%}
+    .closer{right:5%}
+    .fly{left:50%;transform:translateX(-50%)}
+    .top{top:20px;font:18px monospace;color:#fff}
+    .load{left:5%}
+    .reset{left:50%;transform:translateX(-50%)}
+    .save{right:5%}
+    .dir img{width:40px;height:40px}
+    .dir-up{top:25%;left:50%;transform:translate(-50%,-50%)}
+    .dir-down{bottom:25%;left:50%;transform:translate(-50%,50%)}
+    .dir-left{left:5%;top:50%;transform:translateY(-50%)}
+    .dir-right{right:5%;top:50%;transform:translateY(-50%)}
 </style>
 </head>
 <body>
 
-<div class="control-button further-button">Further</div>
-<div class="control-button closer-button">Closer</div>
-<div class="control-button fly-button">Fly</div>
+<div class="c further">Further</div>
+<div class="c closer">Closer</div>
+<div class="c fly">Fly</div>
+<div class="top load">Load</div>
+<div class="top reset">Reset</div>
+<div class="top save">Save</div>
 
-<div class="top-control load-button">Load</div>
-<div class="top-control reset-button">Reset</div>
-<div class="top-control save-button">Save</div>
-
-<button class="dir-button dir-up"><img src="https://natureinitiation.github.io/virtualuniverse/forma/Arrows.001.png"></button>
-<button class="dir-button dir-down"><img src="https://natureinitiation.github.io/virtualuniverse/forma/Arrows.003.png"></button>
-<button class="dir-button dir-left"><img src="https://natureinitiation.github.io/virtualuniverse/forma/Arrows.004.png"></button>
-<button class="dir-button dir-right"><img src="https://natureinitiation.github.io/virtualuniverse/forma/Arrows.002.png"></button>
-
-<input type="file" id="file-input" style="display:none" accept=".json">
+<button class="dir dir-up"><img src="https://natureinitiation.github.io/virtualuniverse/forma/Arrows.001.png"></button>
+<button class="dir dir-down"><img src="https://natureinitiation.github.io/virtualuniverse/forma/Arrows.003.png"></button>
+<button class="dir dir-left"><img src="https://natureinitiation.github.io/virtualuniverse/forma/Arrows.004.png"></button>
+<button class="dir dir-right"><img src="https://natureinitiation.github.io/virtualuniverse/forma/Arrows.002.png"></button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x007bff);
 
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-// ← КАМЕРА НАЧИНАЕТ НА -15 ПО Z
-camera.position.set(0, 0, -15);
+camera.position.set(0, 0, -15);                     // стартовая позиция
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// ─────── ORBIT CONTROLS — только вращение, target закреплён на (0,0,0) ───────
+// ТОЧКА ВРАЩЕНИЯ ЖЁСТКО ЗАКРЕПЛЕНА НА (0,0,0)
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.enableZoom = false;
 controls.enablePan = false;
-controls.target.set(0, 0, 0);     // ← ТОЧКА ВРАЩЕНИЯ В ЦЕНТРЕ КУБА
+controls.target.set(0, 0, 0);   // ← навсегда центр стартового куба
 controls.update();
 
-// ─────────────────────────────────────────────────────────────────────────────
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x000000, 0.5);
-scene.add(hemiLight);
-
-const camLightGroup = new THREE.Group();
-camera.add(camLightGroup);
+// Свет
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+const camLight = new THREE.Group();
+camera.add(camLight);
 scene.add(camera);
-camLightGroup.add(new THREE.DirectionalLight(0xffffff, 1.5)).position.set(0,0,10);
-camLightGroup.add(new THREE.DirectionalLight(0x3f00ff, 1)).position.set(0,0,-10);
+camLight.add(new THREE.DirectionalLight(0xffffff, 1.5)).position.set(0,0,10);
+camLight.add(new THREE.DirectionalLight(0x3f00ff, 1)).position.set(0,0,-10);
 
-// ─────── КУБ ───────
+// Куб
 const CUBE_SIZE = 5;
-let formaCubeGroup = null;
-const formaCubeFaces = [];
-
-const FACE_CONFIGS = [
-    { color:0xff0000, pos:[ CUBE_SIZE/2,0,0], rot:[0,Math.PI/2,0] },
-    { color:0x00ff00, pos:[-CUBE_SIZE/2,0,0], rot:[0,-Math.PI/2,0] },
-    { color:0x0000ff, pos:[0, CUBE_SIZE/2,0], rot:[-Math.PI/2,0,0] },
-    { color:0xffff00, pos:[0,-CUBE_SIZE/2,0], rot:[Math.PI/2,0,0] },
-    { color:0x00ffff, pos:[0,0, CUBE_SIZE/2], rot:[0,0,0] },
-    { color:0xff00ff, pos:[0,0,-CUBE_SIZE/2], rot:[0,Math.PI,0] }
+const faces = [];
+const configs = [
+    {c:0xff0000,p:[5,0,0],r:[0,Math.PI/2,0]},
+    {c:0x00ff00,p:[-5,0,0],r:[0,-Math.PI/2,0]},
+    {c:0x0000ff,p:[0,5,0],r:[-Math.PI/2,0,0]},
+    {c:0xffff00,p:[0,-5,0],r:[Math.PI/2,0,0]},
+    {c:0x00ffff,p:[0,0,5],r:[0,0,0]},
+    {c:0xff00ff,p:[0,0,-5],r:[0,Math.PI,0]}
 ];
 
-function createFace(config) {
-    const geo = new THREE.PlaneGeometry(CUBE_SIZE, CUBE_SIZE);
-    const mat = new THREE.MeshStandardMaterial({
-        color: config.color,
-        metalness: 1,
-        roughness: 0.7,
-        side: THREE.DoubleSide
+function createCube() {
+    const g = new THREE.Group();
+    configs.forEach(cfg=>{
+        const m = new THREE.Mesh(
+            new THREE.PlaneGeometry(10,10),
+            new THREE.MeshStandardMaterial({color:cfg.c,metalness:1,roughness:0.7,side:THREE.DoubleSide})
+        );
+        m.position.set(...cfg.p);
+        m.rotation.set(...cfg.r);
+        g.add(m);
+        faces.push(m);
     });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(...config.pos);
-    mesh.rotation.set(...config.rot);
-    return mesh;
+    g.add(new THREE.PointLight(0xffaa00,0.05));
+    scene.add(g);
 }
 
-function createFormaCube() {
-    const group = new THREE.Group();
-    FACE_CONFIGS.forEach(cfg => {
-        const face = createFace(cfg);
-        group.add(face);
-        formaCubeFaces.push(face);
-    });
-    group.add(new THREE.PointLight(0xffaa00, 0.05));
-    scene.add(group);
-    formaCubeGroup = group;
-    return group;
+// Инициализация
+function init() {
+    scene.clear();
+    faces.length = 0;
+    createCube();
+    camera.position.set(0,0,-15);
+    controls.target.set(0,0,0);   // гарантируем
+    controls.update();
 }
+init();
 
-function clearWorld() {
-    formaCubeFaces.length = 0;
-    if (formaCubeGroup) scene.remove(formaCubeGroup);
-    formaCubeGroup = null;
-}
-
-// ─────── ИНИЦИАЛИЗАЦИЯ ───────
-function initFormaCube() {
-    clearWorld();
-    createFormaCube();
-
-    // ЖЁСТКО ФИКСИРУЕМ ЦЕНТР ВРАЩЕНИЯ И ПОЗИЦИЮ КАМЕРЫ
-    controls.target.set(0, 0, 0);
-    camera.position.set(0, 0, -15);
+// Кнопки
+const STEP = 1;
+function move(dir) {
+    camera.position.add(dir);
+    // controls.target НЕ трогаем — он всегда (0,0,0)
     controls.update();
 }
 
-// ─────── RESET (возврат к исходному виду) ───────
-document.querySelector('.reset-button').onclick = () => {
-    localStorage.removeItem('forma_world_data_local');
-    localStorage.removeItem('forma_camera_data_local');
-    initFormaCube();
+document.querySelector('.closer').onclick = () => {
+    const d = new THREE.Vector3();
+    camera.getWorldDirection(d);
+    move(d.multiplyScalar(STEP));
 };
-
-// ─────── ПРОЧИЕ КНОПКИ (Closer / Further / Fly / D-Pad) ───────
-const STEP = CUBE_SIZE / 5;
-
-document.querySelector('.closer-button').onclick = () => {
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    camera.position.addScaledVector(dir, STEP);
-    controls.update();
+document.querySelector('.further').onclick = () => {
+    const d = new THREE.Vector3();
+    camera.getWorldDirection(d).negate();
+    move(d.multiplyScalar(STEP));
 };
-
-document.querySelector('.further-button').onclick = () => {
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir).negate();
-    camera.position.addScaledVector(dir, STEP);
-    controls.update();
-};
-
-document.querySelector('.dir-right').onclick = () => { camera.position.x += STEP; controls.update(); };
-document.querySelector('.dir-left').onclick  = () => { camera.position.x -= STEP; controls.update(); };
-document.querySelector('.dir-up').onclick    = () => { camera.position.y += STEP; controls.update(); };
-document.querySelector('.dir-down').onclick  = () => { camera.position.y -= STEP; controls.update(); };
+document.querySelector('.dir-right').onclick = () => move(new THREE.Vector3(STEP,0,0));
+document.querySelector('.dir-left').onclick  = () => move(new THREE.Vector3(-STEP,0,0));
+document.querySelector('.dir-up').onclick    = () => move(new THREE.Vector3(0,STEP,0));
+document.querySelector('.dir-down').onclick  = () => move(new THREE.Vector3(0,-STEP,0));
 
 // Fly
-let flying = false, speed = 0;
-const MAX_SPEED = 0.3, ACC = 0.00033;
-document.querySelector('.fly-button').onclick = () => {
-    flying = !flying;
-    document.querySelector('.fly-button').textContent = flying ? 'Stop' : 'Fly';
+let fly = false, speed = 0;
+const MAX = 0.3, ACC = 0.0004;
+document.querySelector('.fly').onclick = () => {
+    fly = !fly;
+    document.querySelector('.fly').textContent = fly ? 'Stop' : 'Fly';
 };
 
-// ─────── АНИМАЦИЯ ───────
-function animate() {
+// Reset
+document.querySelector('.reset').onclick = () => init();
+
+// Анимация
+function loop() {
     controls.update();
-
-    if (flying) {
-        speed = Math.min(speed + ACC, MAX_SPEED);
-        const dir = new THREE.Vector3();
-        camera.getWorldDirection(dir);
-        camera.position.addScaledVector(dir, speed);
+    if (fly) {
+        speed = Math.min(speed + ACC, MAX);
+        const d = new THREE.Vector3();
+        camera.getWorldDirection(d);
+        camera.position.addScaledVector(d, speed);
     } else speed = Math.max(speed - ACC, 0);
-
     renderer.render(scene, camera);
-    requestAnimationFrame(animate);
+    requestAnimationFrame(loop);
 }
+loop();
 
-// ─────── RESIZE ───────
-addEventListener('resize', () => {
+// Resize
+addEventListener('resize', ()=>{
     camera.aspect = innerWidth/innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
 });
-
-// ─────── СТАРТ ───────
-initFormaCube();
-animate();
 </script>
 </body>
 </html>
