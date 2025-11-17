@@ -98,7 +98,7 @@
 
 <div class="container">
     <h1>QWERTY в ЯШЕРТЫ</h1>
-    <p>Введите комбинацию одинаковых букв: `e` (е), `ee` (э), `eee` (ё). Новые комбинации для `i`: `i` (и), `ii` (i), `iii` (ї).</p>
+    <p>Введите комбинацию одинаковых латинских букв, например: ee для отображения кириллической буквы э или латинских eee для кириллической ё. Также попробуйте многократное нажатие w, u, i, z и ' (апостроф). При вводе комбинаций заглавных букв не отпускайте Shift.</p>
     
     <label for="cyrillicOutput">Ваш Текст:</label>
     <textarea id="cyrillicOutput" rows="6" readonly placeholder="Текст появится здесь..."></textarea>
@@ -139,26 +139,40 @@
     const MULTI_BASES = new Set(['e', 'u', 'z', 'w', 'i', "'"]);
 
     // Функция для генерации всех 2^N вариаций регистра для многобуквенных ключей
-    function generateCaseVariations(str, cyr) {
-        const variations = new Map();
-        const len = str.length;
-        const numVariations = 1 << len;
+    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ GENERATECASEVARIATIONS (Секция 1) ---
+function generateCaseVariations(str, cyr) {
+    const variations = new Map();
+    const len = str.length;
+    const numVariations = 1 << len;
+    
+    for (let i = 0; i < numVariations; i++) {
+        let variation = '';
+        let isAllUpper = true;
         
-        for (let i = 0; i < numVariations; i++) {
-            let variation = '';
-            for (let j = 0; j < len; j++) {
-                if ((i >> j) & 1) {
-                    variation += str[j].toUpperCase();
-                } else {
-                    variation += str[j];
-                }
+        for (let j = 0; j < len; j++) {
+            if ((i >> j) & 1) {
+                variation += str[j].toUpperCase();
+            } else {
+                variation += str[j];
+                isAllUpper = false; // Если есть хотя бы одна строчная, то не все заглавные
             }
-            // Все вариации многобуквенных комбинаций декодируются в СТРОЧНУЮ кириллицу
-            // Это решает проблему "лишней заглавной"
-            variations.set(variation, cyr); 
         }
-        return variations;
+        
+        let cyrOutput = cyr;
+
+        // Если латинский ввод полностью заглавный (II, EEE, ZZZ), 
+        // мы делаем кириллический символ заглавным.
+        if (isAllUpper) {
+             // Используем toLocaleUpperCase для надежного преобразования кириллицы ('і' -> 'І')
+            cyrOutput = cyr.toLocaleUpperCase('ru'); 
+        }
+
+        // В противном случае (eE, iI, Zz), используем строчный (cyr)
+        
+        variations.set(variation, cyrOutput);
     }
+    return variations;
+}
     
     const MAPPING = new Map();
     const MULTI_TAP_KEYS = new Set(); 
@@ -198,12 +212,7 @@
         }
     }
     
-    // Удаляем однобуквенные заглавные (E, I, Z и т.д.) из словаря, которые являются стартерами комбинаций.
-    for (const char of MULTI_BASES) {
-        if (char.length === 1) {
-             MAPPING.delete(char.toUpperCase());
-        }
-    }
+  
 
     // Сортировка по длине для выбора самого длинного совпадения
     const sorted_keys = Array.from(MAPPING.keys()).sort((a, b) => b.length - a.length);
@@ -274,17 +283,21 @@ function transcodeToCyrillic(lat_text) {
     const FINALIZE_KEYS = new Set(['e', 'u', 'z', 'w', 'i', "'"]); 
     
     // Финализация
-    function finalizeInput(activeInput) {
-        const currentActiveInput = activeInput || latinInput.value;
-        
-        if (currentActiveInput.length === 0) return;
+    function finalizeInput(activeInput, nextKey = null) { // <-- ПРИНИМАЕТ nextKey
+    const currentActiveInput = activeInput || latinInput.value;
+    
+    if (currentActiveInput.length === 0) return nextKey;
 
-        const decodedChunk = transcodeToCyrillic(currentActiveInput);
-        
-        finalizedCyrillicText += decodedChunk;
-        cyrillicOutput.value = finalizedCyrillicText;
-        latinInput.value = '';
-    }
+    const decodedChunk = transcodeToCyrillic(currentActiveInput);
+    
+    finalizedCyrillicText += decodedChunk;
+    cyrillicOutput.value = finalizedCyrillicText;
+    
+    latinInput.value = '';
+    latinInput.focus();
+    
+    return nextKey; // <-- ВОЗВРАЩАЕТ nextKey (который содержит 'I')
+}
     
     // ОБРАБОТЧИК KEYDOWN: Ключ к решению проблемы с паузой
     latinInput.addEventListener('keydown', function(event) {
@@ -316,30 +329,28 @@ function transcodeToCyrillic(lat_text) {
 
         // 2. КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ПАУЗА (e [пауза] e)
         // Проверяем, прошла ли пауза И активный ввод не пуст И это один из "комбинируемых" символов
-        if (elapsedTime > DELAY_MS && currentInput.length > 0 && FINALIZE_KEYS.has(currentInput[0].toLowerCase())) {
+        // 2. АГРЕССИВНАЯ ФИНАЛИЗАЦИЯ (Решает I [пауза] I -> II)
+    if (elapsedTime > DELAY_MS && currentInput.length > 0 && AGGRESSIVE_FINALIZE_KEYS.has(currentInput[0].toLowerCase())) {
+        
+        event.preventDefault(); // Запрещаем браузеру вводить I
+        
+        // Финализируем старую букву, возвращая новую клавишу (I), которую нужно ввести
+        // NOTE: keyToInput будет содержать 'I' (заглавную), если она была нажата.
+        const keyToInput = finalizeInput(currentInput, key); 
+        
+        // Теперь, вместо сложной имитации, просто устанавливаем новую клавишу
+        if (keyToInput && keyToInput.length === 1 && keyToInput !== ' ' && keyToInput !== 'Enter') {
+            latinInput.value = keyToInput; // Вводим 'I'
             
-            // Финализируем старую букву, даже если нажата та же самая
-            finalizeInput(currentInput); 
-            
-            // Очистка latinInput.value уже произошла в finalizeInput()
-            
-            // Поскольку мы не можем ввести новую букву сразу, 
-            // мы предотвращаем стандартное действие, и ввод произойдет после 'input'
-            // Нам нужно "обмануть" браузер:
-            
-            // Принудительно вводим новую букву в очищенное поле (только если это не пробел/enter)
-            if (key !== ' ' && key !== 'Enter') {
-                event.preventDefault(); 
-                // Вместо того, чтобы вводить, мы просто устанавливаем новое значение
-                latinInput.value = key;
-                
-                // Имитируем событие ввода, чтобы запустить перерисовку
-                const inputEvent = new Event('input', { bubbles: true });
-                latinInput.dispatchEvent(inputEvent);
-                lastKeyPressTime = now;
-                return;
-            }
+            // Запускаем input для предпросмотра
+            const inputEvent = new Event('input', { bubbles: true });
+            latinInput.dispatchEvent(inputEvent);
         }
+        
+        lastKeyPressTime = now; 
+        return; 
+    }
+        
         
         // 3. ПРИНУДИТЕЛЬНАЯ ФИНАЛИЗАЦИЯ ДРУГОЙ БУКВОЙ (e [t])
         // Если поле ввода не пусто, и новая клавиша отличается от первой в активном вводе
