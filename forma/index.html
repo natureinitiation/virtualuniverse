@@ -141,7 +141,7 @@ function changeBackgroundColor() {
 }
 function animateBackgroundColor(targetColor) {
     const startColor = scene.background.clone();
-    const duration = 5;
+    const duration = 60;
     const startTime = performance.now();
     function updateBackgroundColor() {
         const elapsed = (performance.now() - startTime) / 1000;
