@@ -153,14 +153,16 @@ function animateBackgroundColor(targetColor) {
 }
 setInterval(changeBackgroundColor, 100000); // Снова включено
 
-// --- Controls and lights (без изменений) ---
+// --- Controls and lights (с изменением зума) ---
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.005;
 
-controls.enableZoom = false;
-controls.enablePan = true;
+// !!! ВАЖНОЕ ИЗМЕНЕНИЕ: ВКЛЮЧАЕМ СТАНДАРТНЫЙ ZOOM ДЛЯ PINCH-TO-ZOOM
+controls.enableZoom = true; 
 controls.zoomSpeed = 0.5; 
+
+controls.enablePan = true;
 controls.panSpeed = 0.3;  
 
 // 1. Общий свет (AmbientLight)
@@ -184,7 +186,7 @@ cameraLightGroup.add(ultramarineLight);
 // -----------------------------
 
 // Word-links (без изменений)
-// const secrets = ['slowly', 'focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'];
+const secrets = ['slowly', 'focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'];
 
 
 // Object storage
@@ -537,6 +539,7 @@ renderer.domElement.addEventListener('pointerup', (event) => {
 });
 
 renderer.domElement.addEventListener('pointermove', (event) => {
+    // Внимание: OrbitControls может сам отменить longPress, если это жест
     if (longPressTimer) {
         clearTimeout(longPressTimer);
     }
@@ -758,6 +761,7 @@ const fileInput = document.getElementById('file-input');
 closerButton.addEventListener('click', () => {
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction); 
+    // Кнопка Closer (Ближе) - Move ВПЕРЕД
     moveCamera(direction, CUBE_SIZE); 
 });
 
@@ -765,6 +769,7 @@ furtherButton.addEventListener('click', () => {
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction); 
     direction.negate(); 
+    // Кнопка Further (Дальше) - Move НАЗАД
     moveCamera(direction, CUBE_SIZE); 
 });
 
@@ -781,22 +786,9 @@ loadButton.addEventListener('click', () => {
 });
 
 
-renderer.domElement.addEventListener('wheel', (event) => {
-    if (event.deltaY < 0) { 
-        const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction); 
-        const initialPosition = camera.position.clone();
-        
-        const currentDistanceToCenter = camera.position.distanceTo(controls.target);
-
-        if (currentDistanceToCenter < 1 || applyCameraRepulsion(initialPosition, direction, 0.5) < 0.01) { 
-            event.preventDefault(); 
-            return;
-        }
-    }
-    
-    controls.update();
-});
+// !!! ВАЖНОЕ ИЗМЕНЕНИЕ: УДАЛЕН КАСТОМНЫЙ ОБРАБОТЧИК 'wheel'.
+// Теперь OrbitControls автоматически обрабатывает колесико мыши и pinch-to-zoom (щипок)
+// для изменения FOV, так как controls.enableZoom = true.
 
 
 // --- Обработчик кнопки "Fly" (без изменений) ---
