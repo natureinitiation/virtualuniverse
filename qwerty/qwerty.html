@@ -98,7 +98,7 @@
 
 <div class="container">
     <h1>QWERTY в ЯШЕРТЫ</h1>
-    <p>Введите комбинацию латинских букв для отображения кириллических (включая украинские): ZH для Ж, CH для Ч, SH для Ш, SHH, SCH или CSH для Щ, E для Э, IE — Є, YE — Е, YO — Ё, IE — Е, YA — Я, CZ или TS — Ц, II — I, YI — Ї, ''' — Ъ, '' — Ь, --- длинное тире, -- минус</p>
+    <p>Введите комбинацию одинаковых латинских букв, например: ee для отображения кириллической буквы э или латинских eee для кириллической ё. Также попробуйте многократное нажатие w, u, i, z и ' (апостроф). При вводе комбинаций заглавных букв не отпускайте Shift.</p>
     
     <label for="cyrillicOutput">Ваш Текст:</label>
     <textarea id="cyrillicOutput" rows="6" readonly placeholder="Текст появится здесь..."></textarea>
@@ -121,63 +121,63 @@
 <script>
     // 1. Определение Словаря Правил и Генерация Регистров
     
-    // БАЗОВЫЕ ПРАВИЛА ДЛЯ ТРАНСЛИТЕРАЦИИ (строчные)
-    // Используем привычные сочетания: ZH, SH, YU, YO, IE, EE, X, etc.
+    // Базовые правила (строчные)
     const MAPPING_LOWERCASE_BASE = new Map([
-        // --- МНОГОСИМВОЛЬНЫЕ СОЧЕТАНИЯ (Приоритет в словаре!) ---
-        // Ж, Ч, Ш, Щ, Ц, Ю, Я, Ь, Ъ, Э, Е, Ё, Й, Ы, И
-        ['zh', 'ж'], ['ch', 'ч'], ['sh', 'ш'], ['shh', 'щ'], ['csh', 'щ'], ['cz', 'ц'], ['yu', 'ю'], 
-        ['ya', 'я'], ['yo', 'ё'], ['ie', 'є'], ['ye', 'е'], ['y', 'ы'], ['ii', 'і'],
-        ['ts', 'ц'], ['sch', 'щ'], 
-        ['e', 'э'], ['j', 'й'], ['i', 'и'],
-        // Сочетания для твёрдого и мягкого знака (как пример)
-        ["'''", 'ъ'], ["''", 'ь'], ["---", '—'], ["--", '–'],
-        // Украинские/Белорусские (как пример)
-        ['yi', 'ї'], 
-        
-        // --- ОДИНОЧНЫЕ БУКВЫ (QWERTY -> Кириллица) ---
-        ['a', 'а'], ['b', 'б'], ['v', 'в'], ['g', 'г'], ['d', 'д'], 
-        ['k', 'к'], ['l', 'л'], ['m', 'м'], ['n', 'н'], ['o', 'о'], 
-        ['p', 'п'], ['r', 'р'], ['s', 'с'], ['t', 'т'],
-        ['u', 'у'], ['f', 'ф'], ['x', 'х'], ['z', 'з'], 
+        // МНОГОСИМВОЛЬНЫЕ:
+        ['eee', 'ё'], ['iii', 'ї'], ['uu', 'ю'], ['zz', 'ж'], ['ww', 'щ'], ['ee', 'э'], 
+        ['ii', 'i'], 
+        ["'''", 'ъ'], ["''", 'ь'], 
+        // ОДИНОЧНЫЕ:
+        ['a', 'а'], ['b', 'б'], ['v', 'в'], ['g', 'г'], ['d', 'д'], ['e', 'е'],
+        ['z', 'з'], ['i', 'и'], ['j', 'й'], ['k', 'к'], ['l', 'л'], ['m', 'м'],
+        ['n', 'н'], ['o', 'о'], ['p', 'п'], ['r', 'р'], ['s', 'с'], ['t', 'т'],
+        ['u', 'у'], ['f', 'ф'], ['x', 'х'], ['c', 'ц'], ['h', 'ч'], ['w', 'ш'],
+        ['y', 'ы'], ['q', 'я'], 
     ]);
     
-    // Функция для генерации всех 2^N вариаций регистра для многобуквенных ключей
-    // (Оставлена для сохранения логики обработки регистра - SH/sh -> Ш/ш)
-    function generateCaseVariations(str, cyr) {
-        const variations = new Map();
-        const len = str.length;
-        const numVariations = 1 << len;
-        
-        for (let i = 0; i < numVariations; i++) {
-            let variation = '';
-            let isAllUpper = true;
-            
-            for (let j = 0; j < len; j++) {
-                if ((i >> j) & 1) {
-                    variation += str[j].toUpperCase();
-                } else {
-                    variation += str[j];
-                    isAllUpper = false;
-                }
-            }
-            
-            let cyrOutput = cyr;
+    // Символы, для которых есть многобуквенные комбинации
+    const MULTI_BASES = new Set(['e', 'u', 'z', 'w', 'i', "'"]);
 
-            // Если латинский ввод полностью заглавный (SH, ZH, YU), 
-            // мы делаем кириллический символ заглавным.
-            if (isAllUpper) {
-                cyrOutput = cyr.toLocaleUpperCase('ru'); 
+    // Функция для генерации всех 2^N вариаций регистра для многобуквенных ключей
+    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ GENERATECASEVARIATIONS (Секция 1) ---
+function generateCaseVariations(str, cyr) {
+    const variations = new Map();
+    const len = str.length;
+    const numVariations = 1 << len;
+    
+    for (let i = 0; i < numVariations; i++) {
+        let variation = '';
+        let isAllUpper = true;
+        
+        for (let j = 0; j < len; j++) {
+            if ((i >> j) & 1) {
+                variation += str[j].toUpperCase();
+            } else {
+                variation += str[j];
+                isAllUpper = false; // Если есть хотя бы одна строчная, то не все заглавные
             }
-            
-            variations.set(variation, cyrOutput);
         }
-        return variations;
+        
+        let cyrOutput = cyr;
+
+        // Если латинский ввод полностью заглавный (II, EEE, ZZZ), 
+        // мы делаем кириллический символ заглавным.
+        if (isAllUpper) {
+             // Используем toLocaleUpperCase для надежного преобразования кириллицы ('і' -> 'І')
+            cyrOutput = cyr.toLocaleUpperCase('ru'); 
+        }
+
+        // В противном случае (eE, iI, Zz), используем строчный (cyr)
+        
+        variations.set(variation, cyrOutput);
     }
+    return variations;
+}
     
     const MAPPING = new Map();
+    const MULTI_TAP_KEYS = new Set(); 
 
-    // 1. Добавляем символы, которые не являются буквами или комбинациями (Пункт., Цифры)
+    // 1. Добавляем символы, которые не являются буквами или комбинациями
     const NON_ALPHABET_CHARS = new Map([
         [' ', ' '], ['.', '.'], [',', ','], ['!', '!'], ['?', '?'],
         ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'],
@@ -190,103 +190,195 @@
 
     // 2. Обрабатываем буквы и комбинации
     for (const [lat, cyr] of MAPPING_LOWERCASE_BASE) {
-        if (lat.length > 1) {
-            // МНОГОБУКВЕННАЯ КОМБИНАЦИЯ (sh, zh, yu)
+        const firstChar = lat[0];
+
+        if (lat.length > 1 && MULTI_BASES.has(firstChar)) {
+            // МНОГОБУКВЕННАЯ КОМБИНАЦИЯ (eee, zz, ii)
             const variations = generateCaseVariations(lat, cyr);
             for (const [v, c] of variations) {
                  MAPPING.set(v, c);
+                 MULTI_TAP_KEYS.add(v); 
             }
         } else {
-            // ОДИНОЧНАЯ БУКВА (a, b, t)
+            // ОДИНОЧНАЯ БУКВА (a, b, t) ИЛИ ОДИНОЧНЫЙ СИМВОЛ (например, ')
             
             // Строчная
             MAPPING.set(lat, cyr);
             
-            // Заглавная (если это буква)
-            if (lat.match(/[a-z]/i)) {
+            // Заглавная (если не ' или '')
+            if (lat.length === 1 && lat.match(/[a-z]/i)) {
                 MAPPING.set(lat.toUpperCase(), cyr.toUpperCase());
             }
         }
     }
     
-    // Сортировка по длине для выбора самого длинного совпадения (КРИТИЧНО для 'shh' > 'sh')
+  
+
+    // Сортировка по длине для выбора самого длинного совпадения
     const sorted_keys = Array.from(MAPPING.keys()).sort((a, b) => b.length - a.length);
 
 
     // 2. Функция Транслитерации
-    function transcodeToCyrillic(lat_text) {
-        if (!lat_text) return '';
+// 2. Функция Транслитерации
+function transcodeToCyrillic(lat_text) {
+    if (!lat_text) return '';
 
-        let output = [];
-        let i = 0;
-        const text = lat_text;
-        const len = text.length;
+    let output = [];
+    let i = 0;
+    const text = lat_text;
+    const len = text.length;
 
-        while (i < len) {
-            let foundMatch = false;
-            
-            for (const lat_key of sorted_keys) {
-                const key_len = lat_key.length;
-                const fragment = text.substring(i, i + key_len);
+    while (i < len) {
+        let foundMatch = false;
+        
+        for (const lat_key of sorted_keys) {
+            const key_len = lat_key.length;
+            const fragment = text.substring(i, i + key_len);
 
-                if (fragment === lat_key) {
-                    // Используем маппинг, который уже содержит нужный регистр
-                    const cyr_char = MAPPING.get(lat_key);
-                    
-                    output.push(cyr_char);
-                    i += key_len;
-                    foundMatch = true;
-                    break;
+            if (fragment === lat_key) {
+                // Получаем строчный кириллический символ из словаря
+                let cyr_char = MAPPING.get(lat_key);
+                
+                // --- НОВАЯ ЛОГИКА ДЛЯ ЗАГЛАВНЫХ БУКВ ---
+                // Проверяем, если фрагмент полностью состоит из заглавных букв 
+                // (Например, 'EEE', 'UU', 'A'). Используем проверку /[A-Z]/, чтобы исключить пробелы и цифры
+                const allUpper = fragment.toUpperCase() === fragment && fragment.match(/[A-Z]/);
+
+                if (allUpper) {
+                    // Если все заглавные, то делаем кириллический символ заглавным
+                    if (cyr_char.match(/[а-яёіїє]/)) {
+                        cyr_char = cyr_char.toUpperCase();
+                    }
                 }
-            }
-            
-            if (!foundMatch) {
-                // Если символ не найден, добавляем его как есть 
-                output.push(text[i]);
-                i++;
+                // ----------------------------------------
+
+                output.push(cyr_char);
+                i += key_len;
+                foundMatch = true;
+                break;
             }
         }
         
-        return output.join('');
+        if (!foundMatch) {
+            // Если символ не найден, добавляем его как есть (например, пунктуацию, которую мы не определили)
+            output.push(text[i]);
+            i++;
+        }
     }
+    
+    return output.join('');
+}
 
 
-    // 3. Управление Вводом (УПРОЩЕННЫЙ ВВОД БЕЗ ПАУЗ)
+    // 3. Управление Вводом (BlackBerry-стиль, с управлением паузой)
     const latinInput = document.getElementById('latinInput');
     const cyrillicOutput = document.getElementById('cyrillicOutput');
     const copyButton = document.getElementById('copyButton'); 
 
-    // В упрощенном режиме нам не нужны: 
-    // DELAY_MS, finalizedCyrillicText, lastKeyPressTime, FINALIZE_KEYS, finalizeInput,
-    // и сложная логика в keydown.
+    const DELAY_MS = 300; 
+    let finalizedCyrillicText = ""; 
+    let lastKeyPressTime = 0; // Время последнего нажатия клавиши
     
-    // Новую логику вводим через 'input' и 'keydown' для Backspace.
+    // Символы, которые мы разрешаем финализировать по паузе (для ускорения ввода)
+    const FINALIZE_KEYS = new Set(['e', 'u', 'z', 'w', 'i', "'"]); 
+    
+    // Финализация
+    function finalizeInput(activeInput, nextKey = null) { // <-- ПРИНИМАЕТ nextKey
+    const currentActiveInput = activeInput || latinInput.value;
+    
+    if (currentActiveInput.length === 0) return nextKey;
 
-    // 3.1. ОБРАБОТЧИК KEYDOWN: Только для Backspace
+    const decodedChunk = transcodeToCyrillic(currentActiveInput);
+    
+    finalizedCyrillicText += decodedChunk;
+    cyrillicOutput.value = finalizedCyrillicText;
+    
+    latinInput.value = '';
+    latinInput.focus();
+    
+    return nextKey; // <-- ВОЗВРАЩАЕТ nextKey (который содержит 'I')
+}
+    
+    // ОБРАБОТЧИК KEYDOWN: Ключ к решению проблемы с паузой
     latinInput.addEventListener('keydown', function(event) {
-        // Мы полностью полагаемся на стандартный ввод в latinInput и перекодируем его в 'input'
-        if (event.key === 'Backspace') {
-            // Разрешаем стандартный backspace.
+        const now = Date.now();
+        const elapsedTime = now - lastKeyPressTime;
+        const key = event.key;
+        const currentInput = latinInput.value;
+        const newChar = key.toLowerCase();
+
+        // 1. Обработка Backspace (без изменений)
+        if (key === 'Backspace') {
+            if (currentInput.length === 0) {
+                event.preventDefault(); 
+                if (finalizedCyrillicText.length > 0) {
+                    finalizedCyrillicText = finalizedCyrillicText.slice(0, -1);
+                    cyrillicOutput.value = finalizedCyrillicText;
+                }
+            }
+            // Разрешаем стандартный backspace для текущего ввода
             return; 
         }
 
-        // Игнорируем спецклавиши, но разрешаем пробел и Enter
-        if (event.key.length > 1 && event.key !== ' ' && event.key !== 'Enter') {
+        // Игнорируем спецклавиши
+        if (key.length > 1 && key !== ' ' && key !== 'Enter') {
+            lastKeyPressTime = now;
             return;
         }
 
-        // Мы не обрабатываем никаких пауз или финализации, 
-        // просто позволяем вводу идти и отображаем его в 'input'
+
+        // 2. КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ПАУЗА (e [пауза] e)
+        // Проверяем, прошла ли пауза И активный ввод не пуст И это один из "комбинируемых" символов
+        // 2. АГРЕССИВНАЯ ФИНАЛИЗАЦИЯ (Решает I [пауза] I -> II)
+    if (elapsedTime > DELAY_MS && currentInput.length > 0 && AGGRESSIVE_FINALIZE_KEYS.has(currentInput[0].toLowerCase())) {
+        
+        event.preventDefault(); // Запрещаем браузеру вводить I
+        
+        // Финализируем старую букву, возвращая новую клавишу (I), которую нужно ввести
+        // NOTE: keyToInput будет содержать 'I' (заглавную), если она была нажата.
+        const keyToInput = finalizeInput(currentInput, key); 
+        
+        // Теперь, вместо сложной имитации, просто устанавливаем новую клавишу
+        if (keyToInput && keyToInput.length === 1 && keyToInput !== ' ' && keyToInput !== 'Enter') {
+            latinInput.value = keyToInput; // Вводим 'I'
+            
+            // Запускаем input для предпросмотра
+            const inputEvent = new Event('input', { bubbles: true });
+            latinInput.dispatchEvent(inputEvent);
+        }
+        
+        lastKeyPressTime = now; 
+        return; 
+    }
+        
+        
+        // 3. ПРИНУДИТЕЛЬНАЯ ФИНАЛИЗАЦИЯ ДРУГОЙ БУКВОЙ (e [t])
+        // Если поле ввода не пусто, и новая клавиша отличается от первой в активном вводе
+        if (currentInput.length > 0 && newChar !== currentInput[0].toLowerCase() && FINALIZE_KEYS.has(currentInput[0].toLowerCase())) {
+            
+            event.preventDefault(); // Предотвращаем ввод новой буквы
+            finalizeInput(currentInput);        // Финализируем старую комбинацию
+            
+            // Вводим новую букву
+            latinInput.value = key;
+            
+            // Ручной запуск 'input' события для отображения предпросмотра
+            const inputEvent = new Event('input', { bubbles: true });
+            latinInput.dispatchEvent(inputEvent);
+        }
+        
+        // Обновляем время нажатия
+        lastKeyPressTime = now;
     });
 
-    // 3.2. Слушатель INPUT: Отображение ПРЕДПРОСМОТРА (теперь это единственный источник вывода)
+
+    // Слушатель INPUT: Только для отображения ПРЕДПРОСМОТРА
     latinInput.addEventListener('input', function() {
         const currentDecodedPreview = transcodeToCyrillic(latinInput.value);
-        // cyrillicOutput теперь показывает только декодированный текст из latinInput
-        cyrillicOutput.value = currentDecodedPreview;
+        cyrillicOutput.value = finalizedCyrillicText + currentDecodedPreview;
     });
     
-    // 3.3. Гарантируем фокус
+    // Гарантируем фокус
     document.addEventListener('click', function() {
         latinInput.focus();
     });
@@ -296,7 +388,11 @@
     
     // 4. Функциональность Кнопки Копирования
     copyButton.addEventListener('click', function() {
-        // В упрощённой версии достаточно просто скопировать текущее содержимое cyrillicOutput
+        // Принудительно финализируем активный ввод перед копированием
+        if (latinInput.value.length > 0) {
+            finalizeInput();
+        }
+        
         const textToCopy = cyrillicOutput.value; 
         
         if (navigator.clipboard && textToCopy) {
@@ -317,7 +413,5 @@
     // Инициализация: ставим фокус при загрузке
     latinInput.focus(); 
 </script>
-
-
 </body>
 </html>
