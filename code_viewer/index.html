@@ -1,487 +1,204 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-  <meta name="description" content="Simple Code Editor" />
-  <link rel="manifest" href="manifest.json" />
-  <title>Code Viewer</title>
-  <style>
-    html, body {
-    overscroll-behavior: none;
-    }
-    body {
-      margin: 0;
-      display: flex;
-      /* БАЗОВЫЙ РЕЖИМ: ГОРИЗОНТАЛЬНЫЙ (ЛАНДШАФТ) */
-      flex-direction: row; 
-      height: 100vh;
-      font-family: Arial, sans-serif;
-      background-color: black;
-      color: white;
-      position: relative;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QWERTY в ЯШЕРТЫ</title>
+    <style>
+        /* --- ОСНОВНЫЕ СТИЛИ --- */
+        body {
+            font-family: Arial, sans-serif;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #bb86fc;
+            border-bottom: 2px solid #bb86fc;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+            resize: vertical;
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            min-height: 80px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        /* --- СКРЫВАЕМ АКТИВНОЕ ПОЛЕ ВВОДА --- */
+        #latinInput {
+            opacity: 0; 
+            height: 0;
+            padding: 0;
+            margin-bottom: 0;
+            border: none;
+            overflow: hidden;
+            resize: none;
+        }
+        /* --- Стили для финального поля (для имитации активного ввода) --- */
+        #cyrillicOutput {
+            min-height: 120px;
+            cursor: default;
+        }
+        .copy-button {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #03dac6;
+            color: #121212;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 5px;
+            display: block;
+            width: 100%;
+        }
+        .copy-button:hover {
+            background-color: #039c8c;
+        }
 
-/* ПРОЗРАЧНО-ЖЕЛТАЯ ПОДСВЕТКА НАЙДЕННОГО ФРАГМЕНТА */
-::-webkit-selection { 
-  background: rgba(255, 255, 0, 0.5); /* Желтый с 50% непрозрачности */
-  color: white; /* Сохраняем цвет текста редактора */       
-}
-::-moz-selection { 
-  background: rgba(255, 255, 0, 0.5);
-  color: white; 
-}
-::selection { 
-  background: rgba(255, 255, 0, 0.5); 
-  color: white; 
-}
-
-/* Глобальные flex-параметры для горизонтального режима (ландшафт) */
-#editorContainer {
-  flex: 38.2;
-  display: flex;
-  position: relative;
-  background-color: black;
-  min-width: 0; 
-}
-#preview {
-  flex: 61.8;
-  border: none;
-  background-color: #333333;
-  overflow: auto;
-  min-width: 0; 
-}
-#controlPanel {
-  /* Занимает только необходимую ширину */
-  flex: 0 0 auto; 
-}
-
-
-/* СТИЛИ ДЛЯ НУМЕРАЦИИ СТРОК */
-#lineNumbering {
-  width: 30px; 
-  padding: 10px 5px 10px 10px;
-  text-align: right;
-  font-family: monospace;
-  font-size: 14px;
-  line-height: 1.2; 
-  color: #666; 
-  background-color: #111;
-  user-select: none;
-  white-space: pre-wrap;
-  overflow-y: scroll;
-}
-#lineNumbering::-webkit-scrollbar {
-  display: none;
-  width: 0; 
-  height: 0;
-}
-
-
-#controlPanel > div {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-start; 
-  align-items: flex-start;
-  padding: 10px;
-  background-color: black;
-  box-sizing: border-box;
-  z-index: 10;
-  /* В ЛАНДШАФТЕ (по умолчанию) - вертикальный список */
-  flex-direction: column; 
-}
-
-/* Группировка элементов управления файлами */
-#fileActions {
-    display: flex;
-    gap: 10px;
-    flex-direction: row; 
-    align-items: center;
-    /* В ландшафте - минимальная ширина */
-    flex-shrink: 0; 
-}
-
-/* Группировка элементов поиска (Ключевой контейнер для адаптации) */
-#searchControls {
-    display: flex;
-    gap: 10px;
-    flex-direction: row; 
-    align-items: center;
-    /* В ландшафте - минимальная ширина */
-    flex-shrink: 0; 
-}
-
-#preview, #controlPanel {
-  touch-action: manipulation; 
-}
-
-    #editor {
-      flex: 1; 
-      padding: 10px;
-      border: none;
-      resize: none;
-      font-family: monospace;
-      font-size: 14px;
-      background-color: black;
-      color: white;
-      outline: none;
-      caret-color: white;
-      position: relative;
-      line-height: 1.2; 
-      box-sizing: border-box;
-      overflow-y: auto; 
-      min-width: 0;
-    }
-    
-    /* ... стили кнопок поиска и других элементов без изменений ... */
-    #prevMatchButton, #nextMatchButton {
-      width: 40px;
-      height: 40px;
-      background-color: #333333; 
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 18px; 
-      line-height: 40px;
-      text-align: center;
-      border-radius: 5px;
-      padding: 0;
-      flex-shrink: 0; 
-    }
-    #prevMatchButton:hover, #nextMatchButton:hover {
-      background-color: #555555;
-    }
-    #fileFormat {
-      font-size: 14px;
-      padding: 5px;
-      width: 70px;
-    }
-
-    #saveButton {
-      width: 70px;
-      height: 40px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    #saveButton:hover {
-      background-color: #0056b3;
-    }
-    #searchField {
-      padding: 5px;
-      font-size: 14px;
-      border: 1px solid #555;
-      background-color: #333333;
-      color: white;
-      height: 30px;
-      box-sizing: border-box;
-      border-radius: 5px;
-      
-      /* ЛАНДШАФТ: МИНИМАЛЬНАЯ ШИРИНА (для слова "Search" + отступы) */
-      width: 12ch; 
-      min-width: 12ch; 
-      flex-grow: 0;
-      flex-shrink: 0;
-    }
-
-
-/* ВЕРТИКАЛЬНАЯ ОРИЕНТАЦИЯ (ПОРТРЕТ) */
-@media (orientation: portrait) {
-  body {
-    flex-direction: column;
-  }
-  
-  /* Переопределение для вертикального деления по высоте */
-  #editorContainer {
-    flex: 38.2 1 0; 
-    min-height: 0; 
-    min-width: auto;
-  }
-  
-  #preview {
-    flex: 61.8 1 0;
-    min-height: 0;
-    min-width: auto;
-  }
-  
-  #controlPanel {
-    flex: 0 0 auto; 
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Элементы управления в одну строку (File Actions + Search Controls) */
-  #controlPanel > div {
-    flex-direction: row; 
-    justify-content: space-between;
-    flex-wrap: wrap; 
-    align-items: center;
-    width: 100%;
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Позволяем поисковому блоку заполнить оставшееся место */
-  #searchControls {
-      flex-grow: 1; /* РАСТЯГИВАЕТ контейнер поиска на оставшуюся часть строки */
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Разрешаем полю поиска растягиваться внутри своего контейнера */
-  #searchField {
-      flex-grow: 1; /* РАСТЯГИВАЕТ само поле ввода внутри контейнера поиска */
-      width: auto; 
-      min-width: 40px; 
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Группа действий с файлами остается минимальной */
-  #fileActions {
-      flex-shrink: 0;
-  }
-}
-  </style>
+        /* Стили для подвала (ссылки) */
+        .page-footer {
+            max-width: 800px;
+            margin: 20px auto 0;
+            padding: 0 30px;
+        }
+        .page-footer a {
+            color: #bb86fc;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .page-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-  <div id="editorContainer">
-    <div id="lineNumbering">1</div>
-    <textarea id="editor" placeholder="Type to see your code here..."></textarea>
-  </div>
-  <iframe id="preview" title="Preview"></iframe>
 
-  <div id="controlPanel">
-    <div>
-      
-      <div id="searchControls">
-        <input type="text" id="searchField" placeholder="Search">
-        <button id="prevMatchButton" title="Previous Match">▲</button>
-        <button id="nextMatchButton" title="Next Match">▼</button>
-      </div>
-      
-      <div id="fileActions">
-        <select id="fileFormat">
-          <option value="html">HTML</option>
-          <option value="json">JSON</option>
-          <option value="txt">TXT</option>
-          <option value="js">JS</option>
-          <option value="css">CSS</option>
-        </select>
-        <button id="saveButton">Save</button>
-        </div>
-      
-    </div>
-  </div>
-
-
-  <script>
-    const editor = document.getElementById("editor");
-    const preview = document.getElementById("preview");
-    const saveButton = document.getElementById("saveButton");
-    const fileFormat = document.getElementById("fileFormat");
-    const searchField = document.getElementById("searchField");
-    const prevMatchButton = document.getElementById("prevMatchButton");
-    const nextMatchButton = document.getElementById("nextMatchButton");
-    const lineNumbering = document.getElementById("lineNumbering"); 
-
-    let searchMatches = []; 
-    let currentMatchIndex = -1; 
-    let currentSearchTerm = ""; 
-
-    const mimeTypes = {
-      html: "text/html",
-      json: "application/json",
-      txt: "text/plain",
-      js: "application/javascript",
-      css: "text/css",
-    };
-
-    function updateLineNumbers() {
-        const lineCount = editor.value.split('\n').length;
-        const numbers = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
-        lineNumbering.innerText = numbers;
-    }
-
-    // Синхронизация прокрутки и обновления номеров
-    editor.addEventListener('input', () => {
-        // 1. СОХРАНЯЕМ позицию курсора, чтобы он не прыгал
-        const start = editor.selectionStart;
-        const end = editor.selectionEnd;
-
-        preview.srcdoc = editor.value;
-        updateLineNumbers();
-
-        // 2. ВОССТАНАВЛИВАЕМ позицию курсора
-        editor.setSelectionRange(start, end);
-    });
-
-    editor.addEventListener('scroll', () => {
-        lineNumbering.scrollTop = editor.scrollTop;
-    });
-
-    // Инициализация номеров строк при загрузке
-    updateLineNumbers();
-
-
-    saveButton.addEventListener("click", () => {
-      const format = fileFormat.value;
-      const mimeType = mimeTypes[format] || "text/plain";
-      const blob = new Blob([editor.value], { type: mimeType });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `code.${format}`;
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
+<div class="container">
+    <h1>QWERTY в ЯШЕРТЫ</h1>
+    <p>Введите комбинацию латинских букв для отображения кириллических (включая украинские ): ZH для Ж, CH — Ч, SH — Ш, SHH, SCH или CSH — Щ, E — Э, IE — Є, YE — Е, YO — Ё, YU — Ю, IE — Е, YA — Я, CZ или TS — Ц, II — I, YI — Ї, GG — Ґ, GZ — Ґ, NG — Ң, AE — Ә, UE — Ү, OE — Ө, KH — Һ, H — Һ, ''' — Ъ, '' — Ь, --- длинное тире, -- минус</p>
     
-    // =========================================================================
-    // ЛОГИКА ПОИСКА (ОБНОВЛЕНА ДЛЯ ПРОКРУТКИ)
-    // =========================================================================
-
-    function resetSearch() {
-        searchMatches = [];
-        currentMatchIndex = -1;
-        currentSearchTerm = "";
-        clearSelection(editor);
-    }
+    <label for="cyrillicOutput">Ваш Текст:</label>
+    <textarea id="cyrillicOutput" rows="6" readonly placeholder="Текст появится здесь..."></textarea>
     
-    function findAllMatches(searchText) {
-        searchMatches = [];
-        currentSearchTerm = searchText;
-
-        if (searchText === "") return;
-
-        const editorContent = editor.value;
-        const normalizedContent = editorContent.toLowerCase();
-        const normalizedSearchText = searchText.toLowerCase();
-        const len = normalizedSearchText.length;
-        let index = normalizedContent.indexOf(normalizedSearchText, 0);
-
-        while (index !== -1) {
-            searchMatches.push(index);
-            index = normalizedContent.indexOf(normalizedSearchText, index + len);
-        }
-    }
-
-    function highlightMatch(index) {
-        if (index === -1 || searchMatches.length === 0) {
-            clearSelection(editor);
-            return;
-        }
-
-        const start = searchMatches[index];
-        const end = start + currentSearchTerm.length;
-        
-        editor.focus();
-        editor.setSelectionRange(start, end);
-
-        // =========================================================
-        // ЛОГИКА ПРОКРУТКИ К ТРЕТЬЕЙ СТРОКЕ 
-        // =========================================================
-        
-        // Получаем line-height, установленный в CSS (1.2 * 14px = 16.8px)
-        const computedStyle = getComputedStyle(editor);
-        const fontSize = parseFloat(computedStyle.fontSize);
-        const lineHeight = fontSize * parseFloat(computedStyle.lineHeight) || 16.8; 
-
-        // Находим строку, где находится выделение.
-        const textBefore = editor.value.substring(0, start);
-        const lineNumber = textBefore.split('\n').length - 1; 
-
-        // Вычисляем целевую позицию прокрутки. 
-        // Мы хотим, чтобы искомая строка была на 3-й позиции, поэтому отнимаем 2 (lineNumber - 2).
-        // Если lineNumber < 2, прокручиваем к самому началу (0).
-        const targetLineNumber = Math.max(0, lineNumber - 2); 
-
-        // Целевая позиция прокрутки = (Номер целевой строки) * (Высота строки)
-        const targetScrollTop = targetLineNumber * lineHeight;
-        
-        // Применяем прокрутку
-        editor.scrollTop = targetScrollTop; 
-        // =========================================================
-    }
-
-    function startSearch(searchText) {
-        const trimmedText = searchText.trim();
-
-        // Если поле пустое, сброс и выход
-        if (trimmedText === "") {
-            resetSearch();
-            searchField.style.backgroundColor = '#333333';
-            return;
-        }
-        
-        // Если текст не менялся, просто переходим к следующему совпадению
-        if (trimmedText === currentSearchTerm && searchMatches.length > 0) {
-            nextMatch();
-            return;
-        }
-        
-        // Новый поиск: сброс и поиск всех совпадений
-        resetSearch();
-        findAllMatches(trimmedText);
-
-        if (searchMatches.length > 0) {
-            currentMatchIndex = 0;
-            highlightMatch(currentMatchIndex);
-            searchField.style.backgroundColor = '#333333';
-        } else {
-            // Нет совпадений (красный мигающий индикатор)
-            searchField.style.backgroundColor = 'red';
-            setTimeout(() => {
-                searchField.style.backgroundColor = '#333333';
-            }, 300);
-        }
-    }
-
-    function nextMatch() {
-        if (searchMatches.length === 0) return;
-
-        currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
-        highlightMatch(currentMatchIndex);
-    }
-
-    function prevMatch() {
-        if (searchMatches.length === 0) return;
-
-        currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
-        highlightMatch(currentMatchIndex);
-    }
-
-    // Обработчики событий
-    searchField.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-            event.preventDefault(); 
-            startSearch(searchField.value);
-        }
-    });
+    <button id="copyButton" class="copy-button">
+        📋 Копировать Кириллицу
+    </button>
     
-    // e.preventDefault() предотвращает потерю фокуса и появление клавиатуры
-    nextMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); 
-        if (searchField.value.trim() !== currentSearchTerm) {
-            startSearch(searchField.value);
-        } else {
-            nextMatch();
+    <label for="latinInput" style="display: none;">Активный Ввод (Скрыт):</label>
+    <textarea id="latinInput" rows="2" placeholder="Начните вводить"></textarea>
+
+</div>
+
+<div class="page-footer">
+    <a href="https://eugenebox.t.me/" target="_blank">
+        Help
+    </a>
+</div>
+
+<script>
+    const MAPPING_LOWERCASE_BASE = new Map([
+        ['zh','ж'],['ch','ч'],['sh','ш'],['shh','щ'],['sch','щ'],['csh','щ'],['cz','ц'],['ts','ц'],
+        ['yu','ю'],['ya','я'],['yo','ё'],['ie','є'],['yi','ї'],['ye','е'],['ii','і'],['e','э'],['j','й'],['y','ы'],
+        ['gg','ґ'],['gz','ґ'],['ng','ң'],['ae','ә'],['ue','ү'],['oe','ө'],['kh','һ'],['h','һ'],
+        ['a','а'],['b','б'],['v','в'],['g','г'],['d','д'],['k','к'],['l','л'],['m','м'],['n','н'],['o','о'],
+        ['p','п'],['r','р'],['s','с'],['t','т'],['u','у'],['f','ф'],['x','х'],['z','з'],['i','и'],
+        ["---","—"],["--","–"]
+    ]);
+
+    function generateCaseVariations(str, cyr) {
+        const vars = new Map();
+        const len = str.length;
+        for (let i = 0; i < (1 << len); i++) {
+            let key = '', allUpper = true;
+            for (let j = 0; j < len; j++) {
+                if (i & (1 << j)) key += str[j].toUpperCase();
+                else { key += str[j]; allUpper = false; }
+            }
+            vars.set(key, allUpper ? cyr.toUpperCase() : cyr);
         }
-    });
-
-    // e.preventDefault() предотвращает потерю фокуса и появление клавиатуры
-    prevMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); 
-        if (searchField.value.trim() !== currentSearchTerm) {
-            startSearch(searchField.value);
-        } else {
-            prevMatch();
-        }
-    });
-
-
-    function clearSelection(textarea) {
-        // Снимаем выделение, сохраняя курсор на месте
-        const start = textarea.selectionStart;
-        textarea.setSelectionRange(start, start); 
+        return vars;
     }
 
-  </script>
+    const MAPPING = new Map();
+    " .,!?0123456789".split('').forEach(c => MAPPING.set(c, c));
+    MAPPING.set(' ', ' ');
+
+    for (const [lat, cyr] of MAPPING_LOWERCASE_BASE) {
+        if (lat.length > 1) {
+            for (const [k, v] of generateCaseVariations(lat, cyr)) MAPPING.set(k, v);
+        } else {
+            MAPPING.set(lat, cyr);
+            MAPPING.set(lat.toUpperCase(), cyr.toUpperCase());
+        }
+    }
+
+    // ь и ъ — ВСЕГДА маленькие (как хочет 99 % людей)
+    ["''","'' ","''.","'',","''!","''?"].forEach(k => MAPPING.set(k, 'ь'));
+    ["'''","''' ","'''.","'''!","'''?"].forEach(k => MAPPING.set(k, 'ъ'));
+    MAPPING.set('---','—'); MAPPING.set('--','–');
+
+    const sorted_keys = Array.from(MAPPING.keys()).sort((a,b) => b.length - a.length);
+
+    function transcodeToCyrillic(t) {
+        if (!t) return '';
+        let r = '', i = 0;
+        while (i < t.length) {
+            let m = false;
+            for (const k of sorted_keys) {
+                if (t.startsWith(k, i)) {
+                    r += MAPPING.get(k);
+                    i += k.length;
+                    m = true;
+                    break;
+                }
+            }
+            if (!m) { r += t[i]; i++; }
+        }
+        return r;
+    }
+
+    const input = document.getElementById('latinInput');
+    const output = document.getElementById('cyrillicOutput');
+    const copy = document.getElementById('copyButton');
+
+    input.addEventListener('input', () => output.value = transcodeToCyrillic(input.value));
+    document.addEventListener('click', () => input.focus());
+    document.addEventListener('touchstart', () => input.focus());
+
+    copy.addEventListener('click', () => {
+        if (output.value && navigator.clipboard) {
+            navigator.clipboard.writeText(output.value).then(() => {
+                copy.textContent = 'Скопировано!';
+                setTimeout(() => copy.textContent = 'Копировать Кириллицу', 1500);
+            });
+        }
+        input.focus();
+    });
+
+    input.focus();
+</script>
 </body>
 </html>
