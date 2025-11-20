@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QWERTY в ЯШЕРТЫ</title>
+    <style>
+        /* --- ОСНОВНЫЕ СТИЛИ --- */
+        body {
+            font-family: Arial, sans-serif;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #bb86fc;
+            border-bottom: 2px solid #bb86fc;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+            resize: vertical;
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            min-height: 80px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        /* --- СКРЫВАЕМ АКТИВНОЕ ПОЛЕ ВВОДА --- */
+        #latinInput {
+            opacity: 0; 
+            height: 0;
+            padding: 0;
+            margin-bottom: 0;
+            border: none;
+            overflow: hidden;
+            resize: none;
+        }
+        /* --- Стили для финального поля (для имитации активного ввода) --- */
+        #cyrillicOutput {
+            min-height: 120px;
+            cursor: default;
+        }
+        .copy-button {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #03dac6;
+            color: #121212;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 5px;
+            display: block;
+            width: 100%;
+        }
+        .copy-button:hover {
+            background-color: #039c8c;
+        }
+
+        /* Стили для подвала (ссылки) */
+        .page-footer {
+            max-width: 800px;
+            margin: 20px auto 0;
+            padding: 0 30px;
+        }
+        .page-footer a {
+            color: #bb86fc;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .page-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>QWERTY в ЯШЕРТЫ</h1>
+    <p>Введите комбинацию одинаковых латинских букв, например: ee для отображения кириллической буквы э или латинских eee для кириллической ё. Также попробуйте многократное нажатие w, u, i, z и ' (апостроф). При вводе комбинаций заглавных букв не отпускайте Shift.</p>
+    
+    <label for="cyrillicOutput">Ваш Текст:</label>
+    <textarea id="cyrillicOutput" rows="6" readonly placeholder="Текст появится здесь..."></textarea>
+    
+    <button id="copyButton" class="copy-button">
+        📋 Копировать Кириллицу
+    </button>
+    
+    <label for="latinInput" style="display: none;">Активный Ввод (Скрыт):</label>
+    <textarea id="latinInput" rows="2" placeholder="Начните вводить"></textarea>
+
+</div>
+
+<div class="page-footer">
+    <a href="https://eqlectika.t.me/" target="_blank">
+        @eqlectika
+    </a>
+</div>
+
+<script>
+    // 1. Определение Словаря Правил и Генерация Регистров
+    
+    // БАЗОВЫЕ ПРАВИЛА ДЛЯ ТРАНСЛИТЕРАЦИИ (строчные)
+    // Используем привычные сочетания: ZH, SH, YU, YO, IE, EE, X, etc.
+    const MAPPING_LOWERCASE_BASE = new Map([
+        // --- МНОГОСИМВОЛЬНЫЕ СОЧЕТАНИЯ (Приоритет в словаре!) ---
+        // Ж, Ч, Ш, Щ, Ц, Ю, Я, Ь, Ъ, Э, Е, Ё, Й, Ы, И
+        ['zh', 'ж'], ['ch', 'ч'], ['sh', 'ш'], ['shh', 'щ'], ['csh', 'щ'], ['cz', 'ц'], ['yu', 'ю'], 
+        ['ya', 'я'], ['yo', 'ё'], ['ie', 'е'], ['ye', 'е'], ['y', 'ы'], ['ii', 'и'],
+        ['ts', 'ц'], ['sch', 'щ'], 
+        ['e', 'э'], ['j', 'й'], ['i', 'и'],
+        // Сочетания для твёрдого и мягкого знака (как пример)
+        ["'''", 'ъ'], ["''", 'ь'], 
+        // Украинские/Белорусские (как пример)
+        ['yi', 'ї'], 
+        
+        // --- ОДИНОЧНЫЕ БУКВЫ (QWERTY -> Кириллица) ---
+        ['a', 'а'], ['b', 'б'], ['v', 'в'], ['g', 'г'], ['d', 'д'], 
+        ['k', 'к'], ['l', 'л'], ['m', 'м'], ['n', 'н'], ['o', 'о'], 
+        ['p', 'п'], ['r', 'р'], ['s', 'с'], ['t', 'т'],
+        ['u', 'у'], ['f', 'ф'], ['x', 'х'], ['z', 'з'], 
+    ]);
+    
+    // Функция для генерации всех 2^N вариаций регистра для многобуквенных ключей
+    // (Оставлена для сохранения логики обработки регистра - SH/sh -> Ш/ш)
+    function generateCaseVariations(str, cyr) {
+        const variations = new Map();
+        const len = str.length;
+        const numVariations = 1 << len;
+        
+        for (let i = 0; i < numVariations; i++) {
+            let variation = '';
+            let isAllUpper = true;
+            
+            for (let j = 0; j < len; j++) {
+                if ((i >> j) & 1) {
+                    variation += str[j].toUpperCase();
+                } else {
+                    variation += str[j];
+                    isAllUpper = false;
+                }
+            }
+            
+            let cyrOutput = cyr;
+
+            // Если латинский ввод полностью заглавный (SH, ZH, YU), 
+            // мы делаем кириллический символ заглавным.
+            if (isAllUpper) {
+                cyrOutput = cyr.toLocaleUpperCase('ru'); 
+            }
+            
+            variations.set(variation, cyrOutput);
+        }
+        return variations;
+    }
+    
+    const MAPPING = new Map();
+
+    // 1. Добавляем символы, которые не являются буквами или комбинациями (Пункт., Цифры)
+    const NON_ALPHABET_CHARS = new Map([
+        [' ', ' '], ['.', '.'], [',', ','], ['!', '!'], ['?', '?'],
+        ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'],
+        ['5', '5'], ['6', '6'], ['7', '7'], ['8', '8'], ['9', '9'],
+    ]);
+    for (const [lat, cyr] of NON_ALPHABET_CHARS) {
+         MAPPING.set(lat, cyr);
+    }
+    
+
+    // 2. Обрабатываем буквы и комбинации
+    for (const [lat, cyr] of MAPPING_LOWERCASE_BASE) {
+        if (lat.length > 1) {
+            // МНОГОБУКВЕННАЯ КОМБИНАЦИЯ (sh, zh, yu)
+            const variations = generateCaseVariations(lat, cyr);
+            for (const [v, c] of variations) {
+                 MAPPING.set(v, c);
+            }
+        } else {
+            // ОДИНОЧНАЯ БУКВА (a, b, t)
+            
+            // Строчная
+            MAPPING.set(lat, cyr);
+            
+            // Заглавная (если это буква)
+            if (lat.match(/[a-z]/i)) {
+                MAPPING.set(lat.toUpperCase(), cyr.toUpperCase());
+            }
+        }
+    }
+    
+    // Сортировка по длине для выбора самого длинного совпадения (КРИТИЧНО для 'shh' > 'sh')
+    const sorted_keys = Array.from(MAPPING.keys()).sort((a, b) => b.length - a.length);
+
+
+    // 2. Функция Транслитерации
+    function transcodeToCyrillic(lat_text) {
+        if (!lat_text) return '';
+
+        let output = [];
+        let i = 0;
+        const text = lat_text;
+        const len = text.length;
+
+        while (i < len) {
+            let foundMatch = false;
+            
+            for (const lat_key of sorted_keys) {
+                const key_len = lat_key.length;
+                const fragment = text.substring(i, i + key_len);
+
+                if (fragment === lat_key) {
+                    // Используем маппинг, который уже содержит нужный регистр
+                    const cyr_char = MAPPING.get(lat_key);
+                    
+                    output.push(cyr_char);
+                    i += key_len;
+                    foundMatch = true;
+                    break;
+                }
+            }
+            
+            if (!foundMatch) {
+                // Если символ не найден, добавляем его как есть 
+                output.push(text[i]);
+                i++;
+            }
+        }
+        
+        return output.join('');
+    }
+
+
+    // 3. Управление Вводом (УПРОЩЕННЫЙ ВВОД БЕЗ ПАУЗ)
+    const latinInput = document.getElementById('latinInput');
+    const cyrillicOutput = document.getElementById('cyrillicOutput');
+    const copyButton = document.getElementById('copyButton'); 
+
+    // В упрощенном режиме нам не нужны: 
+    // DELAY_MS, finalizedCyrillicText, lastKeyPressTime, FINALIZE_KEYS, finalizeInput,
+    // и сложная логика в keydown.
+    
+    // Новую логику вводим через 'input' и 'keydown' для Backspace.
+
+    // 3.1. ОБРАБОТЧИК KEYDOWN: Только для Backspace
+    latinInput.addEventListener('keydown', function(event) {
+        // Мы полностью полагаемся на стандартный ввод в latinInput и перекодируем его в 'input'
+        if (event.key === 'Backspace') {
+            // Разрешаем стандартный backspace.
+            return; 
+        }
+
+        // Игнорируем спецклавиши, но разрешаем пробел и Enter
+        if (event.key.length > 1 && event.key !== ' ' && event.key !== 'Enter') {
+            return;
+        }
+
+        // Мы не обрабатываем никаких пауз или финализации, 
+        // просто позволяем вводу идти и отображаем его в 'input'
+    });
+
+    // 3.2. Слушатель INPUT: Отображение ПРЕДПРОСМОТРА (теперь это единственный источник вывода)
+    latinInput.addEventListener('input', function() {
+        const currentDecodedPreview = transcodeToCyrillic(latinInput.value);
+        // cyrillicOutput теперь показывает только декодированный текст из latinInput
+        cyrillicOutput.value = currentDecodedPreview;
+    });
+    
+    // 3.3. Гарантируем фокус
+    document.addEventListener('click', function() {
+        latinInput.focus();
+    });
+    document.addEventListener('touchstart', function() {
+        latinInput.focus();
+    });
+    
+    // 4. Функциональность Кнопки Копирования
+    copyButton.addEventListener('click', function() {
+        // В упрощённой версии достаточно просто скопировать текущее содержимое cyrillicOutput
+        const textToCopy = cyrillicOutput.value; 
+        
+        if (navigator.clipboard && textToCopy) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                copyButton.textContent = '✅ Скопировано!';
+                setTimeout(() => {
+                    copyButton.textContent = '📋 Копировать Кириллицу';
+                }, 1500); 
+            }).catch(err => {
+                alert('Не удалось скопировать текст. Попробуйте вручную.');
+            });
+        } else {
+            alert('Нет текста для копирования.');
+        }
+        latinInput.focus();
+    });
+
+    // Инициализация: ставим фокус при загрузке
+    latinInput.focus(); 
+</script>
+
+
+</body>
+</html>
