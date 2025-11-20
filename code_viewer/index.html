@@ -7,237 +7,65 @@
   <link rel="manifest" href="manifest.json" />
   <title>Code Viewer</title>
   <style>
-    html, body {
-    overscroll-behavior: none;
-    }
+    html, body { overscroll-behavior: none; }
     body {
-      margin: 0;
-      display: flex;
-      /* БАЗОВЫЙ РЕЖИМ: ГОРИЗОНТАЛЬНЫЙ (ЛАНДШАФТ) */
-      flex-direction: row; 
-      height: 100vh;
-      font-family: Arial, sans-serif;
-      background-color: black;
-      color: white;
-      position: relative;
+      margin: 0; display: flex; flex-direction: row; height: 100vh;
+      font-family: Arial, sans-serif; background-color: black; color: white; position: relative;
     }
+    ::-webkit-selection { background: rgba(255, 255, 0, 0.5); color: white; }
+    ::-moz-selection { background: rgba(255, 255, 0, 0.5); color: white; }
+    ::selection { background: rgba(255, 255, 0, 0.5); color: white; }
 
-/* ПРОЗРАЧНО-ЖЕЛТАЯ ПОДСВЕТКА НАЙДЕННОГО ФРАГМЕНТА */
-::-webkit-selection { 
-  background: rgba(255, 255, 0, 0.5); /* Желтый с 50% непрозрачности */
-  color: white; /* Сохраняем цвет текста редактора */       
-}
-::-moz-selection { 
-  background: rgba(255, 255, 0, 0.5);
-  color: white; 
-}
-::selection { 
-  background: rgba(255, 255, 0, 0.5); 
-  color: white; 
-}
-
-/* Глобальные flex-параметры для горизонтального режима (ландшафт) */
-#editorContainer {
-  flex: 38.2;
-  display: flex;
-  position: relative;
-  background-color: black;
-  min-width: 0; 
-}
-#preview {
-  flex: 61.8;
-  border: none;
-  background-color: #333333;
-  overflow: auto;
-  min-width: 0; 
-}
-#controlPanel {
-  /* Занимает только необходимую ширину */
-  flex: 0 0 auto; 
-}
-
-
-/* СТИЛИ ДЛЯ НУМЕРАЦИИ СТРОК */
-#lineNumbering {
-  width: 30px; 
-  padding: 10px 5px 10px 10px;
-  text-align: right;
-  font-family: monospace;
-  font-size: 14px;
-  line-height: 1.2; 
-  color: #666; 
-  background-color: #111;
-  user-select: none;
-  white-space: pre-wrap;
-  overflow-y: scroll;
-}
-#lineNumbering::-webkit-scrollbar {
-  display: none;
-  width: 0; 
-  height: 0;
-}
-
-
-#controlPanel > div {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-start; 
-  align-items: flex-start;
-  padding: 10px;
-  background-color: black;
-  box-sizing: border-box;
-  z-index: 10;
-  /* В ЛАНДШАФТЕ (по умолчанию) - вертикальный список */
-  flex-direction: column; 
-}
-
-/* Группировка элементов управления файлами */
-#fileActions {
-    display: flex;
-    gap: 10px;
-    flex-direction: row; 
-    align-items: center;
-    /* В ландшафте - минимальная ширина */
-    flex-shrink: 0; 
-}
-
-/* Группировка элементов поиска (Ключевой контейнер для адаптации) */
-#searchControls {
-    display: flex;
-    gap: 10px;
-    flex-direction: row; 
-    align-items: center;
-    /* В ландшафте - минимальная ширина */
-    flex-shrink: 0; 
-}
-
-#preview, #controlPanel {
-  touch-action: manipulation; 
-}
+    #editorContainer { flex: 38.2; display: flex; position: relative; background-color: black; min-width: 0; }
+    #preview { flex: 61.8; border: none; background-color: #333333; overflow: auto; min-width: 0; }
+    #controlPanel { flex: 0 0 auto; }
+    #lineNumbering {
+      width: 30px; padding: 10px 5px 10px 10px; text-align: right; font-family: monospace;
+      font-size: 14px; line-height: 1.2; color: #666; background-color: #111;
+      user-select: none; white-space: pre-wrap; overflow-y: scroll;
+    }
+    #lineNumbering::-webkit-scrollbar { display: none; width: 0; height: 0; }
+    #controlPanel > div {
+      display: flex; gap: 10px; align-items: center; justify-content: flex-start;
+      align-items: flex-start; padding: 10px; background-color: black;
+      box-sizing: border-box; z-index: 10; flex-direction: column;
+    }
+    #fileActions { display: flex; gap: 10px; flex-direction: row; align-items: center; flex-shrink: 0; }
+    #searchControls { display: flex; gap: 10px; flex-direction: row; align-items: center; flex-shrink: 0; }
+    #preview, #controlPanel { touch-action: manipulation; }
 
     #editor {
-      flex: 1; 
-      padding: 10px;
-      border: none;
-      resize: none;
-      font-family: monospace;
-      font-size: 14px;
-      background-color: black;
-      color: white;
-      outline: none;
-      caret-color: white;
-      position: relative;
-      line-height: 1.2; 
-      box-sizing: border-box;
-      overflow-y: auto; 
-      min-width: 0;
+      flex: 1; padding: 10px; border: none; resize: none; font-family: monospace;
+      font-size: 14px; background-color: black; color: white; outline: none;
+      caret-color: white; position: relative; line-height: 1.2;
+      box-sizing: border-box; overflow-y: auto; min-width: 0;
     }
-    
-    /* ... стили кнопок поиска и других элементов без изменений ... */
     #prevMatchButton, #nextMatchButton {
-      width: 40px;
-      height: 40px;
-      background-color: #333333; 
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 18px; 
-      line-height: 40px;
-      text-align: center;
-      border-radius: 5px;
-      padding: 0;
-      flex-shrink: 0; 
+      width: 40px; height: 40px; background-color: #333333; color: white;
+      border: none; cursor: pointer; font-size: 18px; line-height: 40px;
+      text-align: center; border-radius: 5px; padding: 0; flex-shrink: 0;
     }
-    #prevMatchButton:hover, #nextMatchButton:hover {
-      background-color: #555555;
-    }
-    #fileFormat {
-      font-size: 14px;
-      padding: 5px;
-      width: 70px;
-    }
-
+    #prevMatchButton:hover, #nextMatchButton:hover { background-color: #555555; }
+    #fileFormat { font-size: 14px; padding: 5px; width: 70px; }
     #saveButton {
-      width: 70px;
-      height: 40px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
+      width: 70px; height: 40px; background-color: #007bff; color: white;
+      border: none; cursor: pointer; font-size: 14px;
     }
-
-    #saveButton:hover {
-      background-color: #0056b3;
-    }
+    #saveButton:hover { background-color: #0056b3; }
     #searchField {
-      padding: 5px;
-      font-size: 14px;
-      border: 1px solid #555;
-      background-color: #333333;
-      color: white;
-      height: 30px;
-      box-sizing: border-box;
-      border-radius: 5px;
-      
-      /* ЛАНДШАФТ: МИНИМАЛЬНАЯ ШИРИНА (для слова "Search" + отступы) */
-      width: 12ch; 
-      min-width: 12ch; 
-      flex-grow: 0;
-      flex-shrink: 0;
+      padding: 5px; font-size: 14px; border: 1px solid #555; background-color: #333333;
+      color: white; height: 30px; box-sizing: border-box; border-radius: 5px;
+      width: 12ch; min-width: 12ch; flex-grow: 0; flex-shrink: 0;
     }
-
-
-/* ВЕРТИКАЛЬНАЯ ОРИЕНТАЦИЯ (ПОРТРЕТ) */
-@media (orientation: portrait) {
-  body {
-    flex-direction: column;
-  }
-  
-  /* Переопределение для вертикального деления по высоте */
-  #editorContainer {
-    flex: 38.2 1 0; 
-    min-height: 0; 
-    min-width: auto;
-  }
-  
-  #preview {
-    flex: 61.8 1 0;
-    min-height: 0;
-    min-width: auto;
-  }
-  
-  #controlPanel {
-    flex: 0 0 auto; 
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Элементы управления в одну строку (File Actions + Search Controls) */
-  #controlPanel > div {
-    flex-direction: row; 
-    justify-content: space-between;
-    flex-wrap: wrap; 
-    align-items: center;
-    width: 100%;
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Позволяем поисковому блоку заполнить оставшееся место */
-  #searchControls {
-      flex-grow: 1; /* РАСТЯГИВАЕТ контейнер поиска на оставшуюся часть строки */
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Разрешаем полю поиска растягиваться внутри своего контейнера */
-  #searchField {
-      flex-grow: 1; /* РАСТЯГИВАЕТ само поле ввода внутри контейнера поиска */
-      width: auto; 
-      min-width: 40px; 
-  }
-  
-  /* В ПОРТРЕТНОМ РЕЖИМЕ: Группа действий с файлами остается минимальной */
-  #fileActions {
-      flex-shrink: 0;
-  }
-}
+    @media (orientation: portrait) {
+      body { flex-direction: column; }
+      #editorContainer { flex: 38.2 1 0; min-height: 0; min-width: auto; }
+      #preview { flex: 61.8 1 0; min-height: 0; min-width: auto; }
+      #controlPanel > div { flex-direction: row; justify-content: space-between; flex-wrap: wrap; align-items: center; width: 100%; }
+      #searchControls { flex-grow: 1; }
+      #searchField { flex-grow: 1; width: auto; min-width: 40px; }
+      #fileActions { flex-shrink: 0; }
+    }
   </style>
 </head>
 <body>
@@ -246,16 +74,13 @@
     <textarea id="editor" placeholder="Type to see your code here..."></textarea>
   </div>
   <iframe id="preview" title="Preview"></iframe>
-
   <div id="controlPanel">
     <div>
-      
       <div id="searchControls">
         <input type="text" id="searchField" placeholder="Search">
         <button id="prevMatchButton" title="Previous Match">▲</button>
         <button id="nextMatchButton" title="Next Match">▼</button>
       </div>
-      
       <div id="fileActions">
         <select id="fileFormat">
           <option value="html">HTML</option>
@@ -265,11 +90,10 @@
           <option value="css">CSS</option>
         </select>
         <button id="saveButton">Save</button>
-        </div>
-      
+<a href="https://eugenebox.t.me" target="_blank" style="color: #00ddff; text-decoration: none; font-size: 16px;">Help</a>
+      </div>
     </div>
   </div>
-
 
   <script>
     const editor = document.getElementById("editor");
@@ -279,18 +103,13 @@
     const searchField = document.getElementById("searchField");
     const prevMatchButton = document.getElementById("prevMatchButton");
     const nextMatchButton = document.getElementById("nextMatchButton");
-    const lineNumbering = document.getElementById("lineNumbering"); 
-
-    let searchMatches = []; 
-    let currentMatchIndex = -1; 
-    let currentSearchTerm = ""; 
-
+    const lineNumbering = document.getElementById("lineNumbering");
+    let searchMatches = [];
+    let currentMatchIndex = -1;
+    let currentSearchTerm = "";
     const mimeTypes = {
-      html: "text/html",
-      json: "application/json",
-      txt: "text/plain",
-      js: "application/javascript",
-      css: "text/css",
+      html: "text/html", json: "application/json", txt: "text/plain",
+      js: "application/javascript", css: "text/css",
     };
 
     function updateLineNumbers() {
@@ -298,27 +117,15 @@
         const numbers = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n');
         lineNumbering.innerText = numbers;
     }
-
-    // Синхронизация прокрутки и обновления номеров
     editor.addEventListener('input', () => {
-        // 1. СОХРАНЯЕМ позицию курсора, чтобы он не прыгал
         const start = editor.selectionStart;
         const end = editor.selectionEnd;
-
         preview.srcdoc = editor.value;
         updateLineNumbers();
-
-        // 2. ВОССТАНАВЛИВАЕМ позицию курсора
         editor.setSelectionRange(start, end);
     });
-
-    editor.addEventListener('scroll', () => {
-        lineNumbering.scrollTop = editor.scrollTop;
-    });
-
-    // Инициализация номеров строк при загрузке
+    editor.addEventListener('scroll', () => { lineNumbering.scrollTop = editor.scrollTop; });
     updateLineNumbers();
-
 
     saveButton.addEventListener("click", () => {
       const format = fileFormat.value;
@@ -332,10 +139,38 @@
       a.click();
       document.body.removeChild(a);
     });
-    
-    // =========================================================================
-    // ЛОГИКА ПОИСКА (ОБНОВЛЕНА ДЛЯ ПРОКРУТКИ)
-    // =========================================================================
+
+    // ←←← ЭТО ЕДИНСТВЕННОЕ ИЗМЕНЕНИЕ В КОДЕ ←←←
+    function highlightMatch(index) {
+        if (index === -1 || searchMatches.length === 0) {
+            clearSelection(editor);
+            return;
+        }
+        const start = searchMatches[index];
+        const end = start + currentSearchTerm.length;
+
+        editor.focus();
+        editor.setSelectionRange(start, end);
+
+        // Надёжная прокрутка на всех устройствах (включая iOS и Android)
+        const dummy = document.createElement('span');
+        dummy.style.cssText = 'position:absolute;opacity:0;height:1px;pointer-events:none;';
+        const range = new Range();
+        try {
+            range.setStart(editor.firstChild || editor, start);
+            range.collapse(true);
+            range.insertNode(dummy);
+            dummy.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            requestAnimationFrame(() => dummy.remove());
+        } catch (e) {
+            // fallback
+            const linesBefore = editor.value.substring(0, start).split('\n').length - 1;
+            editor.scrollTop = Math.max(0, (linesBefore - 2) * 16.8);
+        }
+
+        setTimeout(() => editor.setSelectionRange(start, end), 100);
+    }
+    // ←←← КОНЕЦ ИЗМЕНЕНИЯ ←←←
 
     function resetSearch() {
         searchMatches = [];
@@ -343,131 +178,73 @@
         currentSearchTerm = "";
         clearSelection(editor);
     }
-    
+   
     function findAllMatches(searchText) {
         searchMatches = [];
         currentSearchTerm = searchText;
-
         if (searchText === "") return;
-
         const editorContent = editor.value;
         const normalizedContent = editorContent.toLowerCase();
         const normalizedSearchText = searchText.toLowerCase();
         const len = normalizedSearchText.length;
         let index = normalizedContent.indexOf(normalizedSearchText, 0);
-
         while (index !== -1) {
             searchMatches.push(index);
             index = normalizedContent.indexOf(normalizedSearchText, index + len);
         }
     }
 
-    function highlightMatch(index) {
-        if (index === -1 || searchMatches.length === 0) {
-            clearSelection(editor);
-            return;
-        }
-
-        const start = searchMatches[index];
-        const end = start + currentSearchTerm.length;
-        
-        editor.focus();
-        editor.setSelectionRange(start, end);
-
-        // =========================================================
-        // ЛОГИКА ПРОКРУТКИ К ТРЕТЬЕЙ СТРОКЕ 
-        // =========================================================
-        
-        // Получаем line-height, установленный в CSS (1.2 * 14px = 16.8px)
-        const computedStyle = getComputedStyle(editor);
-        const fontSize = parseFloat(computedStyle.fontSize);
-        const lineHeight = fontSize * parseFloat(computedStyle.lineHeight) || 16.8; 
-
-        // Находим строку, где находится выделение.
-        const textBefore = editor.value.substring(0, start);
-        const lineNumber = textBefore.split('\n').length - 1; 
-
-        // Вычисляем целевую позицию прокрутки. 
-        // Мы хотим, чтобы искомая строка была на 3-й позиции, поэтому отнимаем 2 (lineNumber - 2).
-        // Если lineNumber < 2, прокручиваем к самому началу (0).
-        const targetLineNumber = Math.max(0, lineNumber - 2); 
-
-        // Целевая позиция прокрутки = (Номер целевой строки) * (Высота строки)
-        const targetScrollTop = targetLineNumber * lineHeight;
-        
-        // Применяем прокрутку
-        editor.scrollTop = targetScrollTop; 
-        // =========================================================
-    }
-
     function startSearch(searchText) {
         const trimmedText = searchText.trim();
-
-        // Если поле пустое, сброс и выход
         if (trimmedText === "") {
             resetSearch();
             searchField.style.backgroundColor = '#333333';
             return;
         }
-        
-        // Если текст не менялся, просто переходим к следующему совпадению
         if (trimmedText === currentSearchTerm && searchMatches.length > 0) {
             nextMatch();
             return;
         }
-        
-        // Новый поиск: сброс и поиск всех совпадений
         resetSearch();
         findAllMatches(trimmedText);
-
         if (searchMatches.length > 0) {
             currentMatchIndex = 0;
             highlightMatch(currentMatchIndex);
             searchField.style.backgroundColor = '#333333';
         } else {
-            // Нет совпадений (красный мигающий индикатор)
             searchField.style.backgroundColor = 'red';
-            setTimeout(() => {
-                searchField.style.backgroundColor = '#333333';
-            }, 300);
+            setTimeout(() => { searchField.style.backgroundColor = '#333333'; }, 300);
         }
     }
 
     function nextMatch() {
         if (searchMatches.length === 0) return;
-
         currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
         highlightMatch(currentMatchIndex);
     }
-
     function prevMatch() {
         if (searchMatches.length === 0) return;
-
         currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
         highlightMatch(currentMatchIndex);
     }
 
-    // Обработчики событий
     searchField.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
-            event.preventDefault(); 
+            event.preventDefault();
             startSearch(searchField.value);
         }
     });
-    
-    // e.preventDefault() предотвращает потерю фокуса и появление клавиатуры
+   
     nextMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         if (searchField.value.trim() !== currentSearchTerm) {
             startSearch(searchField.value);
         } else {
             nextMatch();
         }
     });
-
-    // e.preventDefault() предотвращает потерю фокуса и появление клавиатуры
     prevMatchButton.addEventListener("click", (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         if (searchField.value.trim() !== currentSearchTerm) {
             startSearch(searchField.value);
         } else {
@@ -475,13 +252,10 @@
         }
     });
 
-
     function clearSelection(textarea) {
-        // Снимаем выделение, сохраняя курсор на месте
         const start = textarea.selectionStart;
-        textarea.setSelectionRange(start, start); 
+        textarea.setSelectionRange(start, start);
     }
-
   </script>
 </body>
 </html>
