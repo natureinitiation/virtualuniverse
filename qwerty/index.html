@@ -98,7 +98,7 @@
 
 <div class="container">
     <h1>QWERTY в ЯШЕРТЫ</h1>
-    <p>Введите комбинацию латинских букв для отображения кириллических (включая украинские): ZH для Ж, CH — Ч, SH — Ш, SHH, SCH или CSH — Щ, E — Э, IE — Є, YE — Е, YO — Ё, YU — Ю, IE — Е, YA — Я, CZ или TS — Ц, II — I, YI — Ї, ''' — Ъ, '' — Ь, --- длинное тире, -- минус</p>
+    <p>Введите комбинацию латинских букв для отображения кириллических (включая украинские ): ZH для Ж, CH — Ч, SH — Ш, SHH, SCH или CSH — Щ, E — Э, IE — Є, YE — Е, YO — Ё, YU — Ю, IE — Е, YA — Я, CZ или TS — Ц, II — I, YI — Ї, GG — Ґ, GZ — Ґ, NG — Ң, AE — Ә, UE — Ү, OE — Ө, KH — Һ, H — Һ, ''' — Ъ, '' — Ь, --- длинное тире, -- минус</p>
     
     <label for="cyrillicOutput">Ваш Текст:</label>
     <textarea id="cyrillicOutput" rows="6" readonly placeholder="Текст появится здесь..."></textarea>
@@ -119,148 +119,86 @@
 </div>
 
 <script>
-    // 1. БАЗОВЫЕ ПРАВИЛА (убрали '' и ''' отсюда!)
     const MAPPING_LOWERCASE_BASE = new Map([
-        ['zh', 'ж'], ['ch', 'ч'], ['sh', 'ш'], ['shh', 'щ'], ['csh', 'щ'], ['cz', 'ц'], ['yu', 'ю'],
-        ['ya', 'я'], ['yo', 'ё'], ['ie', 'є'], ['ye', 'е'], ['y', 'ы'], ['ii', 'і'],
-        ['ts', 'ц'], ['sch', 'щ'],
-        ['e', 'э'], ['j', 'й'], ['i', 'и'],
-        ["---", '—'], ["--", '–'],
-        ['yi', 'ї'],
-        ['a', 'а'], ['b', 'б'], ['v', 'в'], ['g', 'г'], ['d', 'д'],
-        ['k', 'к'], ['l', 'л'], ['m', 'м'], ['n', 'н'], ['o', 'о'],
-        ['p', 'п'], ['r', 'р'], ['s', 'с'], ['t', 'т'],
-        ['u', 'у'], ['f', 'ф'], ['x', 'х'], ['z', 'з'],
+        ['q','я'], ['w','ш'], ['zh','ж'],['ch','ч'],['sh','ш'],['shh','щ'],['sch','щ'],['csh','щ'],['cz','ц'],['ts','ц'],
+        ['yu','ю'],['ya','я'],['yo','ё'],['ie','є'],['yi','ї'],['ye','е'],['ii','і'],['e','э'],['j','й'],['y','ы'],
+        ['gg','ґ'],['gz','ґ'],['ng','ң'],['ae','ә'],['ue','ү'],['oe','ө'],['kh','һ'],['h','һ'],
+        ['a','а'],['b','б'],['v','в'],['g','г'],['d','д'],['k','к'],['l','л'],['m','м'],['n','н'],['o','о'],
+        ['p','п'],['r','р'],['s','с'],['t','т'],['u','у'],['f','ф'],['x','х'],['z','з'],['i','и'],
+        ["---","—"],["--","–"]
     ]);
 
-    // Генерация всех вариантов регистра (SH, Sh, sh → Ш, Ш, ш)
     function generateCaseVariations(str, cyr) {
-        const variations = new Map();
+        const vars = new Map();
         const len = str.length;
-        const numVariations = 1 << len;
-       
-        for (let i = 0; i < numVariations; i++) {
-            let variation = '';
-            let isAllUpper = true;
-           
+        for (let i = 0; i < (1 << len); i++) {
+            let key = '', allUpper = true;
             for (let j = 0; j < len; j++) {
-                if ((i >> j) & 1) {
-                    variation += str[j].toUpperCase();
-                } else {
-                    variation += str[j];
-                    isAllUpper = false;
-                }
+                if (i & (1 << j)) key += str[j].toUpperCase();
+                else { key += str[j]; allUpper = false; }
             }
-           
-            let cyrOutput = cyr;
-            if (isAllUpper) {
-                cyrOutput = cyr.toLocaleUpperCase('ru');
-            }
-            variations.set(variation, cyrOutput);
+            vars.set(key, allUpper ? cyr.toUpperCase() : cyr);
         }
-        return variations;
+        return vars;
     }
-   
-    // Основной словарь
+
     const MAPPING = new Map();
+    " .,!?0123456789".split('').forEach(c => MAPPING.set(c, c));
+    MAPPING.set(' ', ' ');
 
-    // Пробелы, знаки препинания, цифры
-    const NON_ALPHABET_CHARS = new Map([
-        [' ', ' '], ['.', '.'], [',', ','], ['!', '!'], ['?', '?'],
-        ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'],
-        ['5', '5'], ['6', '6'], ['7', '7'], ['8', '8'], ['9', '9'],
-    ]);
-    for (const [lat, cyr] of NON_ALPHABET_CHARS) MAPPING.set(lat, cyr);
-
-    // Заполняем буквы и комбинации
     for (const [lat, cyr] of MAPPING_LOWERCASE_BASE) {
         if (lat.length > 1) {
-            const variations = generateCaseVariations(lat, cyr);
-            for (const [v, c] of variations) MAPPING.set(v, c);
+            for (const [k, v] of generateCaseVariations(lat, cyr)) MAPPING.set(k, v);
         } else {
             MAPPING.set(lat, cyr);
-            if (lat.match(/[a-z]/i)) {
-                MAPPING.set(lat.toUpperCase(), cyr.toUpperCase());
-            }
+            MAPPING.set(lat.toUpperCase(), cyr.toUpperCase());
         }
     }
 
-    // СПЕЦИАЛЬНО: всегда маленькие ь и ъ (по умолчанию)
-    MAPPING.set("''", 'ь');
-    MAPPING.set("'''", 'ъ');
-    MAPPING.set("'' ", 'ь ');
-    MAPPING.set("''' ", 'ъ ');
-    MAPPING.set("'',", 'ь,');
-    MAPPING.set("''.", 'ь.');
-    MAPPING.set("''!", 'ь!');
-    MAPPING.set("''?", 'ь?');
-    MAPPING.set("'''!", 'ъ!');
-    MAPPING.set("'''?", 'ъ?');
+    // ь и ъ — ВСЕГДА маленькие (как хочет 99 % людей)
+    ["''","'' ","''.","'',","''!","''?"].forEach(k => MAPPING.set(k, 'ь'));
+    ["'''","''' ","'''.","'''!","'''?"].forEach(k => MAPPING.set(k, 'ъ'));
+    MAPPING.set('---','—'); MAPPING.set('--','–');
 
-    // ВАЖНО: сортировка ключей по убыванию длины (чтобы shh находилось раньше sh)
-    const sorted_keys = Array.from(MAPPING.keys()).sort((a, b) => b.length - a.length);
+    const sorted_keys = Array.from(MAPPING.keys()).sort((a,b) => b.length - a.length);
 
-    // ГЛАВНАЯ ФУНКЦИЯ ТРАНСЛИТА
-    function transcodeToCyrillic(lat_text) {
-        if (!lat_text) return '';
-
-        // Определяем: весь ли текст набран ЗАГЛАВНЫМИ латинскими буквами?
-        const cleanText = lat_text.replace(/'+/g, '').replace(/[-–— ]/g, '').trim();
-        const isAllCaps = cleanText.length > 0 && cleanText === cleanText.toUpperCase();
-
-        let output = [];
-        let i = 0;
-        while (i < lat_text.length) {
-            let found = false;
-            for (const key of sorted_keys) {
-                if (lat_text.substr(i, key.length) === key) {
-                    let cyr = MAPPING.get(key);
-
-                    // Если весь текст в CAPS LOCK — делаем Ь и Ъ заглавными
-                    if (isAllCaps && cyr === 'ь') cyr = 'Ь';
-                    if (isAllCaps && cyr === 'ъ') cyr = 'Ъ';
-
-                    output.push(cyr);
-                    i += key.length;
-                    found = true;
+    function transcodeToCyrillic(t) {
+        if (!t) return '';
+        let r = '', i = 0;
+        while (i < t.length) {
+            let m = false;
+            for (const k of sorted_keys) {
+                if (t.startsWith(k, i)) {
+                    r += MAPPING.get(k);
+                    i += k.length;
+                    m = true;
                     break;
                 }
             }
-            if (!found) {
-                output.push(lat_text[i]);
-                i++;
-            }
+            if (!m) { r += t[i]; i++; }
         }
-        return output.join('');
+        return r;
     }
 
-    // === ВСЁ НИЖЕ — ОСТАЁТСЯ БЕЗ ИЗМЕНЕНИЙ ===
-    const latinInput = document.getElementById('latinInput');
-    const cyrillicOutput = document.getElementById('cyrillicOutput');
-    const copyButton = document.getElementById('copyButton');
+    const input = document.getElementById('latinInput');
+    const output = document.getElementById('cyrillicOutput');
+    const copy = document.getElementById('copyButton');
 
-    latinInput.addEventListener('input', function() {
-        cyrillicOutput.value = transcodeToCyrillic(latinInput.value);
-    });
+    input.addEventListener('input', () => output.value = transcodeToCyrillic(input.value));
+    document.addEventListener('click', () => input.focus());
+    document.addEventListener('touchstart', () => input.focus());
 
-    document.addEventListener('click', () => latinInput.focus());
-    document.addEventListener('touchstart', () => latinInput.focus());
-
-    copyButton.addEventListener('click', function() {
-        const textToCopy = cyrillicOutput.value;
-        if (navigator.clipboard && textToCopy) {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                copyButton.textContent = 'Скопировано!';
-                setTimeout(() => copyButton.textContent = 'Копировать Кириллицу', 1500);
+    copy.addEventListener('click', () => {
+        if (output.value && navigator.clipboard) {
+            navigator.clipboard.writeText(output.value).then(() => {
+                copy.textContent = 'Скопировано!';
+                setTimeout(() => copy.textContent = 'Копировать Кириллицу', 1500);
             });
-        } else {
-            alert('Нет текста для копирования.');
         }
-        latinInput.focus();
+        input.focus();
     });
 
-    latinInput.focus();
+    input.focus();
 </script>
-
 </body>
 </html>
