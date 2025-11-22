@@ -92,6 +92,57 @@
         .page-footer a:hover {
             text-decoration: underline;
         }
+        /* Стили для Таблицы */
+    .translit-table {
+        width: 100%;
+        border-collapse: separate; /* Для border-spacing */
+        border-spacing: 0 8px; /* Отступ между строками */
+        margin-bottom: 30px;
+        color: #e0e0e0;
+    }
+    .translit-table th, .translit-table td {
+        padding: 10px 15px;
+        text-align: center;
+        vertical-align: middle;
+        background-color: #2c2c2c; /* Фон ячеек */
+    }
+    .translit-table th {
+        background-color: #bb86fc; /* Цвет заголовков */
+        color: #1e1e1e;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .translit-table tr:first-child th:first-child {
+        border-top-left-radius: 6px;
+    }
+    .translit-table tr:first-child th:last-child {
+        border-top-right-radius: 6px;
+    }
+    .translit-table td:first-child {
+        border-left: 3px solid #03dac6;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+        font-family: monospace;
+        font-size: 1.1em;
+        color: #03dac6; /* Цвет латиницы */
+    }
+    .translit-table td:last-child {
+        border-right: 3px solid #03dac6;
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #bb86fc; /* Цвет кириллицы */
+    }
+    .section-heading {
+        color: #03dac6;
+        margin-top: 20px;
+        margin-bottom: 15px;
+        font-size: 1.3em;
+        border-bottom: 1px dashed #333;
+        padding-bottom: 5px;
+    }
     </style>
 </head>
 <body>
@@ -106,8 +157,75 @@
         📋 Копировать Кириллицу
     </button>
     
-    <p>Введите комбинацию латинских букв для отображения кириллических (включая украинские ): <br/> ZH для Ж <br/> CH — Ч <br/>  SH — Ш <br/> SHH, SCH или CSH — Щ <br/> E — Э <br/> IE — Є <br/> YE — Е <br/> YO — Ё <br/> YU — Ю <br/> IE — Е <br/> YA — Я <br/> CZ или TS — Ц <br/> II — I <br/> YI — Ї <br/> GG — Ґ <br/> GZ — Ґ <br/> NG — Ң <br/> AE — Ә <br/> UE — Ү <br/> OE — Ө <br/> KH — Һ <br/> H — Һ <br/> ''' — Ъ <br/> '' — Ь <br/> --- длинное тире <br/> -- минус</p>
+    <p>Введите комбинацию латинских букв для отображения кириллических</p>
+<h3 class="section-heading">✨ Гласные и Йоты</h3>
+<table class="translit-table">
+    <thead>
+        <tr>
+            <th>Латиница</th>
+            <th>Кириллица</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>A</td><td>А</td></tr>
+        <tr><td>E</td><td>Э</td></tr>
+        <tr><td>I</td><td>И</td></tr>
+        <tr><td>O</td><td>О</td></tr>
+        <tr><td>U</td><td>У</td></tr>
+        <tr><td>Y</td><td>Ы</td></tr>
+        <tr><td>II</td><td>I</td></tr>
+        <tr><td>IE</td><td>Є</td></tr>
+        <tr><td>YE</td><td>Е</td></tr>
+        <tr><td>YO</td><td>Ё</td></tr>
+        <tr><td>YU</td><td>Ю</td></tr>
+        <tr><td>YA</td><td>Я</td></tr>
+        <tr><td>YI</td><td>Ї</td></tr>
+        <tr><td>AE</td><td>Ә</td></tr>
+        <tr><td>UE</td><td>Ү</td></tr>
+        <tr><td>OE</td><td>Ө</td></tr>
+    </tbody>
+</table>
 
+<h3 class="section-heading">🛡️ Согласные и Знаки</h3>
+<table class="translit-table">
+    <thead>
+        <tr>
+            <th>Латиница</th>
+            <th>Кириллица</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td>B</td><td>Б</td></tr>
+        <tr><td>V</td><td>В</td></tr>
+        <tr><td>G</td><td>Г</td></tr>
+        <tr><td>D</td><td>Д</td></tr>
+        <tr><td>J</td><td>Й</td></tr>
+        <tr><td>K</td><td>К</td></tr>
+        <tr><td>L</td><td>Л</td></tr>
+        <tr><td>M</td><td>М</td></tr>
+        <tr><td>N</td><td>Н</td></tr>
+        <tr><td>P</td><td>П</td></tr>
+        <tr><td>R</td><td>Р</td></tr>
+        <tr><td>S</td><td>С</td></tr>
+        <tr><td>T</td><td>Т</td></tr>
+        <tr><td>F</td><td>Ф</td></tr>
+        <tr><td>X</td><td>Х</td></tr>
+        <tr><td>Z</td><td>З</td></tr>
+        <tr><td>Q</td><td>Я</td></tr>
+        <tr><td>ZH</td><td>Ж</td></tr>
+        <tr><td>CH</td><td>Ч</td></tr>
+        <tr><td>SH</td><td>Ш</td></tr>
+        <tr><td>SHH, SCH, CSH</td><td>Щ</td></tr>
+        <tr><td>CZ, TS</td><td>Ц</td></tr>
+        <tr><td>GG, GZ</td><td>Ґ</td></tr>
+        <tr><td>NG</td><td>Ң</td></tr>
+        <tr><td>KH, H</td><td>Һ</td></tr>
+        <tr><td>'''</td><td>Ъ</td></tr>
+        <tr><td>''</td><td>Ь</td></tr>
+        <tr><td>---</td><td>—</td></tr>
+        <tr><td>--</td><td>–</td></tr>
+    </tbody>
+</table>
     <label for="latinInput" style="display: none;">Активный Ввод (Скрыт):</label>
     <textarea id="latinInput" rows="2" placeholder="Начните вводить"></textarea>
 
