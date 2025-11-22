@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Forma Base - Help Link & Collision Fix</title>
+    <title>Forma Base - No Secrets & Collision Fix</title>
     <link rel="manifest" href="manifest.json"> 
     <style>
         body {
@@ -40,13 +40,10 @@
         .closer-button { right: 5%; left: auto; }
         .fly-button { left: 50%; transform: translateX(-50%); }
 
-        /* Load, Help, Save - Верхний блок */
+        /* Load, Reset, Save - Верхний блок */
         .top-control { top: 20px; }
         .load-button { left: 5%; transform: none; }
-        
-        /* !!! ИЗМЕНЕНО: Кнопка Help вместо Reset !!! */
-        .help-button { left: 50%; transform: translateX(-50%); }
-        
+        .reset-button { left: 50%; transform: translateX(-50%); }
         .save-button { right: 5%; left: auto; transform: none; }
             
         .hidden { display: none; }
@@ -71,7 +68,7 @@
     <div class="control-button fly-button">Fly</div> 
     
     <div class="top-control load-button">Load</div> 
-    <div class="top-control help-button">Help</div> 
+    <div class="top-control reset-button">Reset</div> 
     <div class="top-control save-button">Save</div> 
     
     <input type="file" id="file-input" style="display: none;" accept=".json"> 
@@ -146,8 +143,13 @@ const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 1.0);
 ultramarineLight.position.set(0, 0, -10); 
 cameraLightGroup.add(ultramarineLight);
 
-// --- СПИСОК СЛОВ ---
-const secrets = ['Click Channel (above) to leave comment! :)',/*'slowly', 'focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'*/];
+// --- СПИСОК СЛОВ (ОТФОРМАТИРОВАННЫЙ) ---
+const secrets = [{
+    text: 'Click here to leave comment! :)',
+    link: 'https://t.me/eqlectika/157'
+} 
+/*'slowly', 'focus', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'*/];
+
 
 // --- Object Logic ---
 let formaCubeFaces = []; 
@@ -452,7 +454,7 @@ const handleInteraction = (event) => {
 
     const intersects = raycaster.intersectObjects(formaCubeFaces, false);
     
-    // !!! ИЗМЕНЕНИЕ: ВЕРОЯТНОСТЬ (как в вашем коде) !!!
+    // !!! ВЕРОЯТНОСТЬ 0.1, ЧТОБЫ СЛОВО ПОЯВИЛОСЬ !!!
     const wordSpawnProbability = 0.1; 
     
     tapCount++;
@@ -506,9 +508,15 @@ const handleInteraction = (event) => {
 function createSecret(x, y) {
     const secret = document.createElement('a');
     secret.className = 'secret';
-    const word = secrets[Math.floor(Math.random() * secrets.length)];
+    
+    // Использование объекта из массива secrets
+    const secretObj = secrets[Math.floor(Math.random() * secrets.length)];
+    const word = secretObj.text;
+    const link = secretObj.link;
+
     secret.textContent = word;
-    secret.target = '_blank';
+    secret.href = link; // УСТАНАВЛИВАЕТ ССЫЛКУ
+    secret.target = '_blank'; // ОТКРЫВАЕТ В НОВОЙ ВКЛАДКЕ
     secret.style.cssText = `
         position: fixed; left: ${x}px; top: ${y}px; transform: translate(-50%, -50%); opacity: 0;
         font-family: monospace; font-size: 18px; color: white; text-decoration: none;
@@ -539,12 +547,7 @@ function createSecret(x, y) {
         if (index !== -1) activePoints.splice(index, 1);
     }, 8500);
 
-    secret.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-        if (!e.ctrlKey && !e.metaKey && secret.href === window.location.href + '#') {
-            secret.remove();
-        }
-    });
+    // !!! УДАЛЕН БЛОК secret.addEventListener('pointerdown', ...), КОТОРЫЙ МЕШАЛ КЛИКУ. !!!
 }
 
 function isWordOccupied(x, y, minDistance) {
@@ -624,11 +627,10 @@ const moveCamera = (directionVector, distance) => {
 
 const closerButton = document.querySelector('.closer-button');
 const furtherButton = document.querySelector('.further-button');
+const resetButton = document.querySelector('.reset-button'); 
 const flyButton = document.querySelector('.fly-button');
 const saveButton = document.querySelector('.save-button'); 
 const loadButton = document.querySelector('.load-button');
-// !!! ИЗМЕНЕНИЕ: Выбор новой кнопки Help !!!
-const helpButton = document.querySelector('.help-button'); 
 const fileInput = document.getElementById('file-input');
 
 closerButton.addEventListener('click', () => {
@@ -644,9 +646,10 @@ furtherButton.addEventListener('click', () => {
     moveCamera(direction, CUBE_SIZE); 
 });
 
-// !!! ИЗМЕНЕНИЕ: Обработчик для Help !!!
-helpButton.addEventListener('click', () => {
-    window.open('https://t.me/eqlectika/157', '_blank');
+resetButton.addEventListener('click', () => {
+    localStorage.removeItem('forma_world_data_local'); 
+    localStorage.removeItem('forma_camera_data_local');
+    window.location.reload(); 
 });
 
 saveButton.addEventListener('click', saveWorldToFile); 
