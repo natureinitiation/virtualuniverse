@@ -92,8 +92,8 @@
         .page-footer a:hover {
             text-decoration: underline;
         }
-/* Новые стили для четырехколоночной таблицы (стили те же, что и раньше) */
-    .translit-table-4col {
+/* Стили для четырехколоночной таблицы */
+    .translit-table-4col-cyr-left {
         width: 100%;
         border-collapse: separate;
         border-spacing: 0 8px;
@@ -101,38 +101,43 @@
         color: #e0e0e0;
         table-layout: fixed;
     }
-    .translit-table-4col th, .translit-table-4col td {
+    .translit-table-4col-cyr-left th, .translit-table-4col-cyr-left td {
         padding: 10px 5px;
         text-align: center;
         vertical-align: middle;
         background-color: #2c2c2c;
     }
-    .translit-table-4col th {
+    .translit-table-4col-cyr-left th {
         background-color: #bb86fc;
         color: #1e1e1e;
         font-weight: bold;
         text-transform: uppercase;
         letter-spacing: 1px;
     }
-    /* Стили для Латиницы (теперь нечетные колонки) */
-    .translit-table-4col td:nth-child(1), .translit-table-4col td:nth-child(3) {
+    /* Стили для Кириллицы (теперь нечетные колонки) */
+    .translit-table-4col-cyr-left td:nth-child(1), .translit-table-4col-cyr-left td:nth-child(3) {
         border-left: 3px solid #03dac6;
-        font-family: monospace;
-        font-size: 1.1em;
-        color: #03dac6;
-    }
-    /* Стили для Кириллицы (теперь четные колонки) */
-    .translit-table-4col td:nth-child(2), .translit-table-4col td:nth-child(4) {
-        border-right: 3px solid #bb86fc;
         font-size: 1.2em;
         font-weight: bold;
-        color: #bb86fc;
+        color: #bb86fc; /* Цвет кириллицы */
+        border-top-left-radius: 4px; 
+        border-bottom-left-radius: 4px;
     }
-    /* Завершающие края */
-    .translit-table-4col td:nth-child(1) { border-left-color: #03dac6; border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
-    .translit-table-4col td:nth-child(4) { border-right-color: #bb86fc; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+    /* Стили для Латиницы (теперь четные колонки) */
+    .translit-table-4col-cyr-left td:nth-child(2), .translit-table-4col-cyr-left td:nth-child(4) {
+        border-right: 3px solid #bb86fc;
+        font-family: monospace;
+        font-size: 1.1em;
+        color: #03dac6; /* Цвет латиницы */
+    }
+    /* Завершающий край справа */
+    .translit-table-4col-cyr-left td:nth-child(4) { 
+        border-right-color: #03dac6; 
+        border-top-right-radius: 4px; 
+        border-bottom-right-radius: 4px; 
+    }
     
-    .section-heading-4col {
+    .section-heading-cyr-left {
         color: #03dac6;
         margin-top: 20px;
         margin-bottom: 15px;
@@ -155,57 +160,54 @@
     </button>
     
     <p>Введите комбинацию латинских букв для отображения кириллических</p>
-<h3 class="section-heading-4col">✨ Гласные и Йоты</h3>
-<table class="translit-table-4col">
+<h3 class="section-heading-cyr-left">✨ Гласные и Йоты</h3>
+<table class="translit-table-4col-cyr-left">
     <thead>
         <tr>
-            <th>Латиница</th>
             <th>Кириллица</th>
             <th>Латиница</th>
             <th>Кириллица</th>
+            <th>Латиница</th>
         </tr>
     </thead>
     <tbody>
-        <tr><td>A</td><td>А</td><td>I</td><td>И</td></tr>
-        <tr><td>AE</td><td>Ә</td><td>II</td><td>I</td></tr>
-        <tr><td>E</td><td>Э</td><td>O</td><td>О</td></tr>
-        <tr><td>IE</td><td>Є</td><td>OE</td><td>Ө</td></tr>
-        <tr><td>Q</td><td>Я</td><td>U</td><td>У</td></tr>
-        <tr><td>UE</td><td>Ү</td><td>Y</td><td>Ы</td></tr>
-        <tr><td>YA</td><td>Я</td><td>YE</td><td>Е</td></tr>
-        <tr><td>YI</td><td>Ї</td><td>YO</td><td>Ё</td></tr>
-        <tr><td>YU</td><td>Ю</td><td></td><td></td></tr>
+        <tr><td>А</td><td>A</td><td>И</td><td>I</td></tr>
+        <tr><td>Ә</td><td>AE</td><td>О</td><td>O</td></tr>
+        <tr><td>Е</td><td>YE</td><td>Ө</td><td>OE</td></tr>
+        <tr><td>Ё</td><td>YO</td><td>У</td><td>U</td></tr>
+        <tr><td>Є</td><td>IE</td><td>Ү</td><td>UE</td></tr>
+        <tr><td>I</td><td>II</td><td>Ы</td><td>Y</td></tr>
+        <tr><td>Ї</td><td>YI</td><td>Э</td><td>E</td></tr>
+        <tr><td>Ю</td><td>YU</td><td>Я</td><td>Q</td></tr>
+        <tr><td>Я</td><td>YA</td><td></td><td></td></tr>
     </tbody>
 </table>
 
-<h3 class="section-heading-4col">🛡️ Согласные и Знаки</h3>
-<table class="translit-table-4col">
+<h3 class="section-heading-cyr-left">🛡️ Согласные и Знаки</h3>
+<table class="translit-table-4col-cyr-left">
     <thead>
         <tr>
-            <th>Латиница</th>
             <th>Кириллица</th>
             <th>Латиница</th>
             <th>Кириллица</th>
+            <th>Латиница</th>
         </tr>
     </thead>
     <tbody>
-        <tr><td>B</td><td>Б</td><td>GZ</td><td>Ґ</td></tr>
-        <tr><td>CH</td><td>Ч</td><td>H</td><td>Һ</td></tr>
-        <tr><td>CSH</td><td>Щ</td><td>J</td><td>Й</td></tr>
-        <tr><td>CZ</td><td>Ц</td><td>K</td><td>К</td></tr>
-        <tr><td>D</td><td>Д</td><td>KH</td><td>Һ</td></tr>
-        <tr><td>F</td><td>Ф</td><td>L</td><td>Л</td></tr>
-        <tr><td>G</td><td>Г</td><td>M</td><td>М</td></tr>
-        <tr><td>GG</td><td>Ґ</td><td>N</td><td>Н</td></tr>
-        <tr><td>NG</td><td>Ң</td><td>TS</td><td>Ц</td></tr>
-        <tr><td>P</td><td>П</td><td>V</td><td>В</td></tr>
-        <tr><td>R</td><td>Р</td><td>W</td><td>Ш</td></tr>
-        <tr><td>S</td><td>С</td><td>X</td><td>Х</td></tr>
-        <tr><td>SCH</td><td>Щ</td><td>Z</td><td>З</td></tr>
-        <tr><td>SH</td><td>Ш</td><td>ZH</td><td>Ж</td></tr>
-        <tr><td>SHH</td><td>Щ</td><td>'''</td><td>Ъ</td></tr>
-        <tr><td>T</td><td>Т</td><td>''</td><td>Ь</td></tr>
-        <tr><td>---</td><td>—</td><td>--</td><td>–</td></tr>
+        <tr><td>Б</td><td>B</td><td>М</td><td>M</td></tr>
+        <tr><td>В</td><td>V</td><td>Н</td><td>N</td></tr>
+        <tr><td>Г</td><td>G</td><td>Ң</td><td>NG</td></tr>
+        <tr><td>Ґ</td><td>GG, GZ</td><td>П</td><td>P</td></tr>
+        <tr><td>Д</td><td>D</td><td>Р</td><td>R</td></tr>
+        <tr><td>Ж</td><td>ZH</td><td>С</td><td>S</td></tr>
+        <tr><td>З</td><td>Z</td><td>Т</td><td>T</td></tr>
+        <tr><td>Й</td><td>J</td><td>Ф</td><td>F</td></tr>
+        <tr><td>К</td><td>K</td><td>Х</td><td>X</td></tr>
+        <tr><td>Л</td><td>L</td><td>Ц</td><td>CZ, TS</td></tr>
+        <tr><td>Ч</td><td>CH</td><td>Ш</td><td>SH, W</td></tr>
+        <tr><td>Щ</td><td>SHH, SCH, CSH</td><td>Һ</td><td>KH, H</td></tr>
+        <tr><td>Ъ</td><td>'''</td><td>—</td><td>---</td></tr>
+        <tr><td>Ь</td><td>''</td><td>–</td><td>--</td></tr>
     </tbody>
 </table>
     <label for="latinInput" style="display: none;">Активный Ввод (Скрыт):</label>
