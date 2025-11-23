@@ -1,4 +1,86 @@
-// ... (Остальная часть кода HTML и стилей остается без изменений)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Forma Base - No Secrets & Collision Fix</title>
+    <link rel="manifest" href="manifest.json"> 
+    <style>
+        body {
+            user-select: none; 
+            margin: 0;
+            overflow: hidden;
+            -webkit-user-select: none; 
+            -moz-user-select: none; 
+            -ms-user-select: none; 
+            background: #000;
+        }
+
+        .control-button, .top-control, .mid-control {
+            position: fixed;
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.9) !important; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            padding: 0;
+            background: none;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 0, 0, 0.5); 
+        }
+
+        /* Further, Closer, Fly/Stop - Нижний блок */
+        .control-button { bottom: 20px; }
+        .further-button { left: 3%; right: auto; } 
+        .closer-button { right: 3%; left: auto; } 
+        .fly-button { left: 50%; transform: translateX(-50%); }
+
+        /* Load, Reset, Save - Верхний блок */
+        .top-control { top: 20px; }
+        .load-button { left: 3%; transform: none; } 
+        .reset-button { left: 50%; transform: translateX(-50%); }
+        .save-button { right: 3%; left: auto; transform: none; } 
+
+        /* Help, Shadows - Средний блок */
+        .mid-control { top: 50%; transform: translateY(-50%); }
+        .help-button { left: 3%; }
+        .shadows-button { right: 3%; }
+            
+        .hidden { display: none; }
+        .secret { 
+            position: fixed;
+            transform: translate(-50%, -50%);
+            font-family: monospace;
+            font-size: 18px;
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            pointer-events: auto;
+            z-index: 1000;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-button further-button">Further</div> 
+    <div class="control-button closer-button">Closer</div> 
+    <div class="control-button fly-button">Fly</div> 
+    
+    <div class="top-control load-button">Load</div> 
+    <div class="top-control reset-button">Reset</div> 
+    <div class="top-control save-button">Save</div> 
+
+    <a class="mid-control help-button" href="https://t.me/eqlectika/178" target="_blank">Help</a> 
+    <div class="mid-control shadows-button">Shadow</div> 
+    
+    <input type="file" id="file-input" style="display: none;" accept=".json"> 
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
@@ -63,20 +145,18 @@ const cameraLightGroup = new THREE.Group();
 camera.add(cameraLightGroup); 
 scene.add(camera); 
 
-// Уменьшена интенсивность для более светлых (полупрозрачных) теней до 0.8
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
 directionalLight.position.set(0, 0, 10); 
 directionalLight.castShadow = true; 
 
 directionalLight.shadow.mapSize.width = 2048; 
 directionalLight.shadow.mapSize.height = 2048; 
 directionalLight.shadow.camera.near = 0.5;
-// Уменьшена дальность и область видимости теневой камеры для фокусировки
-directionalLight.shadow.camera.far = 30; 
-directionalLight.shadow.camera.left = -10; 
-directionalLight.shadow.camera.right = 10; 
-directionalLight.shadow.camera.top = 10; 
-directionalLight.shadow.camera.bottom = -10;
+directionalLight.shadow.camera.far = 50; 
+directionalLight.shadow.camera.left = -50; 
+directionalLight.shadow.camera.right = 50; 
+directionalLight.shadow.camera.top = 50; 
+directionalLight.shadow.camera.bottom = -50;
 cameraLightGroup.add(directionalLight);
 
 const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 1.0);
@@ -101,12 +181,12 @@ function addInternalLights(group) {
 }
 
 const FACE_CONFIGS = [
-    { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) },      
-    { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) },      
-    { color: 0x0000ff, pos: [0, CUBE_SIZE/2, 0], rot: [-Math.PI / 2, 0, 0], id: 2, normal: new THREE.Vector3(0, 1, 0) },      
-    { color: 0xffff00, pos: [0, -CUBE_SIZE/2, 0], rot: [Math.PI / 2, 0, 0], id: 3, normal: new THREE.Vector3(0, -1, 0) },      
-    { color: 0x00ffff, pos: [0, 0, CUBE_SIZE/2], rot: [0, 0, 0], id: 4, normal: new THREE.Vector3(0, 0, 1) },              
-    { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) },        
+    { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) },     
+    { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) },     
+    { color: 0x0000ff, pos: [0, CUBE_SIZE/2, 0], rot: [-Math.PI / 2, 0, 0], id: 2, normal: new THREE.Vector3(0, 1, 0) },     
+    { color: 0xffff00, pos: [0, -CUBE_SIZE/2, 0], rot: [Math.PI / 2, 0, 0], id: 3, normal: new THREE.Vector3(0, -1, 0) },     
+    { color: 0x00ffff, pos: [0, 0, CUBE_SIZE/2], rot: [0, 0, 0], id: 4, normal: new THREE.Vector3(0, 0, 1) },               
+    { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) },       
 ];
 
 const getOppositeFaceId = (normal) => {
@@ -135,7 +215,7 @@ const createCubeFace = (config) => {
     });
     
     const face = new THREE.Mesh(faceGeometry, material);
-    face.castShadow = true;    
+    face.castShadow = true;   
     face.receiveShadow = true; 
     face.position.set(...config.pos);
     face.rotation.set(...config.rot);
@@ -356,7 +436,28 @@ renderer.domElement.addEventListener('pointermove', (event) => {
 });
 
 const handleLongPress = (event) => {
-    // Логика удаления грани удалена.
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(formaCubeFaces, false);
+    if (intersects.length > 0) {
+        const intersection = intersects[0];
+        const obj = intersection.object;
+        const group = obj.parent; 
+        if (group) {
+            group.remove(obj);
+            obj.geometry.dispose(); 
+        }
+        const index = formaCubeFaces.indexOf(obj);
+        if (index > -1) formaCubeFaces.splice(index, 1);
+        if (group && group.children.length === 1 && group.children[0].isLight) {
+            scene.remove(group);
+            if (group === formaCubeGroup) formaCubeGroup = null;
+        }
+    }
     tapCount = 0; 
 };
 
@@ -383,7 +484,6 @@ const handleInteraction = (event) => {
             const group = obj.parent; 
 
             if (currentTapCount === 2) {
-                // Логика двойного тапа (добавление куба) сохранена
                 const faceNormal = intersection.face.normal.clone();
                 faceNormal.transformDirection(obj.matrixWorld); 
                 faceNormal.normalize();
@@ -394,8 +494,19 @@ const handleInteraction = (event) => {
                 const excludeId = getOppositeFaceId(faceNormal);
                 const newCube = createFormaCube(newGroupPosition, excludeId, FACE_CONFIGS);
                 
-            } 
-            // Логика одиночного тапа (переключение прозрачности) удалена
+            } else if (currentTapCount === 1) {
+                const face = obj;
+                if (face.material.opacity === 1.0) {
+                    face.material.opacity = 0.5;
+                    face.material.envMapIntensity = 0.5; 
+                    face.userData.isTransparent = true;
+                } else {
+                    face.material.opacity = 1.0;
+                    face.material.envMapIntensity = 1.0; 
+                    face.userData.isTransparent = false;
+                }
+                face.material.needsUpdate = true;
+            }
         } 
     }, TAP_DELAY);
 };
