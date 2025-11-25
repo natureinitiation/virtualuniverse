@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Forma Base - Final Logic</title>
+    <title>Forma Base - Final Logic with Permanent Transparent State</title>
     <link rel="manifest" href="manifest.json"> 
     <style>
         body {
@@ -57,13 +57,15 @@
     <div class="control-button closer-button">Closer</div> 
     <div class="control-button fly-button">Fly</div> 
     
-    <div class="top-control load-button">Load (Disabled)</div> 
+    <div class="top-control load-button">Load</div> 
     <div class="top-control reset-button">Reset</div> 
-    <div class="top-control save-button">Save (Disabled)</div> 
+    <div class="top-control save-button">Save</div> 
 
     <a class="mid-control help-button" href="https://t.me/eqlectika/178" target="_blank">Help</a> 
     <div class="mid-control shadows-button">Shadow</div> 
     
+    <input type="file" id="file-input" style="display: none;" accept=".json"> 
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
     <script>
@@ -89,7 +91,7 @@ const MAX_SPEED = 0.3;
 const ACCELERATION = 0.00033;       
 const DECCELERATION = 0.00033;      
 
-// --- Background Animation ---
+// --- Background Animation (Unchanged) ---
 const colors = ['#006ee5', '#000033'];
 let currentColorIndex = 0;
 function changeBackgroundColor() {
@@ -111,7 +113,7 @@ function animateBackgroundColor(targetColor) {
 }
 setInterval(changeBackgroundColor, 100000); 
 
-// --- Controls & Lights ---
+// --- Controls & Lights (Unchanged) ---
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.005;
@@ -147,6 +149,10 @@ let formaCubeFaces = [];
 const collisionRaycaster = new THREE.Raycaster();
 let formaCubeGroup = null; 
 const CUBE_SIZE = 5; 
+const STORAGE_KEY = 'formaCubeState';
+
+// ⚠️ УДАЛЕНА: lastTransparentFace = null; 
+
 function addInternalLights(group) {
     const warmInternalLight = new THREE.PointLight(0xffaa00, 0.01, 0); 
     warmInternalLight.position.set(0, 0, 0); 
@@ -196,7 +202,7 @@ const createCubeFace = (config) => {
     face.userData = { 
         id: config.id, 
         originalColor: config.color,
-        isTransparent: false
+        isTransparent: false // Изначальное состояние
     };
     return face;
 }
@@ -246,14 +252,12 @@ const removeFaceFromCubeByNormal = (cubeGroup, worldNormal) => {
     }
     return faceRemoved;
 }
-// ----------------------------------------------------
-
 
 /**
  * Создает куб, исключая грани, которые находятся в местах стыка с другими кубами.
  * @ПАРИТЕТ_ТРЕБОВАНИЯ: Обеспечивает, что НОВАЯ грань не создается.
  */
-const createFormaCube = (position, excludeIndex = -1, loadedFacesState = FACE_CONFIGS) => {
+const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFIGS) => {
     const newFormaCubeGroup = new THREE.Group();
     newFormaCubeGroup.position.copy(position);
     newFormaCubeGroup.userData.isFormaCube = true;
@@ -263,30 +267,30 @@ const createFormaCube = (position, excludeIndex = -1, loadedFacesState = FACE_CO
         excludeIds.add(excludeIndex); // Исключаем грань, ведущую к старому кубу
     }
 
-    // Проверяем 6 направлений: если сосед есть, грань, направленная в ту сторону, НЕ создается.
-    FACE_CONFIGS.forEach((baseConfig) => {
-        const localNormal = baseConfig.normal;
-        
-        const neighborPosition = position.clone().add(localNormal.clone().multiplyScalar(CUBE_SIZE));
-        
-        if (getCubeGroupAtPosition(neighborPosition)) {
-            // Если позиция занята, грань, направленная туда, не создается.
-            excludeIds.add(baseConfig.id);
-        }
-    });
+    if (facesToCreate === FACE_CONFIGS) {
+        FACE_CONFIGS.forEach((baseConfig) => {
+            const localNormal = baseConfig.normal;
+            
+            const neighborPosition = position.clone().add(localNormal.clone().multiplyScalar(CUBE_SIZE));
+            
+            if (getCubeGroupAtPosition(neighborPosition)) {
+                excludeIds.add(baseConfig.id);
+            }
+        });
+    }
 
-    // Создаем куб, исключая все найденные ID
-    FACE_CONFIGS.forEach((baseConfig) => {
-        if (excludeIds.has(baseConfig.id)) {
+    const activeFaces = facesToCreate === FACE_CONFIGS ? FACE_CONFIGS : facesToCreate;
+
+    activeFaces.forEach((faceData) => {
+        const baseConfig = FACE_CONFIGS.find(f => f.id === faceData.id || f.id === faceData.id);
+        
+        if (facesToCreate === FACE_CONFIGS && excludeIds.has(baseConfig.id)) {
             return; 
         }
-        
-        const faceState = loadedFacesState.find(f => f.id === baseConfig.id);
-        if (loadedFacesState !== FACE_CONFIGS && !faceState) return;
 
         const face = createCubeFace(baseConfig);
         
-        if (faceState && faceState.isTransparent) {
+        if (faceData.isTransparent) {
              face.material.opacity = 0.5;
              face.material.envMapIntensity = 0.5;
              face.userData.isTransparent = true;
@@ -310,9 +314,9 @@ const clearWorld = () => {
             object.children.forEach(mesh => {
                 if (mesh.isMesh) {
                     mesh.geometry.dispose();
-                    if (mesh.material.length) {
+                    if (mesh.material && mesh.material.length) {
                         mesh.material.forEach(m => m.dispose());
-                    } else {
+                    } else if (mesh.material) {
                         mesh.material.dispose();
                     }
                 }
@@ -323,12 +327,146 @@ const clearWorld = () => {
     formaCubeGroup = null;
 }
 
-// Заглушка для loadLocalState, чтобы избежать ошибок.
-const loadLocalState = () => false;
+// --- SAVE/LOAD CORE LOGIC (Unchanged) ---
+
+const getWorldData = () => {
+    const world = [];
+    scene.children.forEach(object => {
+        if (object.userData.isFormaCube) {
+            const faces = [];
+            object.children.forEach(child => {
+                if (child.isMesh) {
+                    faces.push({
+                        id: child.userData.id,
+                        isTransparent: child.userData.isTransparent
+                    });
+                }
+            });
+
+            if (faces.length > 0) {
+                world.push({
+                    position: {
+                        x: object.position.x,
+                        y: object.position.y,
+                        z: object.position.z,
+                    },
+                    faces: faces
+                });
+            }
+        }
+    });
+
+    return {
+        world: world,
+        camera: {
+            position: camera.position,
+            target: controls.target 
+        }
+    };
+};
+
+const loadWorldFromFile = (data) => {
+    clearWorld();
+
+    data.world.forEach(cubeData => {
+        const position = new THREE.Vector3(cubeData.position.x, cubeData.position.y, cubeData.position.z);
+        createFormaCube(position, -1, cubeData.faces); 
+    });
+
+    if (data.camera) {
+        camera.position.set(data.camera.position.x, data.camera.position.y, data.camera.position.z);
+        controls.target.set(data.camera.target.x, data.camera.target.y, data.camera.target.z);
+        controls.update();
+        previousCameraPosition.copy(camera.position);
+    }
+    
+    if (scene.children.filter(c => c.userData.isFormaCube).length === 0) {
+        initFormaCube(new THREE.Vector3(0, 0, 0)); 
+    }
+};
+
+const saveLocalState = () => {
+    const data = getWorldData();
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        console.log("Состояние сохранено локально.");
+        return true;
+    } catch (e) {
+        console.error("Ошибка сохранения локального состояния:", e);
+        return false;
+    }
+};
+
+// Строка ~400
+const loadLocalState = () => {
+    const savedState = localStorage.getItem(STORAGE_KEY);
+    
+    if (!savedState) {
+        console.log("Локальное состояние отсутствует.");
+        return false;
+    }
+    
+    try {
+        const data = JSON.parse(savedState);
+        
+        if (!data || !data.world || !Array.isArray(data.world)) {
+            throw new Error("Неверная или неполная структура данных.");
+        }
+        
+        loadWorldFromFile(data);
+        console.log("Состояние загружено из локального хранилища.");
+        return true;
+    } catch (e) {
+        console.error("Ошибка загрузки локального состояния:", e.message);
+        localStorage.removeItem(STORAGE_KEY); // Очищаем поврежденное состояние
+        return false; 
+    }
+};
+
+
+// Строка ~425
+const saveWorldToFile = () => {
+    const data = getWorldData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // ⬇️ ИЗМЕНЕНИЕ 1: Фиксированное имя файла
+    a.download = `forma-state.json`; 
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log("Состояние сохранено в файл.");
+};
+
+// Строка ~470
+document.getElementById('file-input').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                loadWorldFromFile(data);
+                console.log("Состояние загружено из файла.");
+            } catch (error) {
+                console.error("Ошибка чтения или парсинга файла:", error);
+                alert("Ошибка: Неверный формат файла.");
+            }
+        };
+        reader.readAsText(file);
+        
+        // ⬇️ ИЗМЕНЕНИЕ 2: Очистка поля ввода
+        event.target.value = null; 
+    }
+});
+
 
 const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
     clearWorld(); 
-    const localLoaded = loadLocalState(); // Всегда false
+    const localLoaded = loadLocalState(); 
     if (!localLoaded) {
         formaCubeGroup = createFormaCube(position, -1); 
     }
@@ -339,11 +477,10 @@ const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15
 };
 
 
-// --- Interactions (Unchanged) ---
+// --- Interactions ---
 let longPressTimer;
 const LONG_PRESS_DELAY = 700; 
 let isLongPress = false;
-let lastTransparentFace = null; 
 let longPressFired = false; 
 
 const MOVE_THRESHOLD = 10; 
@@ -394,14 +531,16 @@ renderer.domElement.addEventListener('pointerup', (event) => {
         return;
     }
     
+    // ЛОГИКА КОРОТКОГО КЛИКА
     if (!isLongPress) {
         const intersects = getIntersection(event);
+
         if (intersects.length > 0) {
             const face = intersects[0].object;
             
-            if (face.userData.isTransparent && face === lastTransparentFace) {
+            // 🚨 ПРОВЕРКА: Куб создается, если ГРАНЬ ПРОЗРАЧНАЯ (нет проверки lastTransparentFace)
+            if (face.userData.isTransparent) {
                  handleDeleteAndCreateTunnel(event, face, intersects[0]); 
-                 lastTransparentFace = null; 
             } 
         }
     }
@@ -445,29 +584,25 @@ const handleTransparentToggle = (event) => {
     if (intersects.length > 0) {
         const face = intersects[0].object;
         
+        // ⚠️ УДАЛЕНО: Сброс старой брони
+
         if (face.material.opacity === 1.0) {
+            // Делаем прозрачной
             face.material.opacity = 0.5;
             face.material.envMapIntensity = 0.5; 
-            face.userData.isTransparent = true;
-            lastTransparentFace = face; 
+            face.userData.isTransparent = true; // Устанавливаем постоянное свойство
         } else {
+            // Возвращаем непрозрачность
             face.material.opacity = 1.0;
             face.material.envMapIntensity = 1.0; 
             face.userData.isTransparent = false;
-            if (lastTransparentFace === face) {
-                lastTransparentFace = null;
-            }
         }
         face.material.needsUpdate = true;
-    } else {
-        lastTransparentFace = null;
-    }
+    } 
 };
 
 /**
  * Удаляет грань на старом кубе и создает новый куб.
- * Обеспечивает удаление всех стыковочных граней у всех соседей,
- * в соответствии с правилом: существующая удаляется, новая не создается.
  */
 const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
     const obj = faceToDelete;
@@ -481,23 +616,16 @@ const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
     const groupWorldPos = group.position.clone();
     const newGroupPosition = groupWorldPos.clone().add(faceNormal.clone().multiplyScalar(CUBE_SIZE));
     
-    // ПРОВЕРКА 1: Нельзя удалять/создавать тоннель, если место нового куба занято
     if (getCubeGroupAtPosition(newGroupPosition)) {
-        obj.material.opacity = 1.0;
-        obj.material.envMapIntensity = 1.0; 
-        obj.userData.isTransparent = false;
-        lastTransparentFace = null;
-        obj.material.needsUpdate = true;
         console.log("Действие отменено: Позиция стыковки уже занята.");
         return; 
     }
     
-    // 2. Создание "Тоннеля" (нового куба)
-    // Грань, смотрящая на соседей, НЕ создается внутри createFormaCube
+    // 2. Создание "Тоннеля" (нового куба) - Не создание новой грани
     const excludeId = getTunnelFaceId(faceNormal);
     const newCube = createFormaCube(newGroupPosition, excludeId, FACE_CONFIGS);
 
-    // 3. Удаление старой грани (открывает проход к новому кубу)
+    // 3. Удаление старой грани (открывает проход к новому кубу) - Удаление существующей грани
     if (group) {
         group.remove(obj); 
         obj.geometry.dispose(); 
@@ -510,7 +638,7 @@ const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
         if (group === formaCubeGroup) formaCubeGroup = null;
     }
     
-    // 4. УДАЛЕНИЕ СУЩЕСТВУЮЩИХ СТЫКОВОЧНЫХ ГРАНЕЙ У ВСЕХ СОСЕДЕЙ
+    // 4. УДАЛЕНИЕ СУЩЕСТВУЮЩИХ СТЫКОВОЧНЫХ ГРАНЕЙ У ВСЕХ СОСЕДЕЙ 
     FACE_CONFIGS.forEach(config => {
         const localNormal = config.normal;
         
@@ -519,13 +647,14 @@ const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
         const neighborCube = getCubeGroupAtPosition(neighborPosition);
         
         if (neighborCube) {
-            // Нормаль в мировых координатах, направленная от нового куба к соседу
             const worldNormal = localNormal.clone().transformDirection(new THREE.Matrix4().makeTranslation(newGroupPosition.x, newGroupPosition.y, newGroupPosition.z));
 
-            // Удаляем грань на соседнем кубе, которая находится на месте стыка
             removeFaceFromCubeByNormal(neighborCube, worldNormal);
         }
     });
+    
+    // ⚠️ УДАЛЕНО: lastTransparentFace = null; 
+    saveLocalState(); 
 };
 
 
@@ -583,12 +712,16 @@ const moveCamera = (directionVector, distance) => {
     }
 };
 
-// --- Button Logic (Simplified to avoid stubs) ---
+// --- Button Logic (Unchanged) ---
 const closerButton = document.querySelector('.closer-button');
 const furtherButton = document.querySelector('.further-button');
 const resetButton = document.querySelector('.reset-button'); 
 const flyButton = document.querySelector('.fly-button');
 const shadowsButton = document.querySelector('.shadows-button'); 
+const saveButton = document.querySelector('.save-button');
+const loadButton = document.querySelector('.load-button');
+const fileInput = document.getElementById('file-input');
+
 
 closerButton.addEventListener('click', () => {
     const direction = new THREE.Vector3();
@@ -604,6 +737,7 @@ furtherButton.addEventListener('click', () => {
 });
 
 resetButton.addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
     window.location.reload(); 
 });
 
@@ -618,7 +752,26 @@ shadowsButton.addEventListener('click', () => {
     shadowsButton.textContent = renderer.shadowMap.enabled ? 'Shadow' : 'Light';
 });
 
-// --- Animation Loop ---
+saveButton.addEventListener('click', () => {
+    saveLocalState(); 
+    saveWorldToFile();
+});
+
+loadButton.addEventListener('click', () => {
+    // 🚨 Добавлено: Очистка локального хранилища перед загрузкой.
+    localStorage.removeItem(STORAGE_KEY); 
+    
+    // Перезагрузка мира с нуля, чтобы гарантировать чистое состояние.
+    clearWorld();
+    
+    // Теперь открываем диалог выбора файла.
+    fileInput.click();
+    
+    // Примечание: `loadWorldFromFile` будет вызван позже через `file-input` listener.
+});
+
+
+// --- Animation Loop (Unchanged) ---
 const animate = () => {
     controls.update();
     checkMovementCollision();
