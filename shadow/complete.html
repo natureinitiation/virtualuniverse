@@ -431,15 +431,21 @@ const loadLocalState = () => {
 const saveWorldToFile = () => {
     const data = getWorldData();
     const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    
+    // Создаем Data URL, который Safari может интерпретировать.
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+
+    // Создаем ссылку для загрузки.
     const a = document.createElement('a');
-    a.href = url;
+    a.href = dataUri;
     a.download = `forma-state.json`; 
     document.body.appendChild(a);
+    
+    // Этот клик должен инициировать диалог загрузки/поделиться на iOS.
     a.click();
+    
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+
     console.log("Состояние сохранено в файл.");
 };
 
