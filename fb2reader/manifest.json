@@ -1,6 +1,6 @@
 {
-  "name": "Fb2 Reader",
-  "short_name": "Reader",
+  "name": "Fb2Reader",
+  "short_name": "Fb2 Reader",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",
