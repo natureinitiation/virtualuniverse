@@ -149,7 +149,7 @@
 </head>
 <body>
     <div class="button mode-button">Static</div>
-    <div class="button go-button">Voyage</div>
+    <div class="button go-button">Fly</div>
     <div class="button fore-button">Strike</div>
     <div class="button slow-button">Slow</div>
     <div class="button fast-button">Fast</div>
@@ -515,7 +515,7 @@ const goButton = document.querySelector('.go-button');
 let isMoving = false;
 goButton.addEventListener('click', () => {
     isMoving = !isMoving;
-    goButton.innerText = isMoving ? "Stop" : "Go";
+    goButton.innerText = isMoving ? "Stop" : "Fly";
     if (isMoving) {
         adjustCameraFocus();
     } else {
