@@ -154,10 +154,9 @@
     <div class="button slow-button">Slow</div>
     <div class="button fast-button">Fast</div>
 <a href="https://eugenebox.t.me/" style="text-decoration: none;" class="help-button" target="_blank">Help</a>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
-    <script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+<script>
 
 // Imports (assuming three.js and OrbitControls are loaded via CDN)
 const scene = new THREE.Scene();
@@ -167,6 +166,11 @@ camera.position.z = 30;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+// НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ОТСЛЕЖИВАНИЯ ВРАЩЕНИЯ И КЛИКОВ
+let isDragging = false;
+let startPointerPosition = { x: 0, y: 0 };
+const dragThreshold = 5; // Порог в пикселях для определения "перетаскивания"
 
 // Background color change
 const colors = ['#006ee5', '#f84d54', '#000033', '#f84d54'];
@@ -287,10 +291,12 @@ const createPolarObject = () => {
 
 // Scatter and word spawning
 const handleInteraction = (event) => {
-    if (event.target.closest('.mode-button, .go-button, .fore-button, .slow-button, .fast-button, .help-button')) return;
+    // В handlePointerEnd уже проверено, что это не клик по кнопке и не перетаскивание
 
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    // Используем changedTouches для touchend (если есть), иначе clientX/Y
+    const clientX = event.changedTouches ? event.changedTouches[0].clientX : event.clientX;
+    const clientY = event.changedTouches ? event.changedTouches[0].clientY : event.clientY;
+    
     const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
@@ -392,6 +398,7 @@ function isWordOccupied(x, y, minDistance) {
 const applyCameraRepulsion = () => {
     const repulsionDistance = 15;
     const repulsionStrength = 0.05;
+    // ... (функции взаимодействия остаются без изменений)
     [...staticObjects, ...polarObjects].forEach((obj) => {
         const distance = camera.position.distanceTo(obj.position);
         if (distance < repulsionDistance) {
@@ -471,11 +478,14 @@ modeButton.addEventListener('click', () => {
     }
 });
 
-// Delete handling
+// Delete handling (Теперь вызывается из handlePointerEnd)
 function handleDelete(event) {
-    if (mode !== 'Delete') return;
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    if (event.target.closest('.mode-button, .go-button, .fore-button, .slow-button, .fast-button, .help-button')) return;
+
+    // Используем changedTouches для touchend (если есть), иначе clientX/Y
+    const clientX = event.changedTouches ? event.changedTouches[0].clientX : event.clientX;
+    const clientY = event.changedTouches ? event.changedTouches[0].clientY : event.clientY;
+    
     const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
@@ -487,8 +497,9 @@ function handleDelete(event) {
         polarObjects.splice(polarObjects.indexOf(selectedObject), 1);
     }
 }
-window.addEventListener('click', handleDelete);
-window.addEventListener('touchstart', handleDelete);
+// УДАЛЕНО: window.addEventListener('click', handleDelete);
+// УДАЛЕНО: window.addEventListener('touchstart', handleDelete);
+
 
 // Camera movement
 let targetVelocity = new THREE.Vector3();
@@ -522,9 +533,6 @@ goButton.addEventListener('click', () => {
         targetVelocity.set(0, 0, 0);
     }
 });
-
-
-
 
 
 const performCameraLunge = () => {
@@ -572,16 +580,80 @@ const performCameraLunge = () => {
 };
 
 
+// НОВЫЕ ОБРАБОТЧИКИ ДЛЯ ОТСЛЕЖИВАНИЯ КЛИКА/ПЕРЕТАСКИВАНИЯ
+function getClientCoords(event) {
+    if (event.touches) {
+        // Для touchstart/touchmove используем touches
+        return { clientX: event.touches[0].clientX, clientY: event.touches[0].clientY };
+    }
+    return { clientX: event.clientX, clientY: event.clientY };
+}
+
+function handlePointerStart(event) {
+    // Игнорируем клики по кнопкам управления
+    if (event.target.closest('.mode-button, .go-button, .fore-button, .slow-button, .fast-button, .help-button')) return;
+    if (event.button === 2) return; // Игнорируем правую кнопку мыши
+    
+    // Предотвращаем конфликт с OrbitControls при тапе
+    if (event.type === 'touchstart') {
+        controls.enabled = false;
+    }
 
 
+    const coords = getClientCoords(event);
+    startPointerPosition.x = coords.clientX;
+    startPointerPosition.y = coords.clientY;
+    isDragging = false; // Сброс
+}
 
+function handlePointerMove(event) {
+    if (startPointerPosition.x === 0 && startPointerPosition.y === 0) return;
 
+    const coords = getClientCoords(event);
+    const dx = Math.abs(coords.clientX - startPointerPosition.x);
+    const dy = Math.abs(coords.clientY - startPointerPosition.y);
 
-// Interaction handling
-document.addEventListener('click', handleInteraction);
-document.addEventListener('touchstart', handleInteraction);
+    // Если перемещение превысило порог, считаем это перетаскиванием/вращением
+    if (Math.sqrt(dx * dx + dy * dy) > dragThreshold) {
+        isDragging = true;
+        // Если началось перетаскивание, разрешаем OrbitControls
+        if (event.type.startsWith('touch')) {
+             controls.enabled = true;
+        }
+    }
+}
 
-// Right-click delete
+function handlePointerEnd(event) {
+    controls.enabled = true; // Сброс OrbitControls в норму
+    
+    if (event.target.closest('.mode-button, .go-button, .fore-button, .slow-button, .fast-button, .help-button')) return;
+    
+    // Если isDragging == true, значит, было перетаскивание (вращение), и мы не создаем/удаляем объект
+    if (isDragging) {
+        isDragging = false;
+        startPointerPosition = { x: 0, y: 0 };
+        return;
+    }
+
+    // Если это был короткий клик/тап:
+    if (mode === 'Delete') {
+        handleDelete(event); // Удаление
+    } else {
+        handleInteraction(event); // Создание объекта или рассеивание
+    }
+
+    startPointerPosition = { x: 0, y: 0 };
+}
+
+// Привязка новых обработчиков
+document.addEventListener('mousedown', handlePointerStart);
+document.addEventListener('touchstart', handlePointerStart, { passive: true }); // passive: true для лучшей производительности на мобильных
+document.addEventListener('mouseup', handlePointerEnd);
+document.addEventListener('touchend', handlePointerEnd);
+document.addEventListener('mousemove', handlePointerMove);
+document.addEventListener('touchmove', handlePointerMove, { passive: true }); // passive: true для лучшей производительности на мобильных
+
+// Right-click delete (остается без изменений, т.к. не конфликтует с вращением)
 document.addEventListener('contextmenu', (event) => {
     event.preventDefault();
     const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
@@ -679,6 +751,6 @@ window.addEventListener('orientationchange', () => {
 
 animate();
 
-    </script>
+</script>
 </body>
 </html>
