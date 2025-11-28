@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Forma Base - No Collisions</title>
-    <link rel="manifest" href="manifest.json"> 
+    <link rel="manifest" href="manifest.json">
     <style>
         body {
-            user-select: none; 
+            user-select: none;
             margin: 0;
             overflow: hidden;
-            -webkit-user-select: none; 
-            -moz-user-select: none; 
-            -ms-user-select: none; 
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
             background: #000;
         }
 
@@ -25,7 +25,7 @@
             font-family: monospace;
             font-size: 18px;
             font-weight: normal;
-            color: rgba(255, 255, 255, 0.9) !important; 
+            color: rgba(255, 255, 255, 0.9) !important;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -35,35 +35,34 @@
         }
 
         .control-button { bottom: 20px; }
-        .further-button { left: 3%; right: auto; } 
-        .closer-button { right: 3%; left: auto; } 
+        .further-button { left: 3%; right: auto; }
+        .closer-button { right: 3%; left: auto; }
         .fly-button { left: 50%; transform: translateX(-50%); }
 
         .top-control { top: 20px; }
-        .load-button { left: 3%; transform: none; } 
-        .reset-button { left: 50%; transform: translateX(-50%); } 
-        .save-button { right: 3%; left: auto; transform: none; } 
+        .load-button { left: 3%; transform: none; }
+        .reset-button { left: 50%; transform: translateX(-50%); }
+        .save-button { right: 3%; left: auto; transform: none; }
 
         .mid-control { top: 50%; transform: translateY(-50%); }
         .help-button { text-decoration: none; left: 3%; }
-        .shadows-button { right: 3%; }
-            
+        /* Удаляем .shadows-button или делаем его невидимым, чтобы убрать кнопку */
+        /* .shadows-button { right: 3%; } */
+
         .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div class="control-button further-button">Further</div> 
-    <div class="control-button closer-button">Closer</div> 
-    <div class="control-button fly-button">Fly</div> 
-    
-    <div class="top-control load-button">Load</div> 
-    <div class="top-control reset-button hidden">Reset</div> 
-    <div class="top-control save-button hidden">Save</div> 
+    <div class="control-button further-button">Further</div>
+    <div class="control-button closer-button">Closer</div>
+    <div class="control-button fly-button">Fly</div>
 
-    <a class="mid-control help-button" href="https://t.me/eqlectika/185" target="_blank">Help</a> 
-    <div class="mid-control shadows-button">Shadow</div> 
-    
-    <input type="file" id="file-input" style="display: none;" accept=".json"> 
+    <div class="top-control load-button">Load</div>
+    <div class="top-control reset-button hidden">Reset</div>
+    <div class="top-control save-button hidden">Save</div>
+
+    <a class="mid-control help-button" href="https://t.me/eqlectika/185" target="_blank">Help</a>
+    <input type="file" id="file-input" style="display: none;" accept=".json">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
@@ -73,24 +72,25 @@
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x007bff);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 30; 
+camera.position.z = 30;
 
 // УДАЛЕНО: let previousCameraPosition (для коллизий)
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
-renderer.shadowMap.enabled = true; 
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+// ИЗМЕНЕНИЕ 1: Отключаем карты теней (Shadow Map)
+renderer.shadowMap.enabled = false;
+// renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Больше не нужно
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- Настройки полета ---
+// --- Настройки полета (Без изменений) ---
 let isFlying = false;
-let currentSpeed = 0.0;             
-const MAX_SPEED = 0.3;              
-const ACCELERATION = 0.00033;       
-const DECCELERATION = 0.00033;      
+let currentSpeed = 0.0;
+const MAX_SPEED = 0.3;
+const ACCELERATION = 0.00033;
+const DECCELERATION = 0.00033;
 
-// --- Background Animation (Unchanged) ---
+// --- Background Animation (Без изменений) ---
 const colors = ['#006ee5', '#000033'];
 let currentColorIndex = 0;
 function changeBackgroundColor() {
@@ -100,7 +100,7 @@ function changeBackgroundColor() {
 }
 function animateBackgroundColor(targetColor) {
     const startColor = scene.background.clone();
-    const duration = 60; 
+    const duration = 60;
     const startTime = performance.now();
     function updateBackgroundColor() {
         const elapsed = (performance.now() - startTime) / 1000;
@@ -110,66 +110,59 @@ function animateBackgroundColor(targetColor) {
     }
     updateBackgroundColor();
 }
-setInterval(changeBackgroundColor, 100000); 
+setInterval(changeBackgroundColor, 100000);
 
-// --- Controls & Lights (Unchanged) ---
+// --- Controls & Lights (Изменения для отключения теней) ---
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.005;
-controls.enableZoom = true; 
-controls.zoomSpeed = 0.5; 
+controls.enableZoom = true;
+controls.zoomSpeed = 0.5;
 controls.enablePan = true;
-controls.panSpeed = 0.3;  
+controls.panSpeed = 0.3;
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
 const cameraLightGroup = new THREE.Group();
-camera.add(cameraLightGroup); 
-scene.add(camera); 
+camera.add(cameraLightGroup);
+scene.add(camera);
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-directionalLight.position.set(0, 0, 10); 
-directionalLight.castShadow = true; 
-directionalLight.shadow.mapSize.width = 2048; 
-directionalLight.shadow.mapSize.height = 2048; 
-directionalLight.shadow.camera.near = 0.5;
-directionalLight.shadow.camera.far = 50; 
-directionalLight.shadow.camera.left = -50; 
-directionalLight.shadow.camera.right = 50; 
-directionalLight.shadow.camera.top = 50; 
-directionalLight.shadow.camera.bottom = -50;
+directionalLight.position.set(0, 0, 10);
+directionalLight.castShadow = false; // ИЗМЕНЕНИЕ 2: Отключаем отбрасывание теней
+// Удалены настройки directionalLight.shadow.*
 cameraLightGroup.add(directionalLight);
 const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 1.0);
-ultramarineLight.position.set(0, 0, -10); 
-ultramarineLight.castShadow = false; 
+ultramarineLight.position.set(0, 0, -10);
+ultramarineLight.castShadow = false;
 cameraLightGroup.add(ultramarineLight);
 
-// --- Object Logic (Core Geometry Setup and Helpers) ---
-let formaCubeFaces = []; 
+// --- Object Logic (Core Geometry Setup and Helpers) (Изменения для отключения теней) ---
+let formaCubeFaces = [];
 // УДАЛЕНО: const collisionRaycaster (для коллизий)
-let formaCubeGroup = null; 
-const CUBE_SIZE = 5; 
+let formaCubeGroup = null;
+const CUBE_SIZE = 5;
 const STORAGE_KEY = 'formaCubeState';
 
 function addInternalLights(group) {
-    const warmInternalLight = new THREE.PointLight(0xffaa00, 0.01, 0); 
-    warmInternalLight.position.set(0, 0, 0); 
+    const warmInternalLight = new THREE.PointLight(0xffaa00, 0.01, 0);
+    warmInternalLight.position.set(0, 0, 0);
     group.add(warmInternalLight);
 }
 const FACE_CONFIGS = [
-    { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) },      
-    { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) },      
-    { color: 0x0000ff, pos: [0, CUBE_SIZE/2, 0], rot: [-Math.PI / 2, 0, 0], id: 2, normal: new THREE.Vector3(0, 1, 0) },      
-    { color: 0xffff00, pos: [0, -CUBE_SIZE/2, 0], rot: [Math.PI / 2, 0, 0], id: 3, normal: new THREE.Vector3(0, -1, 0) },      
-    { color: 0x00ffff, pos: [0, 0, CUBE_SIZE/2], rot: [0, 0, 0], id: 4, normal: new THREE.Vector3(0, 0, 1) },              
-    { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) },        
+    { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) },
+    { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) },
+    { color: 0x0000ff, pos: [0, CUBE_SIZE/2, 0], rot: [-Math.PI / 2, 0, 0], id: 2, normal: new THREE.Vector3(0, 1, 0) },
+    { color: 0xffff00, pos: [0, -CUBE_SIZE/2, 0], rot: [Math.PI / 2, 0, 0], id: 3, normal: new THREE.Vector3(0, -1, 0) },
+    { color: 0x00ffff, pos: [0, 0, CUBE_SIZE/2], rot: [0, 0, 0], id: 4, normal: new THREE.Vector3(0, 0, 1) },
+    { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) },
 ];
 
 const getTunnelFaceId = (normal) => {
     const inverseNormal = normal.clone().negate();
     let bestMatchId = -1;
-    let maxDot = -Infinity; 
+    let maxDot = -Infinity;
     FACE_CONFIGS.forEach(config => {
-        const dot = config.normal.dot(inverseNormal); 
+        const dot = config.normal.dot(inverseNormal);
         if (dot > maxDot) {
             maxDot = dot;
             bestMatchId = config.id;
@@ -181,30 +174,30 @@ const getTunnelFaceId = (normal) => {
 const createCubeFace = (config) => {
     const faceGeometry = new THREE.PlaneGeometry(CUBE_SIZE, CUBE_SIZE);
     const material = new THREE.MeshStandardMaterial({
-        color: config.color, 
-        roughness: 0.5,        
-        metalness: 1.0,        
-        side: THREE.DoubleSide, 
-        transparent: true, 
-        opacity: 1.0,          
-        envMap: scene.background, 
+        color: config.color,
+        roughness: 0.5,
+        metalness: 1.0,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0,
+        envMap: scene.background,
     });
-    
+
     const face = new THREE.Mesh(faceGeometry, material);
-    face.castShadow = true;    
-    face.receiveShadow = true; 
+    face.castShadow = false; // ИЗМЕНЕНИЕ 3: Отключаем отбрасывание теней гранями
+    face.receiveShadow = false; // ИЗМЕНЕНИЕ 4: Отключаем прием теней гранями
     face.position.set(...config.pos);
     face.rotation.set(...config.rot);
-    face.name = `face_${config.id}`; 
-    face.userData = { 
-        id: config.id, 
+    face.name = `face_${config.id}`;
+    face.userData = {
+        id: config.id,
         originalColor: config.color,
-        isTransparent: false 
+        isTransparent: false
     };
     return face;
 }
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ СТЫКОВКИ (Основаны на Позиции) ---
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ СТЫКОВКИ (Основаны на Позиции) (Без изменений) ---
 
 const getCubeGroupAtPosition = (position) => {
     let targetCube = null;
@@ -226,10 +219,10 @@ const removeFaceFromCubeByNormal = (cubeGroup, worldNormal) => {
     let faceRemoved = null;
     cubeGroup.children.some(child => {
         if (!child.isMesh) return false;
-        
+
         const faceNormalLocal = child.geometry.attributes.normal.array.slice(0, 3);
         const faceNormalWorld = new THREE.Vector3(faceNormalLocal[0], faceNormalLocal[1], faceNormalLocal[2]).transformDirection(child.matrixWorld);
-        
+
         const inverseNormal = worldNormal.clone().negate();
 
         if (faceNormalWorld.dot(inverseNormal) > 0.99) {
@@ -243,7 +236,7 @@ const removeFaceFromCubeByNormal = (cubeGroup, worldNormal) => {
         }
         return false;
     });
-    
+
     if (cubeGroup.children.length === 1 && cubeGroup.children[0].isLight) {
         scene.remove(cubeGroup);
     }
@@ -267,9 +260,9 @@ const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFI
     if (facesToCreate === FACE_CONFIGS) {
         FACE_CONFIGS.forEach((baseConfig) => {
             const localNormal = baseConfig.normal;
-            
+
             const neighborPosition = position.clone().add(localNormal.clone().multiplyScalar(CUBE_SIZE));
-            
+
             if (getCubeGroupAtPosition(neighborPosition)) {
                 excludeIds.add(baseConfig.id);
             }
@@ -280,25 +273,25 @@ const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFI
 
     activeFaces.forEach((faceData) => {
         const baseConfig = FACE_CONFIGS.find(f => f.id === faceData.id);
-        
+
         if (facesToCreate === FACE_CONFIGS && excludeIds.has(baseConfig.id)) {
-            return; 
+            return;
         }
 
         const face = createCubeFace(baseConfig);
-        
+
         if (faceData.isTransparent) {
              face.material.opacity = 0.5;
              face.material.envMapIntensity = 0.5;
              face.userData.isTransparent = true;
         }
-        
+
         newFormaCubeGroup.add(face);
-        formaCubeFaces.push(face); 
+        formaCubeFaces.push(face);
     });
-    
+
     scene.add(newFormaCubeGroup);
-    addInternalLights(newFormaCubeGroup); 
+    addInternalLights(newFormaCubeGroup);
     return newFormaCubeGroup;
 };
 
@@ -324,7 +317,7 @@ const clearWorld = () => {
     formaCubeGroup = null;
 }
 
-// --- SAVE/LOAD CORE LOGIC (Unchanged) ---
+// --- SAVE/LOAD CORE LOGIC (Без изменений) ---
 
 const getWorldData = () => {
     const world = [];
@@ -357,7 +350,7 @@ const getWorldData = () => {
         world: world,
         camera: {
             position: camera.position,
-            target: controls.target 
+            target: controls.target
         }
     };
 };
@@ -367,7 +360,7 @@ const loadWorldFromFile = (data) => {
 
     data.world.forEach(cubeData => {
         const position = new THREE.Vector3(cubeData.position.x, cubeData.position.y, cubeData.position.z);
-        createFormaCube(position, -1, cubeData.faces); 
+        createFormaCube(position, -1, cubeData.faces);
     });
 
     if (data.camera) {
@@ -376,13 +369,13 @@ const loadWorldFromFile = (data) => {
         controls.update();
         // УДАЛЕНО: previousCameraPosition.copy(camera.position)
     }
-    
+
     if (scene.children.filter(c => c.userData.isFormaCube).length === 0) {
         // Если файл был пустым или некорректным, инициализируем начальный куб
-        initFormaCube(new THREE.Vector3(0, 0, 0)); 
+        initFormaCube(new THREE.Vector3(0, 0, 0));
     }
-    
-    hasContent = true; 
+
+    hasContent = true;
     isContentModified = false; // После загрузки, сцена не считается модифицированной
     updateButtonVisibility();
 };
@@ -403,26 +396,26 @@ const saveLocalState = () => {
 
 const loadLocalState = () => {
     const savedState = localStorage.getItem(STORAGE_KEY);
-    
+
     if (!savedState) {
         console.log("Локальное состояние отсутствует.");
         return false;
     }
-    
+
     try {
         const data = JSON.parse(savedState);
-        
+
         if (!data || !data.world || !Array.isArray(data.world)) {
             throw new Error("Неверная или неполная структура данных.");
         }
-        
-        loadWorldFromFile(data); 
+
+        loadWorldFromFile(data);
         console.log("Состояние загружено из локального хранилища.");
         return true;
     } catch (e) {
         console.error("Ошибка загрузки локального состояния:", e.message);
-        localStorage.removeItem(STORAGE_KEY); 
-        return false; 
+        localStorage.removeItem(STORAGE_KEY);
+        return false;
     }
 };
 
@@ -430,19 +423,19 @@ const loadLocalState = () => {
 const saveWorldToFile = () => {
     const data = getWorldData();
     const json = JSON.stringify(data, null, 2);
-    
+
     // Создаем Data URL, который Safari может интерпретировать.
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
 
     // Создаем ссылку для загрузки.
     const a = document.createElement('a');
     a.href = dataUri;
-    a.download = `forma-state.json`; 
+    a.download = `forma-state.json`;
     document.body.appendChild(a);
-    
+
     // Этот клик должен инициировать диалог загрузки/поделиться на iOS.
     a.click();
-    
+
     document.body.removeChild(a);
 
     console.log("Состояние сохранено в файл.");
@@ -462,74 +455,74 @@ document.getElementById('file-input').addEventListener('change', (event) => {
             }
         };
         reader.readAsText(file);
-        
-        event.target.value = null; 
+
+        event.target.value = null;
     }
 });
 
 
 const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
-    clearWorld(); 
-    const localLoaded = loadLocalState(); 
-    
+    clearWorld();
+    const localLoaded = loadLocalState();
+
     if (!localLoaded || scene.children.filter(c => c.userData.isFormaCube).length === 0) {
         // Чистый запуск: нет локального состояния или оно было пустое
-        formaCubeGroup = createFormaCube(position, -1); 
+        formaCubeGroup = createFormaCube(position, -1);
         hasContent = false; // Нет загруженного состояния, только начальный куб
         isContentModified = false; // Не модифицировано
-    } 
-    
-    controls.target.set(camera.position.x, camera.position.y, camera.position.z - 15); 
+    }
+
+    controls.target.set(camera.position.x, camera.position.y, camera.position.z - 15);
     controls.update();
-    
+
     // УДАЛЕНО: previousCameraPosition.copy(camera.position)
-    updateButtonVisibility(); 
+    updateButtonVisibility();
 };
 
 
-// --- Interactions (Unchanged Logic) ---
+// --- Interactions (Без изменений) ---
 let longPressTimer;
-const LONG_PRESS_DELAY = 700; 
+const LONG_PRESS_DELAY = 700;
 let isLongPress = false;
-let longPressFired = false; 
+let longPressFired = false;
 
-const MOVE_THRESHOLD = 10; 
-let pointerDownPosition = new THREE.Vector2(); 
+const MOVE_THRESHOLD = 10;
+let pointerDownPosition = new THREE.Vector2();
 
 
 renderer.domElement.addEventListener('pointerdown', (event) => {
     if (event.target.closest('.control-button, .top-control, .mid-control')) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    
+
     longPressFired = false;
-    pointerDownPosition.set(event.clientX, event.clientY); 
-    
+    pointerDownPosition.set(event.clientX, event.clientY);
+
     isLongPress = false;
     clearTimeout(longPressTimer);
-    
+
     longPressTimer = setTimeout(() => {
         const currentUpPosition = new THREE.Vector2(event.clientX, event.clientY);
         const moveDistance = pointerDownPosition.distanceTo(currentUpPosition);
 
-        if (moveDistance <= MOVE_THRESHOLD) { 
+        if (moveDistance <= MOVE_THRESHOLD) {
             isLongPress = true;
             longPressFired = true;
-            handleTransparentToggle(event); 
+            handleTransparentToggle(event);
         }
     }, LONG_PRESS_DELAY);
 });
 
 renderer.domElement.addEventListener('pointerup', (event) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    
-    clearTimeout(longPressTimer); 
-    
+
+    clearTimeout(longPressTimer);
+
     const clientX = event.clientX;
     const clientY = event.clientY;
     const currentUpPosition = new THREE.Vector2(clientX, clientY);
 
     const moveDistance = pointerDownPosition.distanceTo(currentUpPosition);
-    if (moveDistance > MOVE_THRESHOLD) { 
+    if (moveDistance > MOVE_THRESHOLD) {
         isLongPress = false;
         longPressFired = false;
         return;
@@ -540,28 +533,28 @@ renderer.domElement.addEventListener('pointerup', (event) => {
         longPressFired = false;
         return;
     }
-    
+
     // ЛОГИКА КОРОТКОГО КЛИКА
     if (!isLongPress) {
         const intersects = getIntersection(event);
 
         if (intersects.length > 0) {
             const face = intersects[0].object;
-            
+
             // ПРОВЕРКА: Куб создается, если ГРАНЬ ПРОЗРАЧНАЯ
             if (face.userData.isTransparent) {
-                handleDeleteAndCreateTunnel(event, face, intersects[0]); 
-            } 
+                handleDeleteAndCreateTunnel(event, face, intersects[0]);
+            }
         }
     }
-    
+
     isLongPress = false;
 });
 
 renderer.domElement.addEventListener('pointermove', (event) => {
     if (longPressTimer) {
         const dist = pointerDownPosition.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
-        if (dist > MOVE_THRESHOLD) { 
+        if (dist > MOVE_THRESHOLD) {
             clearTimeout(longPressTimer);
             isLongPress = false;
             longPressFired = false;
@@ -579,7 +572,7 @@ renderer.domElement.addEventListener('pointerleave', resetPointers);
 
 
 const getIntersection = (event) => {
-    const clientX = event.clientX; 
+    const clientX = event.clientX;
     const clientY = event.clientY;
     const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
     const raycaster = new THREE.Raycaster();
@@ -587,30 +580,30 @@ const getIntersection = (event) => {
     return raycaster.intersectObjects(formaCubeFaces, false);
 };
 
-// --- ФУНКЦИИ ЖЕСТОВ (с логикой Стыковки) ---
+// --- ФУНКЦИИ ЖЕСТОВ (с логикой Стыковки) (Без изменений) ---
 
 const handleTransparentToggle = (event) => {
     const intersects = getIntersection(event);
     if (intersects.length > 0) {
         const face = intersects[0].object;
-        
+
         if (face.material.opacity === 1.0) {
             // Делаем прозрачной
             face.material.opacity = 0.5;
-            face.material.envMapIntensity = 0.5; 
-            face.userData.isTransparent = true; 
+            face.material.envMapIntensity = 0.5;
+            face.userData.isTransparent = true;
         } else {
             // Возвращаем непрозрачность
             face.material.opacity = 1.0;
-            face.material.envMapIntensity = 1.0; 
+            face.material.envMapIntensity = 1.0;
             face.userData.isTransparent = false;
         }
         face.material.needsUpdate = true;
-        
+
         hasContent = true; // Сцена модифицирована
-        isContentModified = true; 
+        isContentModified = true;
         updateButtonVisibility();
-    } 
+    }
 };
 
 /**
@@ -618,95 +611,95 @@ const handleTransparentToggle = (event) => {
  */
 const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
     const obj = faceToDelete;
-    const group = obj.parent; 
+    const group = obj.parent;
 
     // 1. Подготовка данных
     const faceNormal = intersection.face.normal.clone();
-    faceNormal.transformDirection(obj.matrixWorld); 
+    faceNormal.transformDirection(obj.matrixWorld);
     faceNormal.normalize();
-    
+
     const groupWorldPos = group.position.clone();
     const newGroupPosition = groupWorldPos.clone().add(faceNormal.clone().multiplyScalar(CUBE_SIZE));
-    
+
     if (getCubeGroupAtPosition(newGroupPosition)) {
         console.log("Действие отменено: Позиция стыковки уже занята.");
-        return; 
+        return;
     }
-    
+
     // 2. Создание "Тоннеля" (нового куба) - Не создание новой грани
     const excludeId = getTunnelFaceId(faceNormal);
     const newCube = createFormaCube(newGroupPosition, excludeId, FACE_CONFIGS);
 
     // 3. Удаление старой грани (открывает проход к новому кубу) - Удаление существующей грани
     if (group) {
-        group.remove(obj); 
-        obj.geometry.dispose(); 
+        group.remove(obj);
+        obj.geometry.dispose();
     }
     const index = formaCubeFaces.indexOf(obj);
     if (index > -1) formaCubeFaces.splice(index, 1);
-    
+
     if (group && group.children.length === 1 && group.children[0].isLight) {
         scene.remove(group);
         if (group === formaCubeGroup) formaCubeGroup = null;
     }
-    
-    // 4. УДАЛЕНИЕ СУЩЕСТВУЮЩИХ СТЫКОВОЧНЫХ ГРАНЕЙ У ВСЕХ СОСЕДЕЙ 
+
+    // 4. УДАЛЕНИЕ СУЩЕСТВУЮЩИХ СТЫКОВОЧНЫХ ГРАНЕЙ У ВСЕХ СОСЕДЕЙ
     FACE_CONFIGS.forEach(config => {
         const localNormal = config.normal;
-        
+
         const neighborPosition = newGroupPosition.clone().add(localNormal.clone().multiplyScalar(CUBE_SIZE));
-        
+
         const neighborCube = getCubeGroupAtPosition(neighborPosition);
-        
+
         if (neighborCube) {
             const worldNormal = localNormal.clone().transformDirection(new THREE.Matrix4().makeTranslation(newGroupPosition.x, newGroupPosition.y, newGroupPosition.z));
 
             removeFaceFromCubeByNormal(neighborCube, worldNormal);
         }
     });
-    
-    saveLocalState(); 
+
+    saveLocalState();
     hasContent = true; // Сцена модифицирована
-    isContentModified = true; 
+    isContentModified = true;
     updateButtonVisibility();
 };
 
 
-// --- Collision Logic (УДАЛЕНО И УПРОЩЕНО) ---
+// --- Collision Logic (УДАЛЕНО И УПРОЩЕНО) (Без изменений) ---
 
 // УДАЛЕНО: function checkMovementCollision() {}
 // УДАЛЕНО: const applyCameraRepulsion = (startPosition, direction, distanceToMove) => {}
 
 // Функция перемещения камеры упрощена: теперь она просто перемещает камеру и цель.
-const moveCamera = (directionVector, distance) => { 
+const moveCamera = (directionVector, distance) => {
     const direction = directionVector.clone().normalize();
-    
+
     // Простое перемещение без проверок на столкновения
     camera.position.add(direction.clone().multiplyScalar(distance));
     controls.target.add(direction.clone().multiplyScalar(distance));
-    controls.update(); 
+    controls.update();
 };
 
-// --- Button Logic (Unchanged) ---
+// --- Button Logic (Изменения: Удаление кнопки Shadow) ---
 const closerButton = document.querySelector('.closer-button');
 const furtherButton = document.querySelector('.further-button');
-const resetButton = document.querySelector('.reset-button'); 
+const resetButton = document.querySelector('.reset-button');
 const flyButton = document.querySelector('.fly-button');
-const shadowsButton = document.querySelector('.shadows-button'); 
+// УДАЛЕНА: const shadowsButton = document.querySelector('.shadows-button');
 const saveButton = document.querySelector('.save-button');
 const loadButton = document.querySelector('.load-button');
 const fileInput = document.getElementById('file-input');
 
-let hasContent = false; 
-let isContentModified = false; 
+let hasContent = false;
+let isContentModified = false;
 
-// 🚨 ФУНКЦИЯ: Управление видимостью кнопок Load/Save/Reset
+// 🚨 ФУНКЦИЯ: Управление видимостью кнопок Load/Save/Reset (Без изменений)
 const updateButtonVisibility = () => {
     // Load Button: Видна, только если нет загруженного или модифицированного контента (Чистый старт)
     if (hasContent) {
         loadButton.classList.add('hidden');
     } else {
-        loadButton.classList.remove('hidden'); 
+        loadButton.classList.remove('hidden');
     }
 
     // Reset Button: Видна, только если есть контент для сброса (загружен или изменен)
@@ -715,7 +708,7 @@ const updateButtonVisibility = () => {
     } else {
         resetButton.classList.add('hidden');
     }
-    
+
     // Save Button: Видна, только если контент был модифицирован после последнего сохранения/загрузки
     if (isContentModified) {
         saveButton.classList.remove('hidden');
@@ -727,22 +720,22 @@ const updateButtonVisibility = () => {
 
 closerButton.addEventListener('click', () => {
     const direction = new THREE.Vector3();
-    camera.getWorldDirection(direction); 
-    moveCamera(direction, CUBE_SIZE); 
+    camera.getWorldDirection(direction);
+    moveCamera(direction, CUBE_SIZE);
 });
 
 furtherButton.addEventListener('click', () => {
     const direction = new THREE.Vector3();
-    camera.getWorldDirection(direction); 
-    direction.negate(); 
-    moveCamera(direction, CUBE_SIZE); 
+    camera.getWorldDirection(direction);
+    direction.negate();
+    moveCamera(direction, CUBE_SIZE);
 });
 
 // КОРРЕКТНАЯ ФУНКЦИЯ RESET
 resetButton.addEventListener('click', () => {
     // Выполняет **удаление** (deletion) состояния и **не создание (исключение)** сцены при перезагрузке
     localStorage.removeItem(STORAGE_KEY);
-    window.location.reload(); 
+    window.location.reload();
 });
 
 flyButton.addEventListener('click', () => {
@@ -750,31 +743,33 @@ flyButton.addEventListener('click', () => {
     flyButton.textContent = isFlying ? 'Stop' : 'Fly';
 });
 
+/* УДАЛЕН: Обработчик события для кнопки shadowsButton
 shadowsButton.addEventListener('click', () => {
     renderer.shadowMap.enabled = !renderer.shadowMap.enabled;
-    directionalLight.castShadow = renderer.shadowMap.enabled; 
+    directionalLight.castShadow = renderer.shadowMap.enabled;
     shadowsButton.textContent = renderer.shadowMap.enabled ? 'Shadow' : 'Light';
 });
+*/
 
 saveButton.addEventListener('click', () => {
-    saveLocalState(); 
+    saveLocalState();
     saveWorldToFile();
 });
 
 loadButton.addEventListener('click', () => {
     // Очистка локального хранилища перед загрузкой, чтобы избежать конфликтов при ручной загрузке
-    localStorage.removeItem(STORAGE_KEY); 
+    localStorage.removeItem(STORAGE_KEY);
     clearWorld();
     fileInput.click();
     // hasContent/isContentModified устанавливаются в loadWorldFromFile после выбора файла
 });
 
 
-// --- Animation Loop (Изменения для отключения коллизий) ---
+// --- Animation Loop (Изменения для отключения коллизий) (Без изменений) ---
 const animate = () => {
     controls.update();
     // УДАЛЕНО: checkMovementCollision();
-    
+
     if (isFlying) {
         currentSpeed = Math.min(currentSpeed + ACCELERATION, MAX_SPEED);
     } else {
@@ -782,12 +777,12 @@ const animate = () => {
     }
     if (currentSpeed > 0) {
         const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction); 
-        moveCamera(direction, currentSpeed); 
+        camera.getWorldDirection(direction);
+        moveCamera(direction, currentSpeed);
     }
-    
+
     // УДАЛЕНО: previousCameraPosition.copy(camera.position); // Удалено, так как больше не нужно для checkMovementCollision
-    
+
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 };
