@@ -88,6 +88,40 @@
   .res {margin-top:20px;padding:18px;background:#0004;border-radius:12px;font-size:18px;font-weight:bold;text-align:center}
   .warn {color: #ffeb3b; font-size: 14px; margin-top: 15px;}
   .swap-block {margin-top: 25px; padding-top: 25px; border-top: 1px solid #333;}
+
+  /* ---------------------- FOOTER STYLES ---------------------- */
+  footer {
+    padding: 20px 0;
+    margin-top: 30px;
+    font-size: 14px;
+    opacity: 0.7;
+    text-align: center; 
+  }
+
+  /* Стили для логотипа и названия (каждый элемент с новой строки) */
+  .footer-item {
+    display: block; 
+    margin-bottom: 5px; /* Небольшой отступ между строками */
+    line-height: 1;
+  }
+  
+  footer a {
+    color: #00aaff;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block; /* Для возможности центрирования логотипа внутри */
+  }
+  .powered-by-logo {
+    display: inline-block; 
+    width: 30px; 
+    height: 30px;
+    /* Устанавливаем фон с логотипом */
+    background-image: url('https://natureinitiation.github.io/virtualuniverse/amm-pool-demo/logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    vertical-align: middle;
+  }
+  /* ------------------------------------------------------------- */
 </style>
 </head>
 <body>
@@ -175,7 +209,23 @@
       <p class="address"><b>Your Address:</b> <span id="sender-address">None</span> (Used to send the transaction)</p>
     </div>
   </main>
-</div>
+  
+  <footer>
+    <div class="footer-item">Powered by</div>
+    
+    <div class="footer-item">
+        <a href="https://t.me/MemeCiti" target="_blank">
+            <span class="powered-by-logo"></span>
+        </a>
+    </div>
+    
+    <div class="footer-item">
+        <a href="https://t.me/MemeCiti" target="_blank">
+            MMC
+        </a>
+    </div>
+  </footer>
+  </div>
 
 <script>
 // --- XRPL ADDRESSES AND SETTINGS ---
@@ -310,6 +360,7 @@ function connectWallet() {
     updateXRPToUSDC(); 
     updateUSDCToXRP(); 
 
+    // Восстановленное рабочее состояние
     connStatus.style.display = 'block';
     connStatus.style.color = '#00ff9d';
     connStatus.textContent = 'Wallet successfully connected (Mock). You can send transactions.';
