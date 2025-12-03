@@ -778,6 +778,14 @@ const applyDeceleration = () => {
     });
 };
 
+let isScalingUp = false;
+let isScalingDown = false; // <<< НОВАЯ ПЕРЕМЕННАЯ ДЛЯ ПЛАВНОГО УМЕНЬШЕНИЯ
+let objectToScale = null;
+const SCALE_RATE = 1.005; // Коэффициент увеличения
+const SCALE_RATE_DOWN = 0.995; // <<< НОВЫЙ КОНСТАНТ для плавного уменьшения (близко к 1)
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 10;
+
 
 // =========================================================================
 // --- VI. Управление Камерой и Кнопки ---
@@ -855,7 +863,7 @@ flyButtonBase.addEventListener('click', () => {
 modeButton.addEventListener('click', () => {
     if (mode === 'Fix') {
         mode = 'Polar';
-        modeButton.innerText = "Dynamic";
+        modeButton.innerText = "Polar";
     } else if (mode === 'Polar') {
         mode = 'Delete';
         modeButton.innerText = "Delete";
@@ -977,8 +985,35 @@ const getIntersection = (event, objectsToCheck) => {
 
 // 1. Pointer Down (Для Long Press)
 renderer.domElement.addEventListener('pointerdown', (event) => {
+    // СТРОКА A: Существующая проверка на управляющие элементы
     if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret')) return;
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    // !!! ВАЖНО !!! УДАЛИТЕ СТРОКУ if (event.pointerType === 'mouse' && event.button !== 0) return;
+    
+    // >>> НОВАЯ КОНСОЛИДИРОВАННАЯ ЛОГИКА АКТИВАЦИИ
+    // Проверяем левый клик (0) ИЛИ правый клик (2)
+    if (event.button === 0 || event.button === 2) { 
+        const mouse = new THREE.Vector2(
+            (event.clientX / window.innerWidth) * 2 - 1, 
+            -(event.clientY / window.innerHeight) * 2 + 1
+        );
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects([...staticObjects, ...polarObjects], true); 
+
+        if (intersects.length > 0) { 
+            objectToScale = intersects[0].object;
+            controls.enabled = false; 
+
+            if (event.button === 0) {
+                isScalingUp = true; 
+                isScalingDown = false;
+            } else if (event.button === 2) {
+                isScalingDown = true; // Активируем плавное уменьшение
+                isScalingUp = false;
+            }
+        }
+    }
 
     longPressFired = false;
     pointerDownPosition.set(event.clientX, event.clientY);
@@ -1004,6 +1039,13 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
 
 // 2. Pointer Up (Для Short Click - Forma Base AND Polarity Object Creation/Deletion)
 renderer.domElement.addEventListener('pointerup', (event) => {
+/// >>> МОДИФИЦИРОВАННАЯ ЛОГИКА ДЕАКТИВАЦИИ
+    if (isScalingUp || isScalingDown) {
+        isScalingUp = false;
+        isScalingDown = false; // <<< СБРОС НОВОЙ ПЕРЕМЕННОЙ
+        objectToScale = null;
+        controls.enabled = true; // Восстанавливаем OrbitControls
+    }
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret')) return;
 
@@ -1089,6 +1131,21 @@ document.addEventListener('contextmenu', (event) => {
 const animate = () => {
     controls.update();
 
+// >>> МОДИФИЦИРОВАННАЯ ЛОГИКА: Непрерывное масштабирование
+    if (objectToScale) {
+        if (isScalingUp) {
+            objectToScale.scale.multiplyScalar(SCALE_RATE);
+            if (objectToScale.scale.x > MAX_SCALE) {
+                objectToScale.scale.set(MAX_SCALE, MAX_SCALE, MAX_SCALE);
+            }
+        } else if (isScalingDown) { // <<< ПЛАВНОЕ УМЕНЬШЕНИЕ
+            objectToScale.scale.multiplyScalar(SCALE_RATE_DOWN);
+            if (objectToScale.scale.x < MIN_SCALE) {
+                objectToScale.scale.set(MIN_SCALE, MIN_SCALE, MIN_SCALE);
+            }
+        }
+    }
+
     // 1. Forma Base Fly Logic
     if (isFlyingBase) {
         currentSpeed = Math.min(currentSpeed + ACCELERATION, MAX_SPEED);
@@ -1163,6 +1220,35 @@ window.addEventListener('orientationchange', () => {
 });
 
 // Обработчики кнопок Save/Load/Input - УДАЛЕНЫ
+
+// >>> НОВЫЙ КОД: Функция для уменьшения масштаба по правому клику
+
+
+// >>> НОВЫЙ КОД: Проверка, что ближайший объект — это грань Forma
+// Предполагаем, что у вас есть массив 'formaFaces' или вы знаете, как их идентифицировать (например, через userData).
+const checkNearestObjectIsFormaFace = (event) => {
+    const mouse = new THREE.Vector2(
+        (event.clientX / window.innerWidth) * 2 - 1, 
+        -(event.clientY / window.innerHeight) * 2 + 1
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    // Raycast по ВСЕМ интерактивным объектам (Polarity, Static, и, предположительно, Forma Faces)
+    // Здесь вам нужно использовать массив всех объектов, которые могут загородить грань Forma
+    // Предполагаем, что массив 'formaFaces' существует.
+    const allInteractableObjects = [...staticObjects, ...polarObjects, ...formaFaces]; 
+    const intersects = raycaster.intersectObjects(allInteractableObjects, true); 
+
+    if (intersects.length > 0) {
+        const nearestObject = intersects[0].object;
+        
+        // Проверяем, является ли ближайший объект гранью Forma.
+        // Здесь предполагается, что ваши грани Forma имеют свойство userData.isFormaFace = true
+        return nearestObject.userData && nearestObject.userData.isFormaFace === true; 
+    }
+    return false; // Ничего не пересечено
+};
 
 
 initFormaCube();
