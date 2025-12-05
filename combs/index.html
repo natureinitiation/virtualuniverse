@@ -59,11 +59,49 @@
         .polarity-top-control { position: fixed; top: 20px; z-index: 1000; }
         .polarity-bottom-control { position: fixed; bottom: 55px; z-index: 1000; }
         
-        .mode-button { left: 3%; right: auto; }
+        /* fore-button */
         .fore-button { right: 3%; left: auto; }
         
         /* Прежние slow/fast кнопки удалены */
         .go-button { left: 50%; transform: translateX(-50%); bottom: 70px; } /* Now called Bypass */ 
+        
+        /* >>> НОВЫЕ СТИЛИ ДЛЯ ВЫПАДАЮЩЕГО МЕНЮ */
+        .mode-menu-container {
+            position: fixed;
+            top: 20px;
+            left: 3%;
+            z-index: 1000;
+        }
+        .mode-menu {
+            position: absolute;
+            top: 100%; /* Помещаем меню под кнопку */
+            left: 0;
+            margin-top: 50px; /* ИЗМЕНЕНО: 50px для отступа */
+            display: none; /* По умолчанию скрыто */
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 0;
+            pointer-events: auto;
+        }
+        .mode-menu.show {
+            display: flex;
+        }
+        .mode-menu-item {
+            /* Наследуем стили control-button */
+            width: auto;
+            height: auto;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.9) !important;
+            cursor: pointer;
+            padding: 5px 0; /* 5px верх/низ - создает 10px отступ между элементами */
+            background: none;
+            border: none;
+            text-align: left;
+            white-space: nowrap; /* Предотвращаем перенос строки */
+        }
+        /* <<< КОНЕЦ НОВЫХ СТИЛЕЙ */
 
         .secret {
             position: fixed;
@@ -88,7 +126,15 @@
     <div class="top-control load-button">Load</div> <a class="top-control help-new-button" href="https://t.me/eqlectika/212" target="_blank">Help</a> <div class="top-control save-button">Save</div> 
     <input type="file" id="file-input" style="display: none;" accept=".json">
 
-    <div class="top-control polarity-top-control mode-button">Static</div>
+    <div class="mode-menu-container">
+        <div class="top-control polarity-top-control mode-button" id="mode-dropdown-toggle">Static</div>
+        
+        <div class="mode-menu" id="mode-menu-list">
+            <div class="mode-menu-item" data-mode="Fix">Static</div>
+            <div class="mode-menu-item" data-mode="Polar">Polar</div>
+            <div class="mode-menu-item" data-mode="Delete">Delete</div>
+            <div class="mode-menu-item" data-mode="Across">Across</div> </div>
+    </div>
     <div class="top-control polarity-top-control fore-button">Strike</div>
 
     <div class="control-button polarity-bottom-control go-button">Bypass</div>
@@ -100,7 +146,7 @@
 // --- I. Imports & THREE.js Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x007bff);
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
 camera.position.z = 30;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
@@ -359,29 +405,21 @@ const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15
     updateButtonVisibility();
 };
 
-const handleTransparentToggle = (event) => {
-    const intersects = getIntersection(event, formaCubeFaces);
-    if (intersects.length > 0) {
-        const face = intersects[0].object;
-
-        if (face.material.opacity === 1.0) {
-            face.material.opacity = 0.5;
-            face.material.envMapIntensity = 0.5;
-            face.userData.isTransparent = true;
-        } else {
-            face.material.opacity = 1.0;
-            face.material.envMapIntensity = 1.0;
-            face.userData.isTransparent = false;
-        }
-        face.material.needsUpdate = true;
-
-        // hasContent/isContentModified не используются
-        // hasContent = true;
-        // isContentModified = true;
-        // updateButtonVisibility();
-        return true; 
+/**
+ * [НОВАЯ ФУНКЦИЯ] Выполняет логику переключения прозрачности грани Forma.
+ * @param {THREE.Mesh} face - Грань, чью прозрачность нужно изменить.
+ */
+const handleTransparentToggleLogic = (face) => {
+    if (face.material.opacity === 1.0) {
+        face.material.opacity = 0.5;
+        face.material.envMapIntensity = 0.5;
+        face.userData.isTransparent = true;
+    } else {
+        face.material.opacity = 1.0;
+        face.material.envMapIntensity = 1.0;
+        face.userData.isTransparent = false;
     }
-    return false; 
+    face.material.needsUpdate = true;
 };
 
 const handleDeleteFormaFace = (faceToDelete) => {
@@ -496,8 +534,7 @@ const createGeometry = (size, typeName = null) => {
 };
 
 /**
- * ВОССТАНОВЛЕННАЯ ЛОГИКА "SPACE POLARITY":
- * Объект создается статически перед камерой, без начального импульса и логики загрузки.
+ * Объект создается статически перед камерой.
  */
 const createFixObject = (data = {}) => { // data={} оставлен для совместимости
     const size = data.size || (Math.random() * 1 + 2);
@@ -508,6 +545,7 @@ const createFixObject = (data = {}) => { // data={} оставлен для со
         metalness: data.metalness !== undefined ? data.metalness : (Math.random() * 0.8 + 0.2),
         opacity: data.opacity !== undefined ? data.opacity : (Math.random() * 0.8 + 0.4),
         transparent: true,
+        side: THREE.DoubleSide, 
     });
     const mesh = new THREE.Mesh(geometry, material);
     
@@ -535,15 +573,12 @@ const createFixObject = (data = {}) => { // data={} оставлен для со
         polarity: 0,
     };
     
-    // Удалили блок, который добавлял scatterVelocity при создании
-    
     scene.add(mesh);
     staticObjects.push(mesh);
 };
 
 /**
- * ВОССТАНОВЛЕННАЯ ЛОГИКА "SPACE POLARITY":
- * Объект создается с нулевой скоростью перед камерой, без начального импульса и логики загрузки.
+ * Объект создается с нулевой скоростью перед камерой.
  */
 const createPolarObject = (data = {}) => { // data={} оставлен для совместимости
     const size = data.size || (Math.random() * 1.0 + 2.0);
@@ -554,6 +589,7 @@ const createPolarObject = (data = {}) => { // data={} оставлен для с
         metalness: data.metalness !== undefined ? data.metalness : Math.random(),
         opacity: data.opacity !== undefined ? data.opacity : (Math.random() * 0.5 + 0.5),
         transparent: true,
+        side: THREE.DoubleSide, 
     });
     const mesh = new THREE.Mesh(geometry, material);
 
@@ -580,54 +616,45 @@ const createPolarObject = (data = {}) => { // data={} оставлен для с
         typeName: typeName, 
     };
     
-    // Удалили блок, который добавлял scatterVelocity при создании
-    
     scene.add(mesh);
     polarObjects.push(mesh);
 };
 
-const handleInteractionPolarity = (event) => {
-    const clientX = event.clientX;
-    const clientY = event.clientY;
-    const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
+/**
+ * Выполняет эффект рассеивания (scatter) для Polarity/Static объекта.
+ */
+const applyScatterEffect = (obj) => {
+    const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
+    const speed = 15 + Math.random() * 10;
+    const scatterVelocity = direction.multiplyScalar(speed);
+    obj.userData.scatterVelocity = scatterVelocity;
+    obj.userData.scatterStart = performance.now();
+    obj.rotation.x += Math.random() * 0.5;
+    obj.rotation.y += Math.random() * 0.5;
+    obj.rotation.z += Math.random() * 0.5;
 
-    const allObjects = [...staticObjects, ...polarObjects];
-    const intersects = raycaster.intersectObjects(allObjects);
     const wordSpawnProbability = 0.3;
-
-    if (intersects.length > 0) {
-        // Рассеивание
-        const obj = intersects[0].object;
-        const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
-        const speed = 15 + Math.random() * 10;
-        const scatterVelocity = direction.multiplyScalar(speed);
-        obj.userData.scatterVelocity = scatterVelocity;
-        obj.userData.scatterStart = performance.now();
-        obj.rotation.x += Math.random() * 0.5;
-        obj.rotation.y += Math.random() * 0.5;
-        obj.rotation.z += Math.random() * 0.5;
-
-        if (Math.random() < wordSpawnProbability) {
-            const t = 0.5;
-            const wordPos3D = obj.position.clone().add(scatterVelocity.clone().multiplyScalar(t * 1.0));
-            const wordPos2D = wordPos3D.project(camera);
-            const wordX = (wordPos2D.x * 0.5 + 0.5) * window.innerWidth;
-            const wordY = (-wordPos2D.y * 0.5 + 0.5) * window.innerHeight;
-            createSecret(wordX, wordY);
-        }
-    } else {
-        // Создание объекта в пустом пространстве
-        // Удалили режим 'Drop', используем только 'Fix' и 'Polar'
-        if (mode === 'Fix') { 
-            createFixObject();
-        } else if (mode === 'Polar') {
-            createPolarObject();
-        }
+    if (Math.random() < wordSpawnProbability) {
+        const t = 0.5;
+        const wordPos3D = obj.position.clone().add(scatterVelocity.clone().multiplyScalar(t * 1.0));
+        const wordPos2D = wordPos3D.project(camera);
+        const wordX = (wordPos2D.x * 0.5 + 0.5) * window.innerWidth;
+        const wordY = (-wordPos2D.y * 0.5 + 0.5) * window.innerHeight;
+        createSecret(wordX, wordY);
     }
-    // saveLocalState(); // Удалено
-};
+}
+
+/**
+ * Создает новый Polarity Object в зависимости от текущего режима (Fix/Polar).
+ */
+const handleCreation = () => {
+    if (mode === 'Fix') { 
+        createFixObject();
+    } else if (mode === 'Polar') {
+        createPolarObject();
+    }
+}
+
 
 function createSecret(x, y) {
     const secret = document.createElement('a');
@@ -711,6 +738,9 @@ const handleDeletePolarity = (event) => {
 // ... (Physics functions remain the same) ...
 
 const applyCameraRepulsion = () => {
+    // >>> ИЗМЕНЕНИЕ 1: ОТКЛЮЧЕНИЕ РАСТАЛКИВАНИЯ В РЕЖИМЕ ACROSS
+    if (mode === 'Across') return;
+
     const repulsionDistance = 15;
     const repulsionStrength = 0.05;
     [...staticObjects, ...polarObjects].forEach((obj) => {
@@ -784,7 +814,7 @@ let objectToScale = null;
 const SCALE_RATE = 1.005; // Коэффициент увеличения
 const SCALE_RATE_DOWN = 0.995; // <<< НОВЫЙ КОНСТАНТ для плавного уменьшения (близко к 1)
 const MIN_SCALE = 0.1;
-const MAX_SCALE = 10;
+const MAX_SCALE = 1000;
 
 
 // =========================================================================
@@ -819,11 +849,14 @@ const furtherButton = document.querySelector('.further-button');
 const flyButtonBase = document.querySelector('.fly-button-base'); 
 
 // Кнопки Polarity
-const modeButton = document.querySelector('.mode-button');
 const goButton = document.querySelector('.go-button'); // Теперь "Bypass"
 const foreButton = document.querySelector('.fore-button');
 
-// Кнопки Slow/Fast в середине (на месте старых Help) - УДАЛЕНЫ
+// >>> НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ МЕНЮ
+const modeDropdownToggle = document.getElementById('mode-dropdown-toggle');
+const modeMenuList = document.getElementById('mode-menu-list');
+const modeMenuItems = document.querySelectorAll('.mode-menu-item');
+// <<< КОНЕЦ НОВЫХ ЭЛЕМЕНТОВ
 
 
 const updateButtonVisibility = () => {
@@ -855,23 +888,37 @@ flyButtonBase.addEventListener('click', () => {
 });
 
 
-// --- Кнопки Polarity ---
+// --- ЛОГИКА ВЫПАДАЮЩЕГО МЕНЮ (ЗАМЕНА modeButton.addEventListener) ---
 
-/**
- * ИЗМЕНЕНИЕ: Удалили режим 'Drop'. Цикл: Static -> Dynamic -> Delete -> Static.
- */
-modeButton.addEventListener('click', () => {
-    if (mode === 'Fix') {
-        mode = 'Polar';
-        modeButton.innerText = "Polar";
-    } else if (mode === 'Polar') {
-        mode = 'Delete';
-        modeButton.innerText = "Delete";
-    } else { // 'Delete'
-        mode = 'Fix';
-        modeButton.innerText = "Static";
+// Логика открытия/закрытия меню при клике на заголовок
+modeDropdownToggle.addEventListener('click', (event) => {
+    event.stopPropagation(); // Чтобы не закрывалось сразу
+    modeMenuList.classList.toggle('show');
+});
+
+// Логика выбора режима и его установки
+modeMenuItems.forEach(item => {
+    item.addEventListener('click', () => {
+        const newMode = item.getAttribute('data-mode');
+        mode = newMode; // Устанавливаем новый режим
+        
+        // Обновляем текст на кнопке-переключателе
+        modeDropdownToggle.textContent = item.textContent; 
+        
+        modeMenuList.classList.remove('show'); // Закрываем меню
+    });
+});
+
+// Закрытие меню при клике вне его
+document.addEventListener('click', (event) => {
+    // Проверяем, что меню открыто И клик был НЕ по контейнеру меню
+    if (modeMenuList.classList.contains('show') && !event.target.closest('.mode-menu-container')) {
+        modeMenuList.classList.remove('show');
     }
 });
+
+
+// --- Кнопки Polarity ---
 
 const adjustCameraFocus = () => {
     const direction = new THREE.Vector3();
@@ -947,19 +994,6 @@ foreButton.addEventListener('click', () => {
     performCameraLunge();
 });
 
-// Кнопки скорости полета внизу - УДАЛЕНЫ
-// slowButtonBottom.addEventListener('click', () => { /* ... */ });
-// fastButtonBottom.addEventListener('click', () => { /* ... */ });
-
-
-// Кнопки скорости полета в середине (новые) - УДАЛЕНЫ
-// slowButtonMid.addEventListener('click', () => {
-//     cameraVelocity.multiplyScalar(0.5);
-// });
-// fastButtonMid.addEventListener('click', () => {
-//     cameraVelocity.multiplyScalar(1.5);
-// });
-
 
 // =========================================================================
 // --- VII. Логика Взаимодействия (Объединенная и ИСПРАВЛЕННАЯ) ---
@@ -978,42 +1012,46 @@ const getIntersection = (event, objectsToCheck) => {
     const clientY = event.clientY;
     const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
     const raycaster = new THREE.Raycaster();
-    // true: рекурсивно проверяет потомков
+    // false: не рекурсивно проверяет потомков, так как проверяются только mesh'и
     raycaster.setFromCamera(mouse, camera);
     return raycaster.intersectObjects(objectsToCheck, false); 
 };
 
-// 1. Pointer Down (Для Long Press)
+// 1. Pointer Down (Для Long Press и активации масштабирования)
 renderer.domElement.addEventListener('pointerdown', (event) => {
     // СТРОКА A: Существующая проверка на управляющие элементы
-    if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret')) return;
+    if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return; 
 
-    // !!! ВАЖНО !!! УДАЛИТЕ СТРОКУ if (event.pointerType === 'mouse' && event.button !== 0) return;
+    // >>> ЛОГИКА АКТИВАЦИИ МАСШТАБИРОВАНИЯ (Правый и Левый клик)
+    let shouldDisableControls = false; // Флаг для управления OrbitControls
     
-    // >>> НОВАЯ КОНСОЛИДИРОВАННАЯ ЛОГИКА АКТИВАЦИИ
-    // Проверяем левый клик (0) ИЛИ правый клик (2)
     if (event.button === 0 || event.button === 2) { 
-        const mouse = new THREE.Vector2(
-            (event.clientX / window.innerWidth) * 2 - 1, 
-            -(event.clientY / window.innerHeight) * 2 + 1
-        );
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects([...staticObjects, ...polarObjects], true); 
+        // --- ИЗМЕНЕНИЕ 2: Общий Raycast для определения ближайшего объекта (устранение конфликта) ---
+        const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
+        const intersects = getIntersection(event, allInteractableObjects);
 
         if (intersects.length > 0) { 
-            objectToScale = intersects[0].object;
-            controls.enabled = false; 
+            const nearestObject = intersects[0].object;
 
-            if (event.button === 0) {
-                isScalingUp = true; 
-                isScalingDown = false;
-            } else if (event.button === 2) {
-                isScalingDown = true; // Активируем плавное уменьшение
-                isScalingUp = false;
+            // Только Polarity/Static объекты могут быть масштабированы. 
+            // Если ближайший объект — грань Forma, масштабирование не начинается.
+            if (nearestObject.userData.isPolarityObject) {
+                objectToScale = nearestObject;
+                shouldDisableControls = true; // Намерение масштабировать, отключаем управление
+                
+                if (event.button === 0) {
+                    isScalingUp = true; 
+                    isScalingDown = false;
+                } else if (event.button === 2) {
+                    isScalingDown = true; 
+                    isScalingUp = false;
+                }
             }
         }
     }
+    
+    // Отключаем управление ТОЛЬКО если мы пытаемся масштабировать объект
+    controls.enabled = !shouldDisableControls; 
 
     longPressFired = false;
     pointerDownPosition.set(event.clientX, event.clientY);
@@ -1029,9 +1067,16 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
             isLongPress = true;
             longPressFired = true;
             
-            // Long Press (Toggle Transparent) проверяет только Forma Faces
-            if(handleTransparentToggle(event)) {
-                 // saveLocalState(); // Удалено
+            // --- НОВАЯ ЛОГИКА PROXIMITY CHECK ДЛЯ LONG PRESS (ИСПРАВЛЕНИЕ 2) ---
+            const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
+            const intersects = getIntersection(event, allInteractableObjects);
+            
+            if (intersects.length > 0) {
+                const nearestObject = intersects[0].object;
+                if (nearestObject.userData.isFormaCubeFace) {
+                    // Если ближайший объект - грань Forma, то включаем прозрачность
+                    handleTransparentToggleLogic(nearestObject);
+                }
             }
         }
     }, LONG_PRESS_DELAY);
@@ -1039,15 +1084,16 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
 
 // 2. Pointer Up (Для Short Click - Forma Base AND Polarity Object Creation/Deletion)
 renderer.domElement.addEventListener('pointerup', (event) => {
-/// >>> МОДИФИЦИРОВАННАЯ ЛОГИКА ДЕАКТИВАЦИИ
+// >>> МОДИФИЦИРОВАННАЯ ЛОГИКА ДЕАКТИВАЦИИ
     if (isScalingUp || isScalingDown) {
         isScalingUp = false;
-        isScalingDown = false; // <<< СБРОС НОВОЙ ПЕРЕМЕННОЙ
+        isScalingDown = false; // Сброс переменной
         objectToScale = null;
         controls.enabled = true; // Восстанавливаем OrbitControls
     }
+    // Пропускаем правый клик и клики по управляющим элементам
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret')) return;
+    if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return;
 
     clearTimeout(longPressTimer);
 
@@ -1063,6 +1109,7 @@ renderer.domElement.addEventListener('pointerup', (event) => {
     }
 
     if (longPressFired) {
+        // Long Press уже выполнил действие, игнорируем Pointer Up
         isLongPress = false;
         longPressFired = false;
         return;
@@ -1070,45 +1117,58 @@ renderer.domElement.addEventListener('pointerup', (event) => {
 
     // --- Логика Short Click (Приоритет Ближайшего Объекта) ---
 
-    // Объединяем все потенциально удаляемые/кликабельные объекты в один массив
-    const allDeletableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
-    const intersects = getIntersection(event, allDeletableObjects);
-    
-    if (intersects.length > 0) {
-        const closestIntersection = intersects[0];
-        const selectedObject = closestIntersection.object;
+    // 1. Приоритет ближайшей поверхности
+    const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
+    const intersects = getIntersection(event, allInteractableObjects);
+    const closestIntersection = intersects.length > 0 ? intersects[0] : null;
+    const selectedObject = closestIntersection ? closestIntersection.object : null;
 
-        if (mode === 'Delete') {
-            // Режим Delete: Удаляем ближайший объект (Forma Face ИЛИ Polarity Object)
-            if (selectedObject.userData.isFormaCubeFace) {
-                handleDeleteFormaFace(selectedObject);
-            } else if (selectedObject.userData.isPolarityObject) {
-                handleDeletePolarity(event); // Используем существующую функцию
-            }
-        } else {
-            // Обычные режимы (Fix, Polar)
-            if (selectedObject.userData.isFormaCubeFace && selectedObject.userData.isTransparent) {
-                // Forma Cube: Создание тоннеля, если грань прозрачная
+    // A. РЕЖИМ DELETE (Наивысший приоритет)
+    if (mode === 'Delete' && selectedObject) {
+        if (selectedObject.userData.isFormaCubeFace) {
+            handleDeleteFormaFace(selectedObject);
+        } else if (selectedObject.userData.isPolarityObject) {
+            handleDeletePolarity(event); 
+        }
+        return; 
+    }
+
+// B. ИНТЕРАКЦИЯ СО СУЩЕСТВУЮЩИМИ ОБЪЕКТАМИ (Приоритет над режимом Across/Fix/Polar)
+    if (selectedObject) {
+        if (selectedObject.userData.isFormaCubeFace) {
+            if (selectedObject.userData.isTransparent) {
+                // Short Click по ПРОЗРАЧНОЙ грани Forma -> СОЗДАНИЕ ТУННЕЛЯ. 
                 handleDeleteAndCreateTunnel(event, selectedObject, closestIntersection);
-            } else if (selectedObject.userData.isPolarityObject) {
-                // Polarity Object: Рассеивание существующего объекта
-                 handleInteractionPolarity(event); // Переиспользуем логику рассеивания
-            } else {
-                 // Forma Cube: Попадание в непрозрачную грань -> Создание Polarity Object/Рассеивание
-                 handleInteractionPolarity(event);
+                return; // Действие выполнено
+            } 
+            // Если грань НЕПРОЗРАЧНАЯ, проваливаемся в секцию C для создания объекта
+            
+        } else if (selectedObject.userData.isPolarityObject) {
+            // Short Click по Polarity Object: Scatter ТОЛЬКО если режим НЕ Across.
+            if (mode !== 'Across') {
+                applyScatterEffect(selectedObject);
+                return; // Действие выполнено (Рассеивание)
             }
+            // Если режим Across, не делаем Scatter, а проваливаемся в секцию C 
+            // для создания нового объекта.
         }
+    }
+
+    // C. ПРОВЕРКА РЕЖИМА И ДЕЙСТВИЕ ПО УМОЛЧАНИЮ 
+    // (Выполняется, если попали в пустое пространство ИЛИ в НЕПРОЗРАЧНУЮ грань Forma)
+
+    if (mode === 'Across') {
+        // Режим Across: Создание Static Object 
+        createFixObject(); 
     } else {
-        // Нет пересечений: Создание нового Polarity Object в пустом пространстве
-        if (mode !== 'Delete') {
-            handleInteractionPolarity(event); 
-        }
+        // Режимы Fix/Polar: Создание объекта в зависимости от режима
+        handleCreation(); 
     }
 
     isLongPress = false; 
 });
 
-// 3. Pointer Move
+// 3. Pointer Move (Отмена Long Press при сдвиге и восстановление вращения)
 renderer.domElement.addEventListener('pointermove', (event) => {
     if (longPressTimer) {
         const dist = pointerDownPosition.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
@@ -1116,6 +1176,15 @@ renderer.domElement.addEventListener('pointermove', (event) => {
             clearTimeout(longPressTimer);
             isLongPress = false;
             longPressFired = false;
+            
+            // --- НОВОЕ (ИСПРАВЛЕНИЕ 1): Если обнаружен сдвиг, и управление было отключено 
+            // --- для масштабирования/Long Press, то включаем OrbitControls для вращения сцены.
+            if (objectToScale && !controls.enabled) {
+                isScalingUp = false;
+                isScalingDown = false;
+                objectToScale = null;
+                controls.enabled = true; // Разрешаем OrbitControls вращать сцену
+            }
         }
     }
 });
@@ -1218,38 +1287,6 @@ window.addEventListener('orientationchange', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
-// Обработчики кнопок Save/Load/Input - УДАЛЕНЫ
-
-// >>> НОВЫЙ КОД: Функция для уменьшения масштаба по правому клику
-
-
-// >>> НОВЫЙ КОД: Проверка, что ближайший объект — это грань Forma
-// Предполагаем, что у вас есть массив 'formaFaces' или вы знаете, как их идентифицировать (например, через userData).
-const checkNearestObjectIsFormaFace = (event) => {
-    const mouse = new THREE.Vector2(
-        (event.clientX / window.innerWidth) * 2 - 1, 
-        -(event.clientY / window.innerHeight) * 2 + 1
-    );
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
-
-    // Raycast по ВСЕМ интерактивным объектам (Polarity, Static, и, предположительно, Forma Faces)
-    // Здесь вам нужно использовать массив всех объектов, которые могут загородить грань Forma
-    // Предполагаем, что массив 'formaFaces' существует.
-    const allInteractableObjects = [...staticObjects, ...polarObjects, ...formaFaces]; 
-    const intersects = raycaster.intersectObjects(allInteractableObjects, true); 
-
-    if (intersects.length > 0) {
-        const nearestObject = intersects[0].object;
-        
-        // Проверяем, является ли ближайший объект гранью Forma.
-        // Здесь предполагается, что ваши грани Forma имеют свойство userData.isFormaFace = true
-        return nearestObject.userData && nearestObject.userData.isFormaFace === true; 
-    }
-    return false; // Ничего не пересечено
-};
-
 
 initFormaCube();
 animate();
