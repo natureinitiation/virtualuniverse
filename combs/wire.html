@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Forma Polarity Universe</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* --- Общие стили --- */
+        body {
+            user-select: none;
+            margin: 0;
+            overflow: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            background: #000;
+        }
+
+        /* --- Стили кнопок (Forma Base) --- */
+        .control-button, .top-control, .mid-control {
+            position: fixed;
+            z-index: 1000;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.9) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            padding: 0;
+            background: none;
+        }
+
+        .control-button { bottom: 20px; }
+        .further-button { left: 3%; right: auto; }
+        .closer-button { right: 3%; left: auto; }
+        .fly-button-base { left: 50%; transform: translateX(-50%); }
+
+        .top-control { top: 20px; }
+        /* load-button не используется, но оставлен для позиционирования */
+        .load-button { left: 3%; transform: none; display: none; } 
+        /* help-new-button на месте reset-button */
+        .help-new-button { left: 50%; transform: translateX(-50%); } 
+        /* save-button не используется, но оставлен для позиционирования */
+        .save-button { right: 3%; left: auto; transform: none; display: none; } 
+        
+        /* >>> НОВЫЙ СТИЛЬ ДЛЯ КНОПКИ WIRE (рядом с help-new-button) */
+        .wire-button { 
+            top: 70px;
+            left: 50%; 
+            transform: translateX(-50%) translate(0px); /* Сдвиг вправо от Help */
+        } 
+        /* <<< КОНЕЦ НОВОГО СТИЛЯ */
+
+        /* Help buttons (удалены), на их место - Slow/Fast */
+        .mid-control { top: 50%; transform: translateY(-50%); }
+        /* Удалены стили .slow-button-mid и .fast-button-mid */
+        
+        .hidden { display: none; }
+
+        /* --- Стили кнопок (Space Polarity - адаптированы) --- */
+        .polarity-top-control { position: fixed; top: 20px; z-index: 1000; }
+        .polarity-bottom-control { position: fixed; bottom: 55px; z-index: 1000; }
+        
+        /* fore-button */
+        .fore-button { right: 3%; left: auto; }
+        
+        /* Прежние slow/fast кнопки удалены */
+        .go-button { left: 50%; transform: translateX(-50%); bottom: 70px; } /* Now called Bypass */ 
+        
+        /* >>> НОВЫЕ СТИЛИ ДЛЯ ВЫПАДАЮЩЕГО МЕНЮ */
+        .mode-menu-container {
+            position: fixed;
+            top: 20px;
+            left: 3%;
+            z-index: 1000;
+        }
+        .mode-menu {
+            position: absolute;
+            top: 100%; /* Помещаем меню под кнопку */
+            left: 0;
+            margin-top: 50px; /* ИЗМЕНЕНО: 50px для отступа */
+            display: none; /* По умолчанию скрыто */
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 0;
+            pointer-events: auto;
+        }
+        .mode-menu.show {
+            display: flex;
+        }
+        .mode-menu-item {
+            /* Наследуем стили control-button */
+            width: auto;
+            height: auto;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.9) !important;
+            cursor: pointer;
+            padding: 5px 0; /* 5px верх/низ - создает 10px отступ между элементами */
+            background: none;
+            border: none;
+            text-align: left;
+            white-space: nowrap; /* Предотвращаем перенос строки */
+        }
+        /* <<< КОНЕЦ НОВЫХ СТИЛЕЙ */
+
+        .secret {
+            position: fixed;
+            transform: translate(-50%, -50%);
+            font-family: monospace;
+            font-size: 18px;
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            pointer-events: auto;
+            z-index: 1000;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-button further-button">Further</div>
+    <div class="control-button closer-button">Closer</div>
+    <div class="control-button fly-button-base">Fly</div> 
+
+    <div class="top-control load-button">Load</div> 
+    <a class="top-control help-new-button" href="https://t.me/eqlectika/212" target="_blank">Help</a> 
+    
+    <div class="top-control wire-button">Wire</div> 
+    
+    <div class="top-control save-button">Save</div> 
+    <input type="file" id="file-input" style="display: none;" accept=".json">
+
+    <div class="mode-menu-container">
+        <div class="top-control polarity-top-control mode-button" id="mode-dropdown-toggle">Static</div>
+        
+        <div class="mode-menu" id="mode-menu-list">
+            <div class="mode-menu-item" data-mode="Fix">Static</div>
+            <div class="mode-menu-item" data-mode="Polar">Polar</div>
+            <div class="mode-menu-item" data-mode="Delete">Delete</div>
+            <div class="mode-menu-item" data-mode="Across">Across</div> </div>
+    </div>
+    <div class="top-control polarity-top-control fore-button">Strike</div>
+
+    <div class="control-button polarity-bottom-control go-button">Bypass</div>
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+<script>
+
+// --- I. Imports & THREE.js Setup ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x007bff);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
+camera.position.z = 30;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+renderer.shadowMap.enabled = false; 
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// --- II. Общие Настройки (Controls, Lights) ---
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.005;
+controls.enableZoom = true;
+controls.zoomSpeed = 0.5;
+controls.enablePan = true;
+controls.panSpeed = 0.3;
+
+// Lights 
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+const cameraLightGroup = new THREE.Group();
+camera.add(cameraLightGroup);
+scene.add(camera);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+directionalLight.position.set(0, 0, 10);
+directionalLight.castShadow = false;
+cameraLightGroup.add(directionalLight);
+const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 1.0);
+ultramarineLight.position.set(0, 0, -10);
+ultramarineLight.castShadow = false;
+cameraLightGroup.add(ultramarineLight);
+
+const additionalLights = [
+    { color: 0xff0000, position: [10, 0, 0] },
+    { color: 0x00ff00, position: [0, 10, 0] },
+    { color: 0x0000ff, position: [0, 0, 10] },
+    { color: 0x3f00ff, position: [-10, -10, -10] },
+];
+additionalLights.forEach(({ color, position }) => {
+    const light = new THREE.DirectionalLight(color, 0.8);
+    light.position.set(...position);
+    scene.add(light);
+});
+
+// --- III. Background Animation ---
+const colors = ['#006ee5', '#f84d54', '#000033', '#f84d54']; 
+let currentColorIndex = 0;
+function changeBackgroundColor() {
+    currentColorIndex = (currentColorIndex + 1) % colors.length;
+    const targetColor = new THREE.Color(colors[currentColorIndex]);
+    animateBackgroundColor(targetColor);
+}
+function animateBackgroundColor(targetColor) {
+    const startColor = scene.background.clone();
+    const duration = 60; 
+    const startTime = performance.now();
+    function updateBackgroundColor() {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const progress = Math.min(elapsed / duration, 1);
+        scene.background.lerpColors(startColor, targetColor, progress);
+        if (progress < 1) requestAnimationFrame(updateBackgroundColor);
+    }
+    updateBackgroundColor();
+}
+setInterval(changeBackgroundColor, 100000); 
+
+// =========================================================================
+// --- IV. Логика Объектов Forma Base (Кубы) ---
+// =========================================================================
+let formaCubeFaces = [];
+let formaCubeGroup = null;
+const CUBE_SIZE = 5;
+const STORAGE_KEY = 'formaCubeState'; // Оставлен, но не используется для localStorage
+
+function addInternalLights(group) {
+    const warmInternalLight = new THREE.PointLight(0xffaa00, 0.01, 0);
+    warmInternalLight.position.set(0, 0, 0);
+    group.add(warmInternalLight);
+}
+const FACE_CONFIGS = [
+    { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) },
+    { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) },
+    { color: 0x0000ff, pos: [0, CUBE_SIZE/2, 0], rot: [-Math.PI / 2, 0, 0], id: 2, normal: new THREE.Vector3(0, 1, 0) },
+    { color: 0xffff00, pos: [0, -CUBE_SIZE/2, 0], rot: [Math.PI / 2, 0, 0], id: 3, normal: new THREE.Vector3(0, -1, 0) },
+    { color: 0x00ffff, pos: [0, 0, CUBE_SIZE/2], rot: [0, 0, 0], id: 4, normal: new THREE.Vector3(0, 0, 1) },
+    { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) },
+];
+
+const getTunnelFaceId = (normal) => {
+    const inverseNormal = normal.clone().negate();
+    let bestMatchId = -1;
+    let maxDot = -Infinity;
+    FACE_CONFIGS.forEach(config => {
+        const dot = config.normal.dot(inverseNormal);
+        if (dot > maxDot) {
+            maxDot = dot;
+            bestMatchId = config.id;
+        }
+    });
+    return bestMatchId;
+};
+
+const createCubeFace = (config) => {
+    const faceGeometry = new THREE.PlaneGeometry(CUBE_SIZE, CUBE_SIZE);
+    const material = new THREE.MeshStandardMaterial({
+        color: config.color,
+        roughness: 0.5,
+        metalness: 1.0,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0,
+        envMap: scene.background,
+    });
+
+    const face = new THREE.Mesh(faceGeometry, material);
+    face.castShadow = false;
+    face.receiveShadow = false;
+    face.position.set(...config.pos);
+    face.rotation.set(...config.rot);
+    face.name = `face_${config.id}`;
+    face.userData = {
+        id: config.id,
+        originalColor: config.color,
+        isTransparent: false,
+        isFormaCubeFace: true 
+    };
+    return face;
+}
+
+const getCubeGroupAtPosition = (position) => {
+    let targetCube = null;
+    scene.children.some((object) => {
+        if (object.userData.isFormaCube && object.position.distanceTo(position) < 0.1) {
+            targetCube = object;
+            return true;
+        }
+        return false;
+    });
+    return targetCube;
+};
+
+const removeFaceFromCubeByNormal = (cubeGroup, worldNormal) => {
+    let faceRemoved = null;
+    cubeGroup.children.some(child => {
+        if (!child.isMesh) return false;
+
+        const faceNormalLocal = child.geometry.attributes.normal.array.slice(0, 3);
+        const faceNormalWorld = new THREE.Vector3(faceNormalLocal[0], faceNormalLocal[1], faceNormalLocal[2]).transformDirection(child.matrixWorld);
+
+        const inverseNormal = worldNormal.clone().negate();
+
+        if (faceNormalWorld.dot(inverseNormal) > 0.99) {
+            const index = formaCubeFaces.indexOf(child);
+            if (index > -1) formaCubeFaces.splice(index, 1);
+
+            cubeGroup.remove(child);
+            child.geometry.dispose();
+            faceRemoved = child;
+            return true;
+        }
+        return false;
+    });
+
+    if (cubeGroup.children.length === 1 && cubeGroup.children[0].isLight) {
+        scene.remove(cubeGroup);
+    }
+    return faceRemoved;
+}
+
+const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFIGS) => {
+    const newFormaCubeGroup = new THREE.Group();
+    newFormaCubeGroup.position.copy(position);
+    newFormaCubeGroup.userData.isFormaCube = true;
+
+    const excludeIds = new Set();
+    if (excludeIndex !== -1) {
+        excludeIds.add(excludeIndex);
+    }
+
+    if (facesToCreate === FACE_CONFIGS) {
+        FACE_CONFIGS.forEach((baseConfig) => {
+            const localNormal = baseConfig.normal;
+
+            const neighborPosition = position.clone().add(localNormal.clone().multiplyScalar(CUBE_SIZE));
+
+            if (getCubeGroupAtPosition(neighborPosition)) {
+                excludeIds.add(baseConfig.id);
+            }
+        });
+    }
+
+    const activeFaces = facesToCreate === FACE_CONFIGS ? FACE_CONFIGS : facesToCreate;
+
+    activeFaces.forEach((faceData) => {
+        const baseConfig = FACE_CONFIGS.find(f => f.id === faceData.id);
+
+        if (facesToCreate === FACE_CONFIGS && excludeIds.has(baseConfig.id)) {
+            return;
+        }
+
+        const face = createCubeFace(baseConfig);
+
+        if (faceData.isTransparent) {
+             face.material.opacity = 0.5;
+             face.material.envMapIntensity = 0.5;
+             face.userData.isTransparent = true;
+        }
+
+        // --- ДОБАВЛЕНИЕ: Установка wireframe при создании, если режим активен ---
+        if (isWireframeMode) {
+             face.material.wireframe = true;
+             face.material.opacity = 0.3;
+        }
+        // ----------------------------------------------------------------------
+
+
+        newFormaCubeGroup.add(face);
+        formaCubeFaces.push(face);
+    });
+
+    scene.add(newFormaCubeGroup);
+    addInternalLights(newFormaCubeGroup);
+    return newFormaCubeGroup;
+};
+
+
+const clearWorld = () => {
+    scene.traverse(object => {
+        if (object.userData.isFormaCube) {
+            object.children.filter(child => child.isLight).forEach(light => object.remove(light));
+            scene.remove(object);
+            object.children.forEach(mesh => {
+                if (mesh.isMesh) {
+                    mesh.geometry.dispose();
+                    if (mesh.material && mesh.material.length) {
+                        mesh.material.forEach(m => m.dispose());
+                    } else if (mesh.material) {
+                        mesh.material.dispose();
+                    }
+                }
+            });
+        }
+    });
+    // Дополнительная очистка Polarity объектов
+    clearPolarityObjects();
+    formaCubeFaces = [];
+    formaCubeGroup = null;
+}
+
+const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
+    // В оригинале здесь была загрузка локального состояния
+    // Упрощаем: всегда создаем начальный куб, если мир пуст
+    if (scene.children.filter(c => c.userData.isFormaCube).length === 0) {
+        const initialPosition = position.clone();
+        formaCubeGroup = createFormaCube(initialPosition, -1);
+    }
+    
+    // hasContent/isContentModified не используются после удаления Save/Load
+    // hasContent = scene.children.filter(c => c.userData.isFormaCube).length > 0 || staticObjects.length > 0 || polarObjects.length > 0;
+    // isContentModified = false;
+
+    controls.target.set(camera.position.x, camera.position.y, camera.position.z - 15);
+    controls.update();
+
+    updateButtonVisibility();
+};
+
+/**
+ * [НОВАЯ ФУНКЦИЯ] Выполняет логику переключения прозрачности грани Forma.
+ * @param {THREE.Mesh} face - Грань, чью прозрачность нужно изменить.
+ */
+const handleTransparentToggleLogic = (face) => {
+    if (face.material.opacity === 1.0) {
+        face.material.opacity = 0.5;
+        face.material.envMapIntensity = 0.5;
+        face.userData.isTransparent = true;
+    } else {
+        face.material.opacity = 1.0;
+        face.material.envMapIntensity = 1.0;
+        face.userData.isTransparent = false;
+    }
+    
+    // Принудительно устанавливаем wireframe opacity, если режим активен
+    if (isWireframeMode) {
+        face.material.opacity = 0.3;
+    }
+
+    face.material.needsUpdate = true;
+};
+
+const handleDeleteFormaFace = (faceToDelete) => {
+    const obj = faceToDelete;
+    const group = obj.parent;
+
+    if (group) {
+        group.remove(obj);
+        obj.geometry.dispose();
+    }
+    const index = formaCubeFaces.indexOf(obj);
+    if (index > -1) formaCubeFaces.splice(index, 1);
+
+    // Удаляем группу, если в ней остался только свет
+    if (group && group.children.filter(c => c.isMesh).length === 0 && group.children.filter(c => c.isLight).length > 0) {
+        scene.remove(group);
+        if (group === formaCubeGroup) formaCubeGroup = null;
+    }
+
+    // saveLocalState(); // Удалено
+    // hasContent = true; // Удалено
+    // isContentModified = true; // Удалено
+    // updateButtonVisibility(); // Удалено
+};
+
+
+const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
+    const obj = faceToDelete;
+    const group = obj.parent;
+
+    const faceNormal = intersection.face.normal.clone();
+    faceNormal.transformDirection(obj.matrixWorld);
+    faceNormal.normalize();
+
+    const groupWorldPos = group.position.clone();
+    const newGroupPosition = groupWorldPos.clone().add(faceNormal.clone().multiplyScalar(CUBE_SIZE));
+
+    if (getCubeGroupAtPosition(newGroupPosition)) {
+        console.log("Действие отменено: Позиция стыковки уже занята.");
+        return;
+    }
+
+    const excludeId = getTunnelFaceId(faceNormal);
+    const newCube = createFormaCube(newGroupPosition, excludeId, FACE_CONFIGS);
+
+    if (group) {
+        group.remove(obj);
+        obj.geometry.dispose();
+    }
+    const index = formaCubeFaces.indexOf(obj);
+    if (index > -1) formaCubeFaces.splice(index, 1);
+
+    if (group && group.children.length === 1 && group.children[0].isLight) {
+        scene.remove(group);
+        if (group === formaCubeGroup) formaCubeGroup = null;
+    }
+
+    FACE_CONFIGS.forEach(config => {
+        const localNormal = config.normal;
+        const neighborPosition = newGroupPosition.clone().add(localNormal.clone().multiplyScalar(CUBE_SIZE));
+        const neighborCube = getCubeGroupAtPosition(neighborPosition);
+
+        if (neighborCube) {
+            const worldNormal = localNormal.clone().transformDirection(new THREE.Matrix4().makeTranslation(newGroupPosition.x, newGroupPosition.y, newGroupPosition.z));
+            removeFaceFromCubeByNormal(neighborCube, worldNormal);
+        }
+    });
+
+    // saveLocalState(); // Удалено
+    // hasContent = true; // Удалено
+    // isContentModified = true; // Удалено
+    // updateButtonVisibility(); // Удалено
+};
+
+// --- ФУНКЦИИ СОХРАНЕНИЯ/ЗАГРУЗКИ (УДАЛЕНЫ) ---
+const clearPolarityObjects = () => {
+    [...staticObjects, ...polarObjects].forEach(obj => scene.remove(obj));
+    staticObjects.length = 0;
+    polarObjects.length = 0;
+}
+
+
+// =========================================================================
+// --- V. Логика Объектов Space Polarity (Плаваюшие фигуры) ---
+// =========================================================================
+const secrets = ['slowly', 'focus', 'pinch', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'];
+const staticObjects = [];
+const polarObjects = [];
+const activePoints = [];
+let mode = 'Fix'; // Режим создания/удаления Polarity объектов
+
+// --- НОВАЯ ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ РЕЖИМА WIREFRAME ---
+let isWireframeMode = false;
+// --------------------------------------------------------
+
+const GEOMETRY_TYPES = [
+    { name: 'Box', creator: (size) => new THREE.BoxGeometry(size, size, size) },
+    { name: 'Tetra', creator: (size) => new THREE.TetrahedronGeometry(size) },
+    { name: 'Icosa', creator: (size) => new THREE.IcosahedronGeometry(size, 0) },
+    { name: 'Icosa2', creator: (size) => new THREE.IcosahedronGeometry(size, 2) },
+    { name: 'Octa', creator: (size) => new THREE.OctahedronGeometry(size) },
+    { name: 'Dodeca', creator: (size) => new THREE.DodecahedronGeometry(size) },
+];
+
+const createGeometry = (size, typeName = null) => {
+    let type;
+    let name;
+    if (typeName) {
+        type = GEOMETRY_TYPES.find(t => t.name === typeName);
+        name = typeName;
+    } else {
+        type = GEOMETRY_TYPES[Math.floor(Math.random() * GEOMETRY_TYPES.length)];
+        name = type.name;
+    }
+    return { geometry: type.creator(size), typeName: name };
+};
+
+/**
+ * Объект создается статически перед камерой.
+ */
+const createFixObject = (data = {}) => { // data={} оставлен для совместимости
+    const size = data.size || (Math.random() * 1 + 2);
+    const { geometry, typeName } = createGeometry(size, data.typeName);
+    const material = new THREE.MeshStandardMaterial({
+        color: data.color !== undefined ? data.color : (Math.random() * 0xffffff),
+        roughness: data.roughness !== undefined ? data.roughness : (Math.random() * 0.8 + 0.1),
+        metalness: data.metalness !== undefined ? data.metalness : (Math.random() * 0.8 + 0.2),
+        opacity: data.opacity !== undefined ? data.opacity : (Math.random() * 0.8 + 0.4),
+        transparent: true,
+        side: THREE.DoubleSide, 
+        wireframe: isWireframeMode, // <<< ДОБАВЛЕНО
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    
+    // --- Логика позиционирования (Space Polarity) ---
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10)));
+    mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    // ------------------------------------------------
+
+    mesh.userData = {
+        // Удалили логику загрузки, scatterVelocity всегда null при создании
+        scatterVelocity: null, 
+        scatterStart: null,
+        scatterDuration: 1.0,
+        scatterDeceleration: 0.05,
+        isPolarityObject: true,
+        isPolar: false, 
+        size: size, 
+        typeName: typeName,
+        // Default physical properties
+        velocity: new THREE.Vector3(0, 0, 0),
+        rotationSpeed: new THREE.Vector3(0, 0, 0),
+        mass: 1, 
+        polarity: 0,
+    };
+
+    // --- ДОБАВЛЕНИЕ: Сохранение оригинальной прозрачности для Wireframe ---
+    if (isWireframeMode) {
+        mesh.material.opacity = 0.7;
+    }
+    mesh.material.userData.originalOpacity = mesh.material.opacity;
+    // ----------------------------------------------------------------------
+    
+    scene.add(mesh);
+    staticObjects.push(mesh);
+};
+
+/**
+ * Объект создается с нулевой скоростью перед камерой.
+ */
+const createPolarObject = (data = {}) => { // data={} оставлен для совместимости
+    const size = data.size || (Math.random() * 1.0 + 2.0);
+    const { geometry, typeName } = createGeometry(size, data.typeName);
+    const material = new THREE.MeshStandardMaterial({
+        color: data.color !== undefined ? data.color : (Math.random() * 0xffffff),
+        roughness: data.roughness !== undefined ? data.roughness : Math.random(),
+        metalness: data.metalness !== undefined ? data.metalness : Math.random(),
+        opacity: data.opacity !== undefined ? data.opacity : (Math.random() * 0.5 + 0.5),
+        transparent: true,
+        side: THREE.DoubleSide, 
+        wireframe: isWireframeMode, // <<< ДОБАВЛЕНО
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+
+    // --- Логика позиционирования (Space Polarity) ---
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10)));
+    // ------------------------------------------------
+    
+    mesh.userData = {
+        // Удалили логику загрузки, скорость всегда нулевая при создании
+        velocity: new THREE.Vector3(0, 0, 0), 
+        rotationSpeed: new THREE.Vector3((Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05),
+        mass: data.mass !== undefined ? data.mass : (Math.random() * 5 + 1),
+        polarity: data.polarity !== undefined ? data.polarity : (Math.random() < 0.5 ? 1 : -1),
+        // Удалили логику загрузки, scatterVelocity всегда null при создании
+        scatterVelocity: null,
+        scatterStart: null,
+        scatterDuration: 1.0,
+        scatterDeceleration: 0.05,
+        isPolarityObject: true,
+        isPolar: true, 
+        size: size, 
+        typeName: typeName, 
+    };
+
+    // --- ДОБАВЛЕНИЕ: Сохранение оригинальной прозрачности для Wireframe ---
+    if (isWireframeMode) {
+        mesh.material.opacity = 0.7;
+    }
+    mesh.material.userData.originalOpacity = mesh.material.opacity;
+    // ----------------------------------------------------------------------
+
+    scene.add(mesh);
+    polarObjects.push(mesh);
+};
+
+// --- НОВАЯ ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ WIREFRAME ---
+const toggleWireframe = () => {
+    isWireframeMode = !isWireframeMode;
+    wireButton.textContent = isWireframeMode ? 'Solid' : 'Wire';
+
+    scene.traverse(object => {
+        if (object.isMesh && object.material) {
+            // Forma Cube Faces Materials
+            if (object.userData.isFormaCubeFace) {
+                // Forma Face: Wireframe в режиме Solid должен быть false
+                object.material.wireframe = isWireframeMode;
+                // При wireframe-режиме делаем грани более заметными
+                object.material.opacity = isWireframeMode ? 0.3 : (object.userData.isTransparent ? 0.5 : 1.0);
+                object.material.needsUpdate = true;
+            }
+            
+            // Polarity Objects Materials
+            else if (object.userData.isPolarityObject) {
+                object.material.wireframe = isWireframeMode;
+                
+                // Сохраняем логику прозрачности для Polarity
+                if (!object.material.userData.originalOpacity) {
+                    object.material.userData.originalOpacity = object.material.opacity;
+                }
+                
+                object.material.opacity = isWireframeMode ? 0.7 : object.material.userData.originalOpacity;
+                object.material.needsUpdate = true;
+            }
+        }
+    });
+};
+// --------------------------------------------------------
+
+
+/**
+ * Выполняет эффект рассеивания (scatter) для Polarity/Static объекта.
+ */
+const applyScatterEffect = (obj) => {
+    const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
+    const speed = 15 + Math.random() * 10;
+    const scatterVelocity = direction.multiplyScalar(speed);
+    obj.userData.scatterVelocity = scatterVelocity;
+    obj.userData.scatterStart = performance.now();
+    obj.rotation.x += Math.random() * 0.5;
+    obj.rotation.y += Math.random() * 0.5;
+    obj.rotation.z += Math.random() * 0.5;
+
+    const wordSpawnProbability = 0.3;
+    if (Math.random() < wordSpawnProbability) {
+        const t = 0.5;
+        const wordPos3D = obj.position.clone().add(scatterVelocity.clone().multiplyScalar(t * 1.0));
+        const wordPos2D = wordPos3D.project(camera);
+        const wordX = (wordPos2D.x * 0.5 + 0.5) * window.innerWidth;
+        const wordY = (-wordPos2D.y * 0.5 + 0.5) * window.innerHeight;
+        createSecret(wordX, wordY);
+    }
+}
+
+/**
+ * Создает новый Polarity Object в зависимости от текущего режима (Fix/Polar).
+ */
+const handleCreation = () => {
+    if (mode === 'Fix') { 
+        createFixObject();
+    } else if (mode === 'Polar') {
+        createPolarObject();
+    }
+}
+
+
+function createSecret(x, y) {
+    const secret = document.createElement('a');
+    secret.className = 'secret';
+    const word = secrets[Math.floor(Math.random() * secrets.length)];
+    secret.textContent = word;
+    secret.target = '_blank';
+    secret.style.cssText = `
+        position: fixed; left: ${x}px; top: ${y}px; transform: translate(-50%, -50%); opacity: 0;
+        font-family: monospace; font-size: 18px; color: white; text-decoration: none;
+        padding: 10px; border-radius: 8px; pointer-events: auto; z-index: 1000;
+    `;
+    document.body.appendChild(secret);
+
+    const rect = secret.getBoundingClientRect();
+    const minWordDistance = Math.max(rect.width, rect.height) + 20;
+    if (isWordOccupied(x, y, minWordDistance)) {
+        secret.remove();
+        return;
+    }
+
+    activePoints.push({ x, y, timestamp: Date.now(), isWord: true });
+
+    setTimeout(() => {
+        secret.style.opacity = 1;
+        secret.style.transform = 'translate(-50%, -50%) scale(1)';
+    }, 10);
+
+    setTimeout(() => {
+        secret.style.opacity = 0;
+        secret.style.transform = 'translate(-50%, -50%) scale(0.8)';
+    }, 8000);
+
+    setTimeout(() => {
+        secret.remove();
+        const index = activePoints.findIndex(p => p.x === x && p.y === y && p.isWord);
+        if (index !== -1) activePoints.splice(index, 1);
+    }, 8500);
+
+    secret.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (!e.ctrlKey && !e.metaKey && secret.href === window.location.href + '#') {
+            secret.remove();
+        }
+    });
+}
+
+function isWordOccupied(x, y, minDistance) {
+    return activePoints.some(point => {
+        if (!point.isWord) return false;
+        const dx = point.x - x;
+        const dy = point.y - y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < minDistance;
+    });
+}
+
+
+const handleDeletePolarity = (event) => {
+    const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects([...staticObjects, ...polarObjects]); 
+    
+    if (intersects.length > 0) {
+        const selectedObject = intersects[0].object;
+        scene.remove(selectedObject);
+        // Удаляем из соответствующего массива
+        const staticIndex = staticObjects.indexOf(selectedObject);
+        if (staticIndex > -1) staticObjects.splice(staticIndex, 1);
+        
+        const polarIndex = polarObjects.indexOf(selectedObject);
+        if (polarIndex > -1) polarObjects.splice(polarIndex, 1);
+        
+        // saveLocalState(); // Удалено
+        return true;
+    }
+    return false;
+}
+
+// ... (Physics functions remain the same) ...
+
+const applyCameraRepulsion = () => {
+    // >>> ИЗМЕНЕНИЕ 1: ОТКЛЮЧЕНИЕ РАСТАЛКИВАНИЯ В РЕЖИМЕ ACROSS
+    if (mode === 'Across') return;
+
+    const repulsionDistance = 15;
+    const repulsionStrength = 0.05;
+    [...staticObjects, ...polarObjects].forEach((obj) => {
+        const distance = camera.position.distanceTo(obj.position);
+        if (distance < repulsionDistance) {
+            const direction = obj.position.clone().sub(camera.position).normalize();
+            const force = direction.multiplyScalar((repulsionDistance - distance) * repulsionStrength);
+            
+            // ИСПРАВЛЕННОЕ УСЛОВИЕ:
+            // Проверяем флаг isPolar, чтобы отличить динамические объекты от статических.
+            if (obj.userData.isPolar) { 
+                obj.userData.velocity.add(force);
+            } else if (!obj.userData.scatterVelocity) {
+                obj.position.add(force);
+            }
+        }
+    });
+};
+const handlePolarInteractions = () => {
+    for (let i = 0; i < polarObjects.length; i++) {
+        for (let j = i + 1; j < polarObjects.length; j++) {
+            const objA = polarObjects[i];
+            const objB = polarObjects[j];
+            const distance = objA.position.distanceTo(objB.position);
+            if (distance < 1) {
+                const direction = objB.position.clone().sub(objA.position).normalize();
+                const polarityEffect = objA.userData.polarity * objB.userData.polarity;
+                const force = direction.multiplyScalar(polarityEffect * 0.05);
+                objA.userData.velocity.add(force.clone().multiplyScalar(-1 / objA.userData.mass));
+                objB.userData.velocity.add(force.clone().multiplyScalar(1 / objB.userData.mass));
+            }
+        }
+    }
+};
+
+const handlePolarAndStaticInteractions = () => {
+    polarObjects.forEach((polarObj) => {
+        staticObjects.forEach((staticObj) => {
+            const distance = polarObj.position.distanceTo(staticObj.position);
+            if (distance < 15) {
+                const direction = staticObj.position.clone().sub(polarObj.position).normalize();
+                const repulsionForce = direction.multiplyScalar(0.005 * (8 - distance));
+                if (!staticObj.userData.scatterVelocity) {
+                    staticObj.position.add(repulsionForce);
+                }
+                polarObj.userData.velocity.add(repulsionForce.clone().multiplyScalar(-1 / polarObj.userData.mass));
+                polarObj.userData.isRotating = true;
+            } else {
+                polarObj.userData.isRotating = false;
+            }
+        });
+    });
+};
+
+const applyDeceleration = () => {
+    polarObjects.forEach((obj) => {
+        if (obj.userData.scatterVelocity) return;
+        if (obj.userData.velocity.length() > 0) {
+            const deceleration = 0.003;
+            obj.userData.velocity.multiplyScalar(1 - deceleration);
+            if (obj.userData.velocity.length() < 0.001) {
+                obj.userData.velocity.set(0, 0, 0);
+            }
+        }
+    });
+};
+
+let isScalingUp = false;
+let isScalingDown = false; // <<< НОВАЯ ПЕРЕМЕННАЯ ДЛЯ ПЛАВНОГО УМЕНЬШЕНИЯ
+let objectToScale = null;
+const SCALE_RATE = 1.005; // Коэффициент увеличения
+const SCALE_RATE_DOWN = 0.995; // <<< НОВЫЙ КОНСТАНТ для плавного уменьшения (близко к 1)
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 1000;
+
+
+// =========================================================================
+// --- VI. Управление Камерой и Кнопки ---
+// =========================================================================
+
+let isFlyingBase = false; 
+let currentSpeed = 0.0;
+const MAX_SPEED = 0.3;
+const ACCELERATION = 0.00033;
+const DECCELERATION = 0.00033;
+
+const moveCamera = (directionVector, distance) => {
+    const direction = directionVector.clone().normalize();
+    camera.position.add(direction.clone().multiplyScalar(distance));
+    controls.target.add(direction.clone().multiplyScalar(distance));
+    controls.update();
+};
+
+
+// Полет Polarity
+let targetVelocity = new THREE.Vector3();
+const accelerationPolarity = 0.001;
+const decelerationPolarity = 0.01;
+let isMovingForward = true;
+const cameraVelocity = new THREE.Vector3();
+let isMovingPolarity = false;
+
+// --- Кнопки Forma Base ---
+const closerButton = document.querySelector('.closer-button');
+const furtherButton = document.querySelector('.further-button');
+const flyButtonBase = document.querySelector('.fly-button-base'); 
+
+// Кнопки Polarity
+const goButton = document.querySelector('.go-button'); // Теперь "Bypass"
+const foreButton = document.querySelector('.fore-button');
+
+// --- НОВАЯ ССЫЛКА НА КНОПКУ WIRE ---
+const wireButton = document.querySelector('.wire-button');
+// -----------------------------------
+
+// >>> НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ МЕНЮ
+const modeDropdownToggle = document.getElementById('mode-dropdown-toggle');
+const modeMenuList = document.getElementById('mode-menu-list');
+const modeMenuItems = document.querySelectorAll('.mode-menu-item');
+// <<< КОНЕЦ НОВЫХ ЭЛЕМЕНТОВ
+
+
+const updateButtonVisibility = () => {
+    // После удаления Save/Load/Reset, эта функция больше не управляет их видимостью.
+    // Оставлена для потенциальных будущих нужд, но пустая.
+};
+
+closerButton.addEventListener('click', () => {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    moveCamera(direction, CUBE_SIZE);
+});
+
+furtherButton.addEventListener('click', () => {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    direction.negate();
+    moveCamera(direction, CUBE_SIZE);
+});
+
+flyButtonBase.addEventListener('click', () => {
+    isFlyingBase = !isFlyingBase;
+    flyButtonBase.textContent = isFlyingBase ? 'Stop' : 'Fly';
+    if (isFlyingBase && isMovingPolarity) {
+        isMovingPolarity = false;
+        goButton.innerText = "Bypass"; 
+        targetVelocity.set(0, 0, 0);
+    }
+});
+
+
+// --- ЛОГИКА ВЫПАДАЮЩЕГО МЕНЮ (ЗАМЕНА modeButton.addEventListener) ---
+
+// Логика открытия/закрытия меню при клике на заголовок
+modeDropdownToggle.addEventListener('click', (event) => {
+    event.stopPropagation(); // Чтобы не закрывалось сразу
+    modeMenuList.classList.toggle('show');
+});
+
+// Логика выбора режима и его установки
+modeMenuItems.forEach(item => {
+    item.addEventListener('click', () => {
+        const newMode = item.getAttribute('data-mode');
+        mode = newMode; // Устанавливаем новый режим
+        
+        // Обновляем текст на кнопке-переключателе
+        modeDropdownToggle.textContent = item.textContent; 
+        
+        modeMenuList.classList.remove('show'); // Закрываем меню
+    });
+});
+
+// Закрытие меню при клике вне его
+document.addEventListener('click', (event) => {
+    // Проверяем, что меню открыто И клик был НЕ по контейнеру меню
+    if (modeMenuList.classList.contains('show') && !event.target.closest('.mode-menu-container')) {
+        modeMenuList.classList.remove('show');
+    }
+});
+
+
+// --- Обработчик для КНОПКИ WIRE ---
+wireButton.addEventListener('click', () => {
+    toggleWireframe();
+});
+// ---------------------------------
+
+
+// --- Кнопки Polarity ---
+
+const adjustCameraFocus = () => {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    const azimuthOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
+    const elevationOffset = (Math.random() - 0.5) * THREE.MathUtils.degToRad(20);
+    direction.applyQuaternion(new THREE.Quaternion()
+        .setFromAxisAngle(new THREE.Vector3(0, 1, 0), azimuthOffset)
+        .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), elevationOffset)));
+    targetVelocity.copy(direction.multiplyScalar(isMovingForward ? 1.0 : -1.0));
+};
+
+goButton.addEventListener('click', () => { // Кнопка Bypass
+    isMovingPolarity = !isMovingPolarity;
+    goButton.innerText = isMovingPolarity ? "Stop" : "Bypass"; 
+    if (isMovingPolarity) {
+        adjustCameraFocus();
+        if (isFlyingBase) {
+            isFlyingBase = false;
+            flyButtonBase.textContent = 'Fly';
+        }
+    } else {
+        targetVelocity.set(0, 0, 0);
+    }
+});
+
+const performCameraLunge = () => {
+    const startPos = camera.position.clone();
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    const targetPos = startPos.clone().add(direction.multiplyScalar(10));
+    const duration = 0.5;
+    const peakTime = 0.25;
+    let startTime = performance.now();
+
+    const scatterObjects = () => {
+        const scatterRadius = 15;
+        const scatterSpeed = 20;
+        [...staticObjects, ...polarObjects].forEach((obj) => {
+            const distance = obj.position.distanceTo(targetPos);
+            if (distance < scatterRadius) {
+                const scatterDirection = obj.position.clone().sub(targetPos).normalize();
+                obj.userData.scatterVelocity = scatterDirection.multiplyScalar(scatterSpeed);
+                obj.userData.scatterStart = performance.now();
+                obj.rotation.x += Math.random() * 0.5;
+                obj.rotation.y += Math.random() * 0.5;
+                obj.rotation.z += Math.random() * 0.5;
+            }
+        });
+        // saveLocalState(); // Удалено
+    };
+
+    const animateLunge = () => {
+        const elapsed = (performance.now() - startTime) / 1000;
+        const t = Math.min(elapsed / duration, 1);
+        const progress = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        if (t < peakTime / duration) {
+            camera.position.lerpVectors(startPos, targetPos, progress / (peakTime / duration));
+        } else {
+            camera.position.lerpVectors(targetPos, startPos, (progress - peakTime / duration) / (1 - peakTime / duration));
+        }
+        if (t >= peakTime / duration && !scatterObjects.called) {
+            scatterObjects();
+            scatterObjects.called = true;
+        }
+        if (t < 1) requestAnimationFrame(animateLunge);
+    };
+    scatterObjects.called = false;
+    animateLunge();
+};
+
+foreButton.addEventListener('click', () => {
+    performCameraLunge();
+});
+
+
+// =========================================================================
+// --- VII. Логика Взаимодействия (Объединенная и ИСПРАВЛЕННАЯ) ---
+// =========================================================================
+
+let longPressTimer;
+const LONG_PRESS_DELAY = 700;
+let isLongPress = false;
+let longPressFired = false;
+const MOVE_THRESHOLD = 10;
+let pointerDownPosition = new THREE.Vector2();
+
+// Общая функция для Raycasting
+const getIntersection = (event, objectsToCheck) => {
+    const clientX = event.clientX;
+    const clientY = event.clientY;
+    const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+    const raycaster = new THREE.Raycaster();
+    // false: не рекурсивно проверяет потомков, так как проверяются только mesh'и
+    raycaster.setFromCamera(mouse, camera);
+    return raycaster.intersectObjects(objectsToCheck, false); 
+};
+
+// 1. Pointer Down (Для Long Press и активации масштабирования)
+renderer.domElement.addEventListener('pointerdown', (event) => {
+    // СТРОКА A: Существующая проверка на управляющие элементы
+    if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return; 
+
+    // >>> ЛОГИКА АКТИВАЦИИ МАСШТАБИРОВАНИЯ (Правый и Левый клик)
+    let shouldDisableControls = false; // Флаг для управления OrbitControls
+    
+    if (event.button === 0 || event.button === 2) { 
+        // --- ИЗМЕНЕНИЕ 2: Общий Raycast для определения ближайшего объекта (устранение конфликта) ---
+        const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
+        const intersects = getIntersection(event, allInteractableObjects);
+
+        if (intersects.length > 0) { 
+            const nearestObject = intersects[0].object;
+
+            // Только Polarity/Static объекты могут быть масштабированы. 
+            // Если ближайший объект — грань Forma, масштабирование не начинается.
+            if (nearestObject.userData.isPolarityObject) {
+                objectToScale = nearestObject;
+                shouldDisableControls = true; // Намерение масштабировать, отключаем управление
+                
+                if (event.button === 0) {
+                    isScalingUp = true; 
+                    isScalingDown = false;
+                } else if (event.button === 2) {
+                    isScalingDown = true; 
+                    isScalingUp = false;
+                }
+            }
+        }
+    }
+    
+    // Отключаем управление ТОЛЬКО если мы пытаемся масштабировать объект
+    controls.enabled = !shouldDisableControls; 
+
+    longPressFired = false;
+    pointerDownPosition.set(event.clientX, event.clientY);
+
+    isLongPress = false;
+    clearTimeout(longPressTimer);
+
+    longPressTimer = setTimeout(() => {
+        const currentUpPosition = new THREE.Vector2(event.clientX, event.clientY);
+        const moveDistance = pointerDownPosition.distanceTo(currentUpPosition);
+
+        if (moveDistance <= MOVE_THRESHOLD) {
+            isLongPress = true;
+            longPressFired = true;
+            
+            // --- НОВАЯ ЛОГИКА PROXIMITY CHECK ДЛЯ LONG PRESS (ИСПРАВЛЕНИЕ 2) ---
+            const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
+            const intersects = getIntersection(event, allInteractableObjects);
+            
+            if (intersects.length > 0) {
+                const nearestObject = intersects[0].object;
+                if (nearestObject.userData.isFormaCubeFace) {
+                    // Если ближайший объект - грань Forma, то включаем прозрачность
+                    handleTransparentToggleLogic(nearestObject);
+                }
+            }
+        }
+    }, LONG_PRESS_DELAY);
+});
+
+// 2. Pointer Up (Для Short Click - Forma Base AND Polarity Object Creation/Deletion)
+renderer.domElement.addEventListener('pointerup', (event) => {
+// >>> МОДИФИЦИРОВАННАЯ ЛОГИКА ДЕАКТИВАЦИИ
+    if (isScalingUp || isScalingDown) {
+        isScalingUp = false;
+        isScalingDown = false; // Сброс переменной
+        objectToScale = null;
+        controls.enabled = true; // Восстанавливаем OrbitControls
+    }
+    // Пропускаем правый клик и клики по управляющим элементам
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return;
+
+    clearTimeout(longPressTimer);
+
+    const clientX = event.clientX;
+    const clientY = event.clientY;
+    const currentUpPosition = new THREE.Vector2(clientX, clientY);
+
+    const moveDistance = pointerDownPosition.distanceTo(currentUpPosition);
+    if (moveDistance > MOVE_THRESHOLD) {
+        isLongPress = false;
+        longPressFired = false;
+        return; 
+    }
+
+    if (longPressFired) {
+        // Long Press уже выполнил действие, игнорируем Pointer Up
+        isLongPress = false;
+        longPressFired = false;
+        return;
+    }
+
+    // --- Логика Short Click (Приоритет Ближайшего Объекта) ---
+
+    // 1. Приоритет ближайшей поверхности
+    const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
+    const intersects = getIntersection(event, allInteractableObjects);
+    const closestIntersection = intersects.length > 0 ? intersects[0] : null;
+    const selectedObject = closestIntersection ? closestIntersection.object : null;
+
+    // A. РЕЖИМ DELETE (Наивысший приоритет)
+    if (mode === 'Delete' && selectedObject) {
+        if (selectedObject.userData.isFormaCubeFace) {
+            handleDeleteFormaFace(selectedObject);
+        } else if (selectedObject.userData.isPolarityObject) {
+            handleDeletePolarity(event); 
+        }
+        return; 
+    }
+
+// B. ИНТЕРАКЦИЯ СО СУЩЕСТВУЮЩИМИ ОБЪЕКТАМИ (Приоритет над режимом Across/Fix/Polar)
+    if (selectedObject) {
+        if (selectedObject.userData.isFormaCubeFace) {
+            if (selectedObject.userData.isTransparent) {
+                // Short Click по ПРОЗРАЧНОЙ грани Forma -> СОЗДАНИЕ ТУННЕЛЯ. 
+                handleDeleteAndCreateTunnel(event, selectedObject, closestIntersection);
+                return; // Действие выполнено
+            } 
+            // Если грань НЕПРОЗРАЧНАЯ, проваливаемся в секцию C для создания объекта
+            
+        } else if (selectedObject.userData.isPolarityObject) {
+            // Short Click по Polarity Object: Scatter ТОЛЬКО если режим НЕ Across.
+            if (mode !== 'Across') {
+                applyScatterEffect(selectedObject);
+                return; // Действие выполнено (Рассеивание)
+            }
+            // Если режим Across, не делаем Scatter, а проваливаемся в секцию C 
+            // для создания нового объекта.
+        }
+    }
+
+    // C. ПРОВЕРКА РЕЖИМА И ДЕЙСТВИЕ ПО УМОЛЧАНИЮ 
+    // (Выполняется, если попали в пустое пространство ИЛИ в НЕПРОЗРАЧНУЮ грань Forma)
+
+    if (mode === 'Across') {
+        // Режим Across: Создание Static Object 
+        createFixObject(); 
+    } else {
+        // Режимы Fix/Polar: Создание объекта в зависимости от режима
+        handleCreation(); 
+    }
+
+    isLongPress = false; 
+});
+
+// 3. Pointer Move (Отмена Long Press при сдвиге и восстановление вращения)
+renderer.domElement.addEventListener('pointermove', (event) => {
+    if (longPressTimer) {
+        const dist = pointerDownPosition.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
+        if (dist > MOVE_THRESHOLD) {
+            clearTimeout(longPressTimer);
+            isLongPress = false;
+            longPressFired = false;
+            
+            // --- НОВОЕ (ИСПРАВЛЕНИЕ 1): Если обнаружен сдвиг, и управление было отключено 
+            // --- для масштабирования/Long Press, то включаем OrbitControls для вращения сцены.
+            if (objectToScale && !controls.enabled) {
+                isScalingUp = false;
+                isScalingDown = false;
+                objectToScale = null;
+                controls.enabled = true; // Разрешаем OrbitControls вращать сцену
+            }
+        }
+    }
+});
+
+// 4. Context Menu / Right Click: Упрощено, только для предотвращения стандартного меню.
+document.addEventListener('contextmenu', (event) => {
+    event.preventDefault(); 
+});
+
+
+// --- VIII. Animation Loop (Объединенная) ---
+
+const animate = () => {
+    controls.update();
+
+// >>> МОДИФИЦИРОВАННАЯ ЛОГИКА: Непрерывное масштабирование
+    if (objectToScale) {
+        if (isScalingUp) {
+            objectToScale.scale.multiplyScalar(SCALE_RATE);
+            if (objectToScale.scale.x > MAX_SCALE) {
+                objectToScale.scale.set(MAX_SCALE, MAX_SCALE, MAX_SCALE);
+            }
+        } else if (isScalingDown) { // <<< ПЛАВНОЕ УМЕНЬШЕНИЕ
+            objectToScale.scale.multiplyScalar(SCALE_RATE_DOWN);
+            if (objectToScale.scale.x < MIN_SCALE) {
+                objectToScale.scale.set(MIN_SCALE, MIN_SCALE, MIN_SCALE);
+            }
+        }
+    }
+
+    // 1. Forma Base Fly Logic
+    if (isFlyingBase) {
+        currentSpeed = Math.min(currentSpeed + ACCELERATION, MAX_SPEED);
+    } else {
+        currentSpeed = Math.max(currentSpeed - DECCELERATION, 0.0);
+    }
+    if (currentSpeed > 0) {
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        moveCamera(direction, currentSpeed);
+    }
+
+    // 2. Polarity Fly Logic
+    if (isMovingPolarity) {
+        cameraVelocity.lerp(targetVelocity, accelerationPolarity);
+    } else {
+        cameraVelocity.lerp(new THREE.Vector3(), decelerationPolarity);
+    }
+    camera.position.add(cameraVelocity);
+
+    // 3. Polarity Physics
+    applyCameraRepulsion();
+    
+    // Static and Polar objects physics
+    [...staticObjects, ...polarObjects].forEach((obj) => {
+        // Scatter logic
+        if (obj.userData.scatterVelocity) {
+            const elapsed = (performance.now() - obj.userData.scatterStart) / 1000;
+            if (elapsed < obj.userData.scatterDuration) {
+                obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+            } else {
+                obj.userData.scatterVelocity.multiplyScalar(1 - obj.userData.scatterDeceleration);
+                if (obj.userData.scatterVelocity.length() < 0.01) {
+                    obj.userData.scatterVelocity = null;
+                    obj.userData.scatterStart = null;
+                } else {
+                    obj.position.add(obj.userData.scatterVelocity.clone().multiplyScalar(1 / 60));
+                }
+            }
+        }
+        
+        // Polarity/Velocity logic (only for polar objects)
+        if (obj.userData.isPolar) {
+            obj.position.add(obj.userData.velocity);
+            if (obj.userData.rotationSpeed) {
+                obj.rotation.x += obj.userData.rotationSpeed.x;
+                obj.rotation.y += obj.userData.rotationSpeed.y;
+                obj.rotation.z += obj.userData.rotationSpeed.z;
+            }
+        }
+    });
+
+    if (mode === 'Polar') {
+        handlePolarInteractions();
+    }
+    handlePolarAndStaticInteractions();
+    applyDeceleration();
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+};
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+window.addEventListener('orientationchange', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+initFormaCube();
+animate();
+
+</script>
+</body>
+</html>
