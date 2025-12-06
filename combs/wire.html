@@ -49,11 +49,11 @@
         /* save-button не используется, но оставлен для позиционирования */
         .save-button { right: 3%; left: auto; transform: none; display: none; } 
         
-        /* >>> НОВЫЙ СТИЛЬ ДЛЯ КНОПКИ WIRE (рядом с help-new-button) */
+        /* >>> ИЗМЕНЕННЫЙ СТИЛЬ ДЛЯ КНОПКИ WIRE (центр, ниже Help) */
         .wire-button { 
-            top: 70px;
+            top: 70px; /* Сдвиг вниз */
             left: 50%; 
-            transform: translateX(-50%) translate(0px); /* Сдвиг вправо от Help */
+            transform: translateX(-50%); /* Центрирование */
         } 
         /* <<< КОНЕЦ НОВОГО СТИЛЯ */
 
@@ -231,7 +231,7 @@ setInterval(changeBackgroundColor, 100000);
 let formaCubeFaces = [];
 let formaCubeGroup = null;
 const CUBE_SIZE = 5;
-const STORAGE_KEY = 'formaCubeState'; // Оставлен, но не используется для localStorage
+const STORAGE_KEY = 'formaCubeState'; 
 
 function addInternalLights(group) {
     const warmInternalLight = new THREE.PointLight(0xffaa00, 0.01, 0);
@@ -370,7 +370,10 @@ const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFI
         // --- ДОБАВЛЕНИЕ: Установка wireframe при создании, если режим активен ---
         if (isWireframeMode) {
              face.material.wireframe = true;
-             face.material.opacity = 0.3;
+             // При создании, если грань прозрачна (0.5), то в Wireframe режиме она 0.3
+             if (face.userData.isTransparent) {
+                face.material.opacity = 0.3;
+             }
         }
         // ----------------------------------------------------------------------
 
@@ -409,17 +412,11 @@ const clearWorld = () => {
 }
 
 const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
-    // В оригинале здесь была загрузка локального состояния
-    // Упрощаем: всегда создаем начальный куб, если мир пуст
     if (scene.children.filter(c => c.userData.isFormaCube).length === 0) {
         const initialPosition = position.clone();
         formaCubeGroup = createFormaCube(initialPosition, -1);
     }
     
-    // hasContent/isContentModified не используются после удаления Save/Load
-    // hasContent = scene.children.filter(c => c.userData.isFormaCube).length > 0 || staticObjects.length > 0 || polarObjects.length > 0;
-    // isContentModified = false;
-
     controls.target.set(camera.position.x, camera.position.y, camera.position.z - 15);
     controls.update();
 
@@ -427,27 +424,37 @@ const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15
 };
 
 /**
- * [НОВАЯ ФУНКЦИЯ] Выполняет логику переключения прозрачности грани Forma.
- * @param {THREE.Mesh} face - Грань, чью прозрачность нужно изменить.
+ * [ИСПРАВЛЕННАЯ ФУНКЦИЯ] Выполняет логику переключения прозрачности грани Forma.
+ * Использует isTransparent флаг, а не face.material.opacity для определения состояния.
  */
 const handleTransparentToggleLogic = (face) => {
-    if (face.material.opacity === 1.0) {
-        face.material.opacity = 0.5;
-        face.material.envMapIntensity = 0.5;
-        face.userData.isTransparent = true;
-    } else {
-        face.material.opacity = 1.0;
-        face.material.envMapIntensity = 1.0;
+    // 1. Переключение логического состояния (Solid <-> Transparent)
+    const wasTransparent = face.userData.isTransparent;
+    
+    if (wasTransparent) {
+        // Toggle back to SOLID
         face.userData.isTransparent = false;
+        face.material.envMapIntensity = 1.0;
+        // Устанавливаем базовую прозрачность (1.0)
+        face.material.opacity = 1.0;
+    } else {
+        // Toggle to TRANSPARENT
+        face.userData.isTransparent = true;
+        face.material.envMapIntensity = 0.5;
+        // Устанавливаем базовую прозрачность (0.5)
+        face.material.opacity = 0.5;
     }
     
-    // Принудительно устанавливаем wireframe opacity, если режим активен
-    if (isWireframeMode) {
+    // 2. Визуальное переопределение для режима Wireframe
+    if (isWireframeMode && face.userData.isTransparent) {
+        // Если Wireframe активен и грань ЛОГИЧЕСКИ прозрачна, используем 0.3 для лучшей видимости сетки.
         face.material.opacity = 0.3;
     }
-
+    // Если Wireframe активен, но грань ЛОГИЧЕСКИ Solid, ее opacity остается 1.0.
+    
     face.material.needsUpdate = true;
 };
+
 
 const handleDeleteFormaFace = (faceToDelete) => {
     const obj = faceToDelete;
@@ -465,11 +472,6 @@ const handleDeleteFormaFace = (faceToDelete) => {
         scene.remove(group);
         if (group === formaCubeGroup) formaCubeGroup = null;
     }
-
-    // saveLocalState(); // Удалено
-    // hasContent = true; // Удалено
-    // isContentModified = true; // Удалено
-    // updateButtonVisibility(); // Удалено
 };
 
 
@@ -514,14 +516,8 @@ const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
             removeFaceFromCubeByNormal(neighborCube, worldNormal);
         }
     });
-
-    // saveLocalState(); // Удалено
-    // hasContent = true; // Удалено
-    // isContentModified = true; // Удалено
-    // updateButtonVisibility(); // Удалено
 };
 
-// --- ФУНКЦИИ СОХРАНЕНИЯ/ЗАГРУЗКИ (УДАЛЕНЫ) ---
 const clearPolarityObjects = () => {
     [...staticObjects, ...polarObjects].forEach(obj => scene.remove(obj));
     staticObjects.length = 0;
@@ -538,7 +534,7 @@ const polarObjects = [];
 const activePoints = [];
 let mode = 'Fix'; // Режим создания/удаления Polarity объектов
 
-// --- НОВАЯ ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ РЕЖИМА WIREFRAME ---
+// --- ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ РЕЖИМА WIREFRAME ---
 let isWireframeMode = false;
 // --------------------------------------------------------
 
@@ -589,7 +585,6 @@ const createFixObject = (data = {}) => { // data={} оставлен для со
     // ------------------------------------------------
 
     mesh.userData = {
-        // Удалили логику загрузки, scatterVelocity всегда null при создании
         scatterVelocity: null, 
         scatterStart: null,
         scatterDuration: 1.0,
@@ -606,10 +601,10 @@ const createFixObject = (data = {}) => { // data={} оставлен для со
     };
 
     // --- ДОБАВЛЕНИЕ: Сохранение оригинальной прозрачности для Wireframe ---
-    if (isWireframeMode) {
-        mesh.material.opacity = 0.7;
-    }
     mesh.material.userData.originalOpacity = mesh.material.opacity;
+    if (isWireframeMode) {
+        mesh.material.opacity = 0.7; // Визуальное переопределение
+    }
     // ----------------------------------------------------------------------
     
     scene.add(mesh);
@@ -640,12 +635,10 @@ const createPolarObject = (data = {}) => { // data={} оставлен для с
     // ------------------------------------------------
     
     mesh.userData = {
-        // Удалили логику загрузки, скорость всегда нулевая при создании
         velocity: new THREE.Vector3(0, 0, 0), 
         rotationSpeed: new THREE.Vector3((Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05),
         mass: data.mass !== undefined ? data.mass : (Math.random() * 5 + 1),
         polarity: data.polarity !== undefined ? data.polarity : (Math.random() < 0.5 ? 1 : -1),
-        // Удалили логику загрузки, scatterVelocity всегда null при создании
         scatterVelocity: null,
         scatterStart: null,
         scatterDuration: 1.0,
@@ -657,17 +650,19 @@ const createPolarObject = (data = {}) => { // data={} оставлен для с
     };
 
     // --- ДОБАВЛЕНИЕ: Сохранение оригинальной прозрачности для Wireframe ---
-    if (isWireframeMode) {
-        mesh.material.opacity = 0.7;
-    }
     mesh.material.userData.originalOpacity = mesh.material.opacity;
+    if (isWireframeMode) {
+        mesh.material.opacity = 0.7; // Визуальное переопределение
+    }
     // ----------------------------------------------------------------------
 
     scene.add(mesh);
     polarObjects.push(mesh);
 };
 
-// --- НОВАЯ ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ WIREFRAME ---
+/**
+ * --- ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ WIREFRAME ---
+ */
 const toggleWireframe = () => {
     isWireframeMode = !isWireframeMode;
     wireButton.textContent = isWireframeMode ? 'Solid' : 'Wire';
@@ -676,10 +671,14 @@ const toggleWireframe = () => {
         if (object.isMesh && object.material) {
             // Forma Cube Faces Materials
             if (object.userData.isFormaCubeFace) {
-                // Forma Face: Wireframe в режиме Solid должен быть false
                 object.material.wireframe = isWireframeMode;
-                // При wireframe-режиме делаем грани более заметными
-                object.material.opacity = isWireframeMode ? 0.3 : (object.userData.isTransparent ? 0.5 : 1.0);
+                // При wireframe-режиме используем 0.3, если грань логически прозрачна
+                if (isWireframeMode) {
+                    object.material.opacity = object.userData.isTransparent ? 0.3 : 1.0;
+                } else {
+                    // При выходе из Wireframe-режима, возвращаем нормальные значения
+                    object.material.opacity = object.userData.isTransparent ? 0.5 : 1.0;
+                }
                 object.material.needsUpdate = true;
             }
             
@@ -810,16 +809,12 @@ const handleDeletePolarity = (event) => {
         const polarIndex = polarObjects.indexOf(selectedObject);
         if (polarIndex > -1) polarObjects.splice(polarIndex, 1);
         
-        // saveLocalState(); // Удалено
         return true;
     }
     return false;
 }
 
-// ... (Physics functions remain the same) ...
-
 const applyCameraRepulsion = () => {
-    // >>> ИЗМЕНЕНИЕ 1: ОТКЛЮЧЕНИЕ РАСТАЛКИВАНИЯ В РЕЖИМЕ ACROSS
     if (mode === 'Across') return;
 
     const repulsionDistance = 15;
@@ -830,8 +825,6 @@ const applyCameraRepulsion = () => {
             const direction = obj.position.clone().sub(camera.position).normalize();
             const force = direction.multiplyScalar((repulsionDistance - distance) * repulsionStrength);
             
-            // ИСПРАВЛЕННОЕ УСЛОВИЕ:
-            // Проверяем флаг isPolar, чтобы отличить динамические объекты от статических.
             if (obj.userData.isPolar) { 
                 obj.userData.velocity.add(force);
             } else if (!obj.userData.scatterVelocity) {
@@ -890,10 +883,10 @@ const applyDeceleration = () => {
 };
 
 let isScalingUp = false;
-let isScalingDown = false; // <<< НОВАЯ ПЕРЕМЕННАЯ ДЛЯ ПЛАВНОГО УМЕНЬШЕНИЯ
+let isScalingDown = false; 
 let objectToScale = null;
-const SCALE_RATE = 1.005; // Коэффициент увеличения
-const SCALE_RATE_DOWN = 0.995; // <<< НОВЫЙ КОНСТАНТ для плавного уменьшения (близко к 1)
+const SCALE_RATE = 1.005; 
+const SCALE_RATE_DOWN = 0.995; 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 1000;
 
@@ -933,11 +926,11 @@ const flyButtonBase = document.querySelector('.fly-button-base');
 const goButton = document.querySelector('.go-button'); // Теперь "Bypass"
 const foreButton = document.querySelector('.fore-button');
 
-// --- НОВАЯ ССЫЛКА НА КНОПКУ WIRE ---
+// --- ССЫЛКА НА КНОПКУ WIRE ---
 const wireButton = document.querySelector('.wire-button');
 // -----------------------------------
 
-// >>> НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ МЕНЮ
+// >>> ЭЛЕМЕНТЫ ДЛЯ МЕНЮ
 const modeDropdownToggle = document.getElementById('mode-dropdown-toggle');
 const modeMenuList = document.getElementById('mode-menu-list');
 const modeMenuItems = document.querySelectorAll('.mode-menu-item');
@@ -945,8 +938,7 @@ const modeMenuItems = document.querySelectorAll('.mode-menu-item');
 
 
 const updateButtonVisibility = () => {
-    // После удаления Save/Load/Reset, эта функция больше не управляет их видимостью.
-    // Оставлена для потенциальных будущих нужд, но пустая.
+    //
 };
 
 closerButton.addEventListener('click', () => {
@@ -973,30 +965,25 @@ flyButtonBase.addEventListener('click', () => {
 });
 
 
-// --- ЛОГИКА ВЫПАДАЮЩЕГО МЕНЮ (ЗАМЕНА modeButton.addEventListener) ---
+// --- ЛОГИКА ВЫПАДАЮЩЕГО МЕНЮ ---
 
-// Логика открытия/закрытия меню при клике на заголовок
 modeDropdownToggle.addEventListener('click', (event) => {
-    event.stopPropagation(); // Чтобы не закрывалось сразу
+    event.stopPropagation();
     modeMenuList.classList.toggle('show');
 });
 
-// Логика выбора режима и его установки
 modeMenuItems.forEach(item => {
     item.addEventListener('click', () => {
         const newMode = item.getAttribute('data-mode');
-        mode = newMode; // Устанавливаем новый режим
+        mode = newMode; 
         
-        // Обновляем текст на кнопке-переключателе
         modeDropdownToggle.textContent = item.textContent; 
         
-        modeMenuList.classList.remove('show'); // Закрываем меню
+        modeMenuList.classList.remove('show');
     });
 });
 
-// Закрытие меню при клике вне его
 document.addEventListener('click', (event) => {
-    // Проверяем, что меню открыто И клик был НЕ по контейнеру меню
     if (modeMenuList.classList.contains('show') && !event.target.closest('.mode-menu-container')) {
         modeMenuList.classList.remove('show');
     }
@@ -1060,7 +1047,6 @@ const performCameraLunge = () => {
                 obj.rotation.z += Math.random() * 0.5;
             }
         });
-        // saveLocalState(); // Удалено
     };
 
     const animateLunge = () => {
@@ -1095,7 +1081,7 @@ let longPressTimer;
 const LONG_PRESS_DELAY = 700;
 let isLongPress = false;
 let longPressFired = false;
-const MOVE_THRESHOLD = 10;
+const MOVE_THRESHOLD = 30; // <<< ИСПРАВЛЕНИЕ: УВЕЛИЧЕН ПОРОГ ДЛЯ НАДЕЖНОСТИ LONG PRESS
 let pointerDownPosition = new THREE.Vector2();
 
 // Общая функция для Raycasting
@@ -1104,32 +1090,26 @@ const getIntersection = (event, objectsToCheck) => {
     const clientY = event.clientY;
     const mouse = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
     const raycaster = new THREE.Raycaster();
-    // false: не рекурсивно проверяет потомков, так как проверяются только mesh'и
     raycaster.setFromCamera(mouse, camera);
     return raycaster.intersectObjects(objectsToCheck, false); 
 };
 
 // 1. Pointer Down (Для Long Press и активации масштабирования)
 renderer.domElement.addEventListener('pointerdown', (event) => {
-    // СТРОКА A: Существующая проверка на управляющие элементы
     if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return; 
 
-    // >>> ЛОГИКА АКТИВАЦИИ МАСШТАБИРОВАНИЯ (Правый и Левый клик)
-    let shouldDisableControls = false; // Флаг для управления OrbitControls
+    let shouldDisableControls = false;
     
     if (event.button === 0 || event.button === 2) { 
-        // --- ИЗМЕНЕНИЕ 2: Общий Raycast для определения ближайшего объекта (устранение конфликта) ---
         const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
         const intersects = getIntersection(event, allInteractableObjects);
 
         if (intersects.length > 0) { 
             const nearestObject = intersects[0].object;
 
-            // Только Polarity/Static объекты могут быть масштабированы. 
-            // Если ближайший объект — грань Forma, масштабирование не начинается.
             if (nearestObject.userData.isPolarityObject) {
                 objectToScale = nearestObject;
-                shouldDisableControls = true; // Намерение масштабировать, отключаем управление
+                shouldDisableControls = true;
                 
                 if (event.button === 0) {
                     isScalingUp = true; 
@@ -1142,7 +1122,6 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         }
     }
     
-    // Отключаем управление ТОЛЬКО если мы пытаемся масштабировать объект
     controls.enabled = !shouldDisableControls; 
 
     longPressFired = false;
@@ -1159,14 +1138,13 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
             isLongPress = true;
             longPressFired = true;
             
-            // --- НОВАЯ ЛОГИКА PROXIMITY CHECK ДЛЯ LONG PRESS (ИСПРАВЛЕНИЕ 2) ---
             const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
             const intersects = getIntersection(event, allInteractableObjects);
             
             if (intersects.length > 0) {
                 const nearestObject = intersects[0].object;
                 if (nearestObject.userData.isFormaCubeFace) {
-                    // Если ближайший объект - грань Forma, то включаем прозрачность
+                    // Long Press: переключаем прозрачность грани Forma
                     handleTransparentToggleLogic(nearestObject);
                 }
             }
@@ -1174,16 +1152,14 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
     }, LONG_PRESS_DELAY);
 });
 
-// 2. Pointer Up (Для Short Click - Forma Base AND Polarity Object Creation/Deletion)
+// 2. Pointer Up (Для Short Click)
 renderer.domElement.addEventListener('pointerup', (event) => {
-// >>> МОДИФИЦИРОВАННАЯ ЛОГИКА ДЕАКТИВАЦИИ
     if (isScalingUp || isScalingDown) {
         isScalingUp = false;
-        isScalingDown = false; // Сброс переменной
+        isScalingDown = false;
         objectToScale = null;
-        controls.enabled = true; // Восстанавливаем OrbitControls
+        controls.enabled = true;
     }
-    // Пропускаем правый клик и клики по управляющим элементам
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return;
 
@@ -1201,21 +1177,19 @@ renderer.domElement.addEventListener('pointerup', (event) => {
     }
 
     if (longPressFired) {
-        // Long Press уже выполнил действие, игнорируем Pointer Up
         isLongPress = false;
         longPressFired = false;
         return;
     }
 
-    // --- Логика Short Click (Приоритет Ближайшего Объекта) ---
+    // --- Логика Short Click ---
 
-    // 1. Приоритет ближайшей поверхности
     const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
     const intersects = getIntersection(event, allInteractableObjects);
     const closestIntersection = intersects.length > 0 ? intersects[0] : null;
     const selectedObject = closestIntersection ? closestIntersection.object : null;
 
-    // A. РЕЖИМ DELETE (Наивысший приоритет)
+    // A. РЕЖИМ DELETE
     if (mode === 'Delete' && selectedObject) {
         if (selectedObject.userData.isFormaCubeFace) {
             handleDeleteFormaFace(selectedObject);
@@ -1225,35 +1199,28 @@ renderer.domElement.addEventListener('pointerup', (event) => {
         return; 
     }
 
-// B. ИНТЕРАКЦИЯ СО СУЩЕСТВУЮЩИМИ ОБЪЕКТАМИ (Приоритет над режимом Across/Fix/Polar)
+// B. ИНТЕРАКЦИЯ СО СУЩЕСТВУЮЩИМИ ОБЪЕКТАМИ
     if (selectedObject) {
         if (selectedObject.userData.isFormaCubeFace) {
             if (selectedObject.userData.isTransparent) {
                 // Short Click по ПРОЗРАЧНОЙ грани Forma -> СОЗДАНИЕ ТУННЕЛЯ. 
                 handleDeleteAndCreateTunnel(event, selectedObject, closestIntersection);
-                return; // Действие выполнено
+                return;
             } 
-            // Если грань НЕПРОЗРАЧНАЯ, проваливаемся в секцию C для создания объекта
             
         } else if (selectedObject.userData.isPolarityObject) {
             // Short Click по Polarity Object: Scatter ТОЛЬКО если режим НЕ Across.
             if (mode !== 'Across') {
                 applyScatterEffect(selectedObject);
-                return; // Действие выполнено (Рассеивание)
+                return;
             }
-            // Если режим Across, не делаем Scatter, а проваливаемся в секцию C 
-            // для создания нового объекта.
         }
     }
 
-    // C. ПРОВЕРКА РЕЖИМА И ДЕЙСТВИЕ ПО УМОЛЧАНИЮ 
-    // (Выполняется, если попали в пустое пространство ИЛИ в НЕПРОЗРАЧНУЮ грань Forma)
-
+    // C. ДЕЙСТВИЕ ПО УМОЛЧАНИЮ 
     if (mode === 'Across') {
-        // Режим Across: Создание Static Object 
         createFixObject(); 
     } else {
-        // Режимы Fix/Polar: Создание объекта в зависимости от режима
         handleCreation(); 
     }
 
@@ -1269,19 +1236,17 @@ renderer.domElement.addEventListener('pointermove', (event) => {
             isLongPress = false;
             longPressFired = false;
             
-            // --- НОВОЕ (ИСПРАВЛЕНИЕ 1): Если обнаружен сдвиг, и управление было отключено 
-            // --- для масштабирования/Long Press, то включаем OrbitControls для вращения сцены.
             if (objectToScale && !controls.enabled) {
                 isScalingUp = false;
                 isScalingDown = false;
                 objectToScale = null;
-                controls.enabled = true; // Разрешаем OrbitControls вращать сцену
+                controls.enabled = true;
             }
         }
     }
 });
 
-// 4. Context Menu / Right Click: Упрощено, только для предотвращения стандартного меню.
+// 4. Context Menu / Right Click
 document.addEventListener('contextmenu', (event) => {
     event.preventDefault(); 
 });
@@ -1292,14 +1257,13 @@ document.addEventListener('contextmenu', (event) => {
 const animate = () => {
     controls.update();
 
-// >>> МОДИФИЦИРОВАННАЯ ЛОГИКА: Непрерывное масштабирование
     if (objectToScale) {
         if (isScalingUp) {
             objectToScale.scale.multiplyScalar(SCALE_RATE);
             if (objectToScale.scale.x > MAX_SCALE) {
                 objectToScale.scale.set(MAX_SCALE, MAX_SCALE, MAX_SCALE);
             }
-        } else if (isScalingDown) { // <<< ПЛАВНОЕ УМЕНЬШЕНИЕ
+        } else if (isScalingDown) { 
             objectToScale.scale.multiplyScalar(SCALE_RATE_DOWN);
             if (objectToScale.scale.x < MIN_SCALE) {
                 objectToScale.scale.set(MIN_SCALE, MIN_SCALE, MIN_SCALE);
