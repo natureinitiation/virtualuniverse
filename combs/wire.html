@@ -411,6 +411,9 @@ const clearWorld = () => {
     formaCubeGroup = null;
 }
 
+    let lastTap = 0;
+const DOUBLE_TAP_DELAY = 300; // Максимальное время между касаниями в миллисекундах
+
 const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
     if (scene.children.filter(c => c.userData.isFormaCube).length === 0) {
         const initialPosition = position.clone();
@@ -1098,6 +1101,45 @@ const getIntersection = (event, objectsToCheck) => {
 renderer.domElement.addEventListener('pointerdown', (event) => {
     if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return; 
 
+// --- НОВАЯ ЛОГИКА: РАСПОЗНАВАНИЕ ДВОЙНОГО КАСАНИЯ (АНАЛОГ ПКМ) ---
+    const currentTime = new Date().getTime();
+    const timeSinceLastTap = currentTime - lastTap;
+    
+    // 1. Проверка на Double Tap
+    if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
+        
+        // Это второе быстрое касание. Сбрасываем таймер, чтобы избежать тройного касания.
+        lastTap = 0; 
+        
+        // 2. Выполняем Raycast для поиска объекта
+        const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
+        const intersects = getIntersection(event, allInteractableObjects);
+        
+        if (intersects.length > 0) { 
+            const nearestObject = intersects[0].object;
+            
+            // 3. Если Polarity/Static объект найден, начинаем УМЕНЬШЕНИЕ
+            if (nearestObject.userData.isPolarityObject) {
+                objectToScale = nearestObject;
+                
+                // Устанавливаем флаги УМЕНЬШЕНИЯ (аналог ПКМ)
+                isScalingDown = true; 
+                isScalingUp = false;
+
+                // Отключаем OrbitControls для управления объектом
+                controls.enabled = false;
+                
+                // Важно: Выходим из функции, чтобы не сработала логика Одинарного Касания/Long Press
+                return; 
+            }
+        }
+        
+    } else {
+        // Запоминаем время первого касания
+        lastTap = currentTime;
+    }
+    // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+    
     let shouldDisableControls = false;
     
     if (event.button === 0 || event.button === 2) { 
