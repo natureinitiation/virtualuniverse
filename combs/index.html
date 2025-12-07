@@ -84,7 +84,7 @@
             position: absolute;
             top: 100%; /* Помещаем меню под кнопку */
             left: 0;
-            margin-top: 40px; /* ИЗМЕНЕНО: 50px для отступа */
+            margin-top: 30px; /* ИЗМЕНЕНО: 50px для отступа */
             display: none; /* По умолчанию скрыто */
             flex-direction: column;
             align-items: flex-start;
@@ -146,8 +146,8 @@
             <div class="mode-menu-item" data-mode="Fix">Static</div>
             <div class="mode-menu-item" data-mode="Polar">Polar</div>
             <div class="mode-menu-item" data-mode="Delete">Delete</div>
-            <div class="mode-menu-item" data-mode="Across">Across</div> </div>
-    </div>
+            <div class="mode-menu-item" data-mode="Across">Across</div> 
+            <div class="mode-menu-item" data-mode="View">View</div> </div> </div>
     <div class="top-control polarity-top-control fore-button">Strike</div>
 
     <div class="control-button polarity-bottom-control go-button">Bypass</div>
@@ -223,7 +223,7 @@ function animateBackgroundColor(targetColor) {
     }
     updateBackgroundColor();
 }
-// setInterval(changeBackgroundColor, 100000); 
+setInterval(changeBackgroundColor, 100000); 
 
 // =========================================================================
 // --- IV. Логика Объектов Forma Base (Кубы) ---
@@ -1139,6 +1139,16 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
         lastTap = currentTime;
     }
     // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+
+// --- ДОБАВЛЕНИЕ: ОТКЛЮЧЕНИЕ ВСЕЙ ЛОГИКИ ИНТЕРАКЦИИ В РЕЖИМЕ 'View' ---
+    if (mode === 'View') {
+        controls.enabled = true; // Убеждаемся, что OrbitControls включены
+        lastTap = currentTime; // Обновляем, чтобы избежать конфликтов при быстром переключении
+        clearTimeout(longPressTimer);
+        isLongPress = false;
+        longPressFired = false;
+        return; 
+    }
     
     let shouldDisableControls = false;
     
@@ -1221,6 +1231,10 @@ renderer.domElement.addEventListener('pointerup', (event) => {
     if (longPressFired) {
         isLongPress = false;
         longPressFired = false;
+        return;
+    }
+// --- ДОБАВЛЕНИЕ: ОТКЛЮЧЕНИЕ СОЗДАНИЯ/УДАЛЕНИЯ В РЕЖИМЕ 'View' ---
+    if (mode === 'View') {
         return;
     }
 
