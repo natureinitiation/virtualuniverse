@@ -147,7 +147,7 @@
             <div class="mode-menu-item" data-mode="View">View</div> 
             
             <hr style="width:100%; border-color: rgba(255, 255, 255, 0.2); margin: 5px 0;"> 
-            <div class="mode-menu-item" id="texture-ad-toggle">Ad (Black)</div> 
+            <div class="mode-menu-item" id="texture-ad-toggle">Ad</div> 
         </div> 
     </div>
     <div class="top-control polarity-top-control fore-button">Strike</div>
@@ -179,8 +179,8 @@ const textureLoader = new THREE.TextureLoader(loadingManager);
 let qrlTextureBlack, fullTextTextureBlack, logoTextureBlack; 
 let qrlTextureWhite, fullTextTextureWhite, logoTextureWhite;
 
-// Режим отображения текстур: 'Black', 'White', 'Off'
-let textureMode = 'Black'; 
+// Режим отображения текстур: true (Ad On - текстуры видны), false (Ad Off - текстуры скрыты)
+let isAdModeActive = true; 
 
 // Загрузка всех 6 текстур (Менеджер будет ждать их все)
 qrlTextureBlack = textureLoader.load('texture_qrl_black.png'); 
@@ -277,12 +277,12 @@ function addInternalLights(group) {
     group.add(warmInternalLight);
 }
 const FACE_CONFIGS = [
-    { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) }, // X+ (Red)
-    { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) }, // X- (Green)
-    { color: 0x0000ff, pos: [0, CUBE_SIZE/2, 0], rot: [-Math.PI / 2, 0, 0], id: 2, normal: new THREE.Vector3(0, 1, 0) }, // Y+ (Blue) - LOGO
-    { color: 0xffff00, pos: [0, -CUBE_SIZE/2, 0], rot: [Math.PI / 2, 0, 0], id: 3, normal: new THREE.Vector3(0, -1, 0) }, // Y- (Yellow) - LOGO
-    { color: 0x00ffff, pos: [0, 0, CUBE_SIZE/2], rot: [0, 0, 0], id: 4, normal: new THREE.Vector3(0, 0, 1) }, // Z+ (Cyan) - QRL
-    { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) }, // Z- (Magenta) - FULL
+    { color: 0xff0000, pos: [CUBE_SIZE/2, 0, 0], rot: [0, Math.PI / 2, 0], id: 0, normal: new THREE.Vector3(1, 0, 0) }, // X+ (Red) - FULL BLACK
+    { color: 0x00ff00, pos: [-CUBE_SIZE/2, 0, 0], rot: [0, -Math.PI / 2, 0], id: 1, normal: new THREE.Vector3(-1, 0, 0) }, // X- (Green) - FULL WHITE
+    { color: 0x0000ff, pos: [0, CUBE_SIZE/2, 0], rot: [-Math.PI / 2, 0, 0], id: 2, normal: new THREE.Vector3(0, 1, 0) }, // Y+ (Blue) - LOGO BLACK (Top)
+    { color: 0xffff00, pos: [0, -CUBE_SIZE/2, 0], rot: [Math.PI / 2, 0, 0], id: 3, normal: new THREE.Vector3(0, -1, 0) }, // Y- (Yellow) - LOGO WHITE (Bottom)
+    { color: 0x00ffff, pos: [0, 0, CUBE_SIZE/2], rot: [0, 0, 0], id: 4, normal: new THREE.Vector3(0, 0, 1) }, // Z+ (Cyan) - QRL BLACK
+    { color: 0xff00ff, pos: [0, 0, -CUBE_SIZE/2], rot: [0, Math.PI, 0], id: 5, normal: new THREE.Vector3(0, 0, -1) }, // Z- (Magenta) - QRL WHITE
 ];
 
 const getTunnelFaceId = (normal) => {
@@ -301,19 +301,21 @@ const getTunnelFaceId = (normal) => {
 
 // --- НОВАЯ ФУНКЦИЯ: Определяет, какую текстуру применить на основе режима ---
 const getTextureForFace = (faceId) => {
-    if (textureMode === 'Off') return null;
-
-    const isBlackMode = textureMode === 'Black';
+    if (!isAdModeActive) return null; // Если Ad Off, возвращаем null
 
     switch (faceId) {
-        case 2: // Y+ (Blue) - Top Logo
-            return isBlackMode ? logoTextureBlack : logoTextureWhite;
-        case 3: // Y- (Yellow) - Bottom Logo
-            return isBlackMode ? logoTextureWhite : logoTextureBlack;
-        case 4: // Z+ (Cyan) - QRL
-            return isBlackMode ? qrlTextureBlack : qrlTextureWhite;
-        case 5: // Z- (Magenta) - FULL
-            return isBlackMode ? fullTextTextureBlack : fullTextTextureWhite;
+        case 2: // Y+ (Top Logo)
+            return logoTextureBlack;
+        case 3: // Y- (Bottom Logo)
+            return logoTextureWhite;
+        case 4: // Z+ (Front QRL)
+            return qrlTextureBlack;
+        case 5: // Z- (Back QRL)
+            return qrlTextureWhite; // QRL White напротив QRL Black
+        case 0: // X+ (Right Full)
+            return fullTextTextureBlack;
+        case 1: // X- (Left Full)
+            return fullTextTextureWhite; // Full White напротив Full Black
         default:
             return null;
     }
@@ -527,6 +529,9 @@ const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15
     // Применение начального режима текстур после создания куба
     updateCubeTextures(); 
     
+    // Установка начального текста кнопки Ad
+    textureAdToggle.textContent = isAdModeActive ? 'No Ad' : 'Ad'; 
+
     controls.target.set(camera.position.x, camera.position.y, camera.position.z - 15);
     controls.update();
 
@@ -1106,18 +1111,12 @@ wireButton.addEventListener('click', () => {
 });
 // ---------------------------------
 
-// --- НОВАЯ ФУНКЦИЯ: Переключение режима текстур ---
+// --- НОВАЯ ФУНКЦИЯ: Переключение режима текстур (Ad/No Ad) ---
 const toggleTextureMode = () => {
-    if (textureMode === 'Black') {
-        textureMode = 'White';
-        textureAdToggle.textContent = 'Ad (White)';
-    } else if (textureMode === 'White') {
-        textureMode = 'Off';
-        textureAdToggle.textContent = 'Ad (Off)';
-    } else { // textureMode === 'Off'
-        textureMode = 'Black';
-        textureAdToggle.textContent = 'Ad (Black)';
-    }
+    isAdModeActive = !isAdModeActive;
+    
+    // Обновление текста кнопки
+    textureAdToggle.textContent = isAdModeActive ? 'No Ad' : 'Ad'; 
     
     // Динамическое обновление текстур на гранях куба
     updateCubeTextures();
