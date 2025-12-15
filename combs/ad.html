@@ -299,7 +299,7 @@ const getTunnelFaceId = (normal) => {
     return bestMatchId;
 };
 
-// --- НОВАЯ ФУНКЦИЯ: Определяет, какую текстуру применить на основе режима ---
+// --- ФУНКЦИЯ: Определяет, какую текстуру применить на основе режима ---
 const getTextureForFace = (faceId) => {
     if (!isAdModeActive) return null; // Если Ad Off, возвращаем null
 
@@ -321,7 +321,7 @@ const getTextureForFace = (faceId) => {
     }
 };
 
-// --- createCubeFace: Использование getTextureForFace ---
+// --- createCubeFace: Создание грани ---
 const createCubeFace = (config) => {
     const faceGeometry = new THREE.PlaneGeometry(CUBE_SIZE, CUBE_SIZE);
     
@@ -334,7 +334,7 @@ const createCubeFace = (config) => {
         metalness: 1.0,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 1.0,
+        opacity: 1.0, // Исходная непрозрачность
         envMap: scene.background,
         map: initialTexture, // Применяем начальную текстуру
         blending: initialTexture ? THREE.MultiplyBlending : THREE.NormalBlending, 
@@ -352,14 +352,15 @@ const createCubeFace = (config) => {
     face.userData = {
         id: config.id,
         originalColor: config.color,
-        isTransparent: false,
+        isTransparent: false, // Исходное состояние - непрозрачное
         isFormaCubeFace: true 
     };
     return face;
 }
 // -----------------------------------------------------
 
-// --- НОВАЯ ФУНКЦИЯ: Обновление текстур после переключения режима ---
+// --- ФУНКЦИЯ: Обновление текстур после переключения режима Ad/No Ad ---
+// ЭТА ФУНКЦИЯ СОХРАНЯЕТ ЛОГИКУ ПРОЗРАЧНОСТИ
 const updateCubeTextures = () => {
     formaCubeFaces.forEach(face => {
         const faceId = face.userData.id;
@@ -378,7 +379,7 @@ const updateCubeTextures = () => {
             metalness: 1.0,
             side: THREE.DoubleSide,
             transparent: true,
-            // Переприменение логики прозрачности и Wireframe
+            // ГЛАВНОЕ: Opacity зависит ТОЛЬКО от isTransparent и isWireframeMode
             opacity: isWireframeMode ? (face.userData.isTransparent ? 0.3 : 1.0) : (face.userData.isTransparent ? 0.5 : 1.0),
             envMap: scene.background,
             map: newTexture,
@@ -434,7 +435,7 @@ const removeFaceFromCubeByNormal = (cubeGroup, worldNormal) => {
     return faceRemoved;
 }
 
-// --- createFormaCube: Удалена внутренняя логика определения текстуры ---
+// --- createFormaCube: Создание куба ---
 const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFIGS) => {
     const newFormaCubeGroup = new THREE.Group();
     newFormaCubeGroup.position.copy(position);
@@ -466,11 +467,11 @@ const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFI
             return;
         }
 
-        // Texture logic is now handled inside createCubeFace via getTextureForFace
         const face = createCubeFace(baseConfig); 
 
+        // Применение существующего состояния (если применимо)
         if (faceData.isTransparent) {
-             face.material.opacity = 0.5;
+             face.material.opacity = isWireframeMode ? 0.3 : 0.5;
              face.material.envMapIntensity = 0.5;
              face.userData.isTransparent = true;
         }
@@ -478,9 +479,6 @@ const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFI
         // Установка wireframe при создании, если режим активен
         if (isWireframeMode) {
              face.material.wireframe = true;
-             if (face.userData.isTransparent) {
-                face.material.opacity = 0.3;
-             }
         }
 
         newFormaCubeGroup.add(face);
@@ -539,7 +537,7 @@ const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15
 };
 
 /**
- * Выполняет логику переключения прозрачности грани Forma.
+ * Выполняет логику переключения прозрачности грани Forma (Long Press).
  */
 const handleTransparentToggleLogic = (face) => {
     // 1. Переключение логического состояния (Solid <-> Transparent)
@@ -554,12 +552,12 @@ const handleTransparentToggleLogic = (face) => {
         // Toggle to TRANSPARENT
         face.userData.isTransparent = true;
         face.material.envMapIntensity = 0.5;
-        face.material.opacity = 0.5;
+        face.material.opacity = 0.5; // Полупрозрачность 0.5
     }
     
     // 2. Визуальное переопределение для режима Wireframe
     if (isWireframeMode && face.userData.isTransparent) {
-        face.material.opacity = 0.3;
+        face.material.opacity = 0.3; // Специальная прозрачность для Wireframe
     }
     
     face.material.needsUpdate = true;
@@ -782,11 +780,10 @@ const toggleWireframe = () => {
             // Forma Cube Faces Materials
             if (object.userData.isFormaCubeFace) {
                 object.material.wireframe = isWireframeMode;
-                // При wireframe-режиме используем 0.3, если грань логически прозрачна
+                // Opacity depends on logical transparency state
                 if (isWireframeMode) {
                     object.material.opacity = object.userData.isTransparent ? 0.3 : 1.0;
                 } else {
-                    // При выходе из Wireframe-режима, возвращаем нормальные значения
                     object.material.opacity = object.userData.isTransparent ? 0.5 : 1.0;
                 }
                 object.material.needsUpdate = true;
@@ -1111,7 +1108,7 @@ wireButton.addEventListener('click', () => {
 });
 // ---------------------------------
 
-// --- НОВАЯ ФУНКЦИЯ: Переключение режима текстур (Ad/No Ad) ---
+// --- ФУНКЦИЯ: Переключение режима текстур (Ad/No Ad) ---
 const toggleTextureMode = () => {
     isAdModeActive = !isAdModeActive;
     
