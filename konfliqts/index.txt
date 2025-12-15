@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Эксперимент: Chart.js с Ручным Zoom</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212; 
+            color: white; 
+        }
+
+        #scroll-container {
+            height: 300px;
+            overflow-y: scroll;
+            border: 2px solid #007bff; /* Синяя рамка */
+            padding: 10px;
+            background-color: #222222; 
+            margin-top: 15px;
+            position: relative;
+        }
+
+        .content-filler {
+            height: 600px;
+            background: repeating-linear-gradient(45deg, #333333, #333333 10px, #222222 10px, #222222 20px);
+        }
+
+        #touch-button {
+            position: sticky; 
+            top: 10px; 
+            width: 80%;
+            margin: 10px auto;
+            padding: 15px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            border-radius: 5px;
+            user-select: none; 
+            transition: background-color 0.1s;
+        }
+
+        #chart-container {
+            margin-top: 40px;
+            padding: 15px;
+            background-color: #222222;
+            border-radius: 8px;
+            max-width: 600px; 
+            overflow-x: auto; /* Позволяем прокручивать график, когда он шире контейнера */
+        }
+        
+        #interactionChart {
+            background-color: #333;
+            height: 300px; /* Фиксированная высота */
+            /* Ширина будет управляться JavaScript для имитации Zoom */
+        }
+
+        /* Стиль для кнопок Zoom */
+        #zoom-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .zoom-btn {
+            padding: 5px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <h3>Демонстрация с Chart.js (Ручной Zoom)</h3>
+    <p>Счетчик кликов (Шаг +1): <span id="click-count">0</span></p>
+    <p>Счетчик долгих нажатий (Шаг +2): <span id="longpress-count">0</span></p>
+    <p>Счетчик прокруток (Диагональ): <span id="scroll-count">0</span></p>
+    
+    <p>Текущий статус: <span id="status-message">Ожидание действия...</span></p>
+
+    <div id="scroll-container">
+        <div id="touch-button">
+            Нажми/Коснись (Long Press для сброса прокрутки)
+        </div>
+        <div class="content-filler">
+            <p>Дополнительный контент для прокрутки</p>
+            <p>...</p>
+        </div>
+    </div>
+
+    <div id="chart-container">
+        
+        <div id="zoom-controls">
+            <button class="zoom-btn" id="zoom-in">+</button>
+            <button class="zoom-btn" id="zoom-out">-</button>
+            <span>Масштаб: <span id="zoom-level">100%</span></span>
+        </div>
+        
+        <h4>Накопительная статистика ввода</h4>
+        <canvas id="interactionChart"></canvas>
+    </div>
+
+    <script>
+        const scrollContainer = document.getElementById('scroll-container');
+        const button = document.getElementById('touch-button');
+        const statusMessage = document.getElementById('status-message');
+        const canvas = document.getElementById('interactionChart');
+        const zoomLevelSpan = document.getElementById('zoom-level');
+        const initialButtonText = 'Нажми/Коснись (Long Press для сброса прокрутки)';
+        
+        let totalActions = 0; 
+        let clickHistory = [0]; 
+        let longpressHistory = [0];
+        let scrollHistory = [0];
+        let labelsHistory = [0];
+        
+        let pressTimer;
+        let isScrolling = false; 
+        let isLongPress = false; 
+        const LONG_PRESS_THRESHOLD = 500; 
+
+        const INITIAL_CANVAS_WIDTH = 570; // Ширина контейнера графика
+        let manualZoomFactor = 1.0; // Текущий коэффициент масштабирования
+
+        function restoreButtonText() {
+            setTimeout(() => {
+                button.textContent = initialButtonText;
+            }, 300); 
+        }
+
+        // --- 4. ЛОГИКА ГРАФИКА (Конфигурация) ---
+        const ctx = canvas.getContext('2d');
+        let interactionChart = new Chart(ctx, {
+            type: 'line', 
+            data: {
+                labels: labelsHistory,
+                datasets: [{
+                    label: 'Клики (Шаг +1)',
+                    data: clickHistory,
+                    borderColor: 'rgba(255, 99, 132, 1)', 
+                    pointBackgroundColor: 'rgba(255, 99, 132, 1)', 
+                    borderWidth: 4, fill: false, 
+                    stepped: true 
+                }, {
+                    label: 'Долгие нажатия (Шаг +2)',
+                    data: longpressHistory,
+                    borderColor: 'rgba(54, 162, 235, 1)', 
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 4, fill: false, 
+                    stepped: true 
+                }, {
+                    label: 'Прокрутки (Плавная линия)',
+                    data: scrollHistory,
+                    borderColor: 'rgba(255, 206, 86, 1)',  
+                    pointBackgroundColor: 'rgba(255, 206, 86, 1)',
+                    borderWidth: 4, fill: false, 
+                    stepped: false,
+                    tension: 0.5 
+                }]
+            },
+            options: {
+                responsive: false, // Отключаем адаптивность, чтобы управлять шириной вручную
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { color: 'white', stepSize: 1 }, 
+                        title: { display: true, text: 'Накопленный Вес', color: 'white' } 
+                    },
+                    x: { 
+                        ticks: { color: 'white', autoSkip: false }, 
+                        title: { display: true, text: 'Порядковый номер действия', color: 'white' } ,
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: 'white' } },
+                    title: { display: true, text: 'Накопление ввода по времени', color: 'white' },
+                }
+            }
+        });
+
+        function applyZoom() {
+            // Вычисляем требуемую ширину графика
+            let newWidth = INITIAL_CANVAS_WIDTH * manualZoomFactor;
+            
+            // Если действий стало очень много (Smart Zoom), расширяем минимальную ширину графика
+            // Это гарантирует, что даже при минимальном зуме график не будет слишком сжат
+            const minWidthBasedOnActions = Math.max(INITIAL_CANVAS_WIDTH, totalActions * 30); 
+            
+            newWidth = Math.max(newWidth, minWidthBasedOnActions);
+
+            canvas.style.width = newWidth + 'px';
+            interactionChart.resize(); // Принудительное обновление Chart.js
+            zoomLevelSpan.textContent = `${Math.round(manualZoomFactor * 100)}%`;
+        }
+
+        function updateChart(actionType) {
+            
+            totalActions++;
+            
+            let currentClickWeight = clickHistory[clickHistory.length - 1] || 0;
+            let currentLongpressWeight = longpressHistory[longpressHistory.length - 1] || 0;
+            let currentScrollWeight = scrollHistory[scrollHistory.length - 1] || 0;
+            
+            if (actionType === 'click') {
+                currentClickWeight += 1;
+            }
+            if (actionType === 'longpress') {
+                currentLongpressWeight += 2;
+            }
+            if (actionType === 'scroll') {
+                currentScrollWeight += 1;
+            }
+            
+            document.getElementById('click-count').textContent = clickHistory.length - 1 + (actionType === 'click' ? 1 : 0);
+            document.getElementById('longpress-count').textContent = longpressHistory.length - 1 + (actionType === 'longpress' ? 1 : 0);
+            document.getElementById('scroll-count').textContent = scrollHistory.length - 1 + (actionType === 'scroll' ? 1 : 0);
+
+            // --- Добавление данных и меток ---
+            clickHistory.push(currentClickWeight);
+            longpressHistory.push(currentLongpressWeight);
+            scrollHistory.push(currentScrollWeight);
+            labelsHistory.push(totalActions);
+            
+            // --- SMART ZOOM (Динамическое растяжение) ---
+            applyZoom(); 
+        }
+
+        // --- 6. ЛОГИКА РУЧНОГО ZOOM (PINCH IN/OUT) ---
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            manualZoomFactor = Math.min(manualZoomFactor + 0.2, 5.0); // Макс. 500%
+            applyZoom();
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            manualZoomFactor = Math.max(manualZoomFactor - 0.2, 0.5); // Мин. 50%
+            applyZoom();
+        });
+
+
+        // --- 5. ОБРАБОТЧИКИ СОБЫТИЙ (без изменений) ---
+
+        button.addEventListener('touchstart', function(event) {
+            clearTimeout(pressTimer); 
+            isScrolling = false; 
+            isLongPress = false;
+            
+            button.textContent = "ERROR: Ожидание выбора..."; 
+            statusMessage.textContent = '⏳ Начато касание...';
+
+            pressTimer = setTimeout(() => {
+                isLongPress = true; 
+                button.textContent = "✅ Long Press OK!"; 
+                restoreButtonText(); 
+                updateChart('longpress'); 
+            }, LONG_PRESS_THRESHOLD);
+        });
+
+        button.addEventListener('touchend', function(event) {
+            clearTimeout(pressTimer);
+            if (isLongPress) {
+                event.preventDefault(); 
+            }
+        });
+
+        button.addEventListener('click', function(event) {
+            event.preventDefault(); 
+            
+            if (!isLongPress && !isScrolling) { 
+                statusMessage.textContent = '✅ Элемент выбран (Клик/Тап).';
+                
+                button.textContent = "✅ CLICK УСПЕХ!"; 
+                restoreButtonText(); 
+                updateChart('click'); 
+            }
+            
+            isLongPress = false;
+            isScrolling = false;
+        });
+
+        scrollContainer.addEventListener('scroll', function() {
+            if (scrollContainer.scrollTop > 0 && !isScrolling) {
+                isScrolling = true;
+                
+                if (statusMessage.textContent.includes('Начато касание')) {
+                    statusMessage.textContent = '⬆️ Прокрутка активирована. Событие выбора (Клик) ПРОПУЩЕНО.';
+                    button.textContent = "Скролл победил!";
+                    restoreButtonText(); 
+                    clearTimeout(pressTimer); 
+                    updateChart('scroll'); 
+                } else {
+                    updateChart('scroll');
+                }
+            }
+            
+            if (scrollContainer.scrollTop === 0) {
+                isScrolling = false; 
+            }
+        });
+
+        // Инициализация Chart.js и начального зума
+        interactionChart.update();
+        applyZoom(); 
+    </script>
+</body>
+</html>
