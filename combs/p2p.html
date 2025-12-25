@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Forma Polarity Universe (P2P)</title>
+    <title>Forma Polarity Universe (P2P Remote)</title>
     <link rel="manifest" href="manifest.json">
     <style>
         /* --- Общие стили --- */
@@ -160,9 +160,30 @@ import * as Y from 'https://esm.sh/yjs';
 import { WebrtcProvider } from 'https://esm.sh/y-webrtc';
 import { IndexeddbPersistence } from 'https://esm.sh/y-indexeddb';
 
-// --- P2P Setup ---
+// --- P2P Setup (UPDATED FOR REMOTE CONNECTION) ---
 const doc = new Y.Doc();
-const provider = new WebrtcProvider('forma-polarity-universe-room', doc, { signaling: ['wss://signaling.yjs.dev'] });
+
+// Используем список публичных сигнальных серверов + STUN серверы для обхода NAT
+const provider = new WebrtcProvider(
+    'forma-polarity-universe-room-v2', // Уникальное имя комнаты
+    doc, 
+    { 
+        signaling: [
+            'wss://signaling.yjs.dev',
+            'wss://y-webrtc-signaling-eu.herokuapp.com', 
+            'wss://y-webrtc-signaling-us.herokuapp.com'
+        ],
+        peerOpts: {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]
+            }
+        }
+    }
+);
+
 const persistence = new IndexeddbPersistence('forma-polarity-db', doc);
 
 // Shared Maps
