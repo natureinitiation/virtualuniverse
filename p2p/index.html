@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Peer-to-Peer Virtual Universe</title>
+    <title>Peer-to-Peer Universe (Synced)</title>
     <link rel="manifest" href="manifest.json">
     <style>
         /* --- Общие стили --- */
@@ -17,7 +17,7 @@
             background: #000;
         }
 
-        /* --- Стили кнопок (Forma Base) --- */
+        /* --- Стили кнопок --- */
         .control-button, .top-control, .mid-control {
             position: fixed;
             z-index: 1000;
@@ -42,38 +42,25 @@
         .fly-button-base { left: 50%; transform: translateX(-50%); }
 
         .top-control { top: 20px; }
-        /* load-button не используется, но оставлен для позиционирования */
         .load-button { left: 3%; transform: none; display: none; } 
-        /* help-new-button на месте reset-button */
         .help-new-button { left: 50%; transform: translateX(-50%); } 
-        /* save-button не используется, но оставлен для позиционирования */
         .save-button { right: 3%; left: auto; transform: none; display: none; } 
         
-        /* >>> ИЗМЕНЕННЫЙ СТИЛЬ ДЛЯ КНОПКИ WIRE (центр, ниже Help) */
         .wire-button { 
-            top: 60px; /* Сдвиг вниз */
+            top: 60px; 
             left: 50%; 
-            transform: translateX(-50%); /* Центрирование */
+            transform: translateX(-50%); 
         } 
-        /* <<< КОНЕЦ НОВОГО СТИЛЯ */
-
-        /* Help buttons (удалены), на их место - Slow/Fast */
-        .mid-control { top: 50%; transform: translateY(-50%); }
-        /* Удалены стили .slow-button-mid и .fast-button-mid */
         
+        .mid-control { top: 50%; transform: translateY(-50%); }
         .hidden { display: none; }
 
-        /* --- Стили кнопок (Space Polarity - адаптированы) --- */
         .polarity-top-control { position: fixed; top: 20px; z-index: 1000; }
         .polarity-bottom-control { position: fixed; bottom: 55px; z-index: 1000; }
         
-        /* fore-button */
         .fore-button { right: 3%; left: auto; }
+        .go-button { left: 50%; transform: translateX(-50%); bottom: 60px; } 
         
-        /* Прежние slow/fast кнопки удалены */
-        .go-button { left: 50%; transform: translateX(-50%); bottom: 60px; } /* Now called Bypass */ 
-        
-        /* >>> НОВЫЕ СТИЛИ ДЛЯ ВЫПАДАЮЩЕГО МЕНЮ */
         .mode-menu-container {
             position: fixed;
             top: 20px;
@@ -82,10 +69,10 @@
         }
         .mode-menu {
             position: absolute;
-            top: 100%; /* Помещаем меню под кнопку */
+            top: 100%;
             left: 0;
-            margin-top: 50px; /* ИЗМЕНЕНО: 50px для отступа */
-            display: none; /* По умолчанию скрыто */
+            margin-top: 50px;
+            display: none;
             flex-direction: column;
             align-items: flex-start;
             padding: 0;
@@ -95,7 +82,6 @@
             display: flex;
         }
         .mode-menu-item {
-            /* Наследуем стили control-button */
             width: auto;
             height: auto;
             font-family: monospace;
@@ -103,13 +89,30 @@
             font-weight: normal;
             color: rgba(255, 255, 255, 0.9) !important;
             cursor: pointer;
-            padding: 5px 0; /* 5px верх/низ - создает 10px отступ между элементами */
+            padding: 5px 0;
             background: none;
             border: none;
             text-align: left;
-            white-space: nowrap; /* Предотвращаем перенос строки */
+            white-space: nowrap;
         }
-        /* <<< КОНЕЦ НОВЫХ СТИЛЕЙ */
+
+        /* Индикатор подключения */
+        .connection-status {
+            position: fixed;
+            left: 3%;
+            top: 50%;
+            transform: translateY(-50%);
+            font-family: monospace;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.0);
+            padding: 8px 0px;
+            border-radius: 6px;
+            z-index: 2000;
+            pointer-events: none;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.0);
+        }
 
         .secret {
             position: fixed;
@@ -139,6 +142,8 @@
     <div class="top-control save-button">Save</div> 
     <input type="file" id="file-input" style="display: none;" accept=".json">
 
+    <div class="connection-status" id="status-indicator">🔴 Offline</div>
+
     <div class="mode-menu-container">
         <div class="top-control polarity-top-control mode-button" id="mode-dropdown-toggle">Static</div>
         
@@ -160,18 +165,19 @@ import * as Y from 'https://esm.sh/yjs';
 import { WebrtcProvider } from 'https://esm.sh/y-webrtc';
 import { IndexeddbPersistence } from 'https://esm.sh/y-indexeddb';
 
-// --- P2P Setup (UPDATED FOR REMOTE CONNECTION) ---
+// --- P2P Setup ---
 const doc = new Y.Doc();
 
-// Используем список публичных сигнальных серверов + STUN серверы для обхода NAT
 const provider = new WebrtcProvider(
-    'forma-polarity-universe-room-v2', // Уникальное имя комнаты
+    'forma-polarity-universe-room-v4', // Версия 4 для чистого старта
     doc, 
     { 
         signaling: [
             'wss://signaling.yjs.dev',
             'wss://y-webrtc-signaling-eu.herokuapp.com', 
-            'wss://y-webrtc-signaling-us.herokuapp.com'
+            'wss://y-webrtc-signaling-us.herokuapp.com',
+            'wss://signaling.uquid.com',
+            'wss://y-webrtc.fly.dev'
         ],
         peerOpts: {
             config: {
@@ -180,18 +186,37 @@ const provider = new WebrtcProvider(
                     { urls: 'stun:global.stun.twilio.com:3478' }
                 ]
             }
-        }
+        },
+        maxConns: 30
     }
 );
 
-const persistence = new IndexeddbPersistence('forma-polarity-db', doc);
+const persistence = new IndexeddbPersistence('forma-polarity-db-v4', doc);
 
-// Shared Maps
-const yObjects = doc.getMap('objects'); // Stores all cubes and shapes
-const yEvents = doc.getArray('events'); // Stores transient events like scatter
-
-// Local ID tracking to map Yjs keys to Three.js meshes
+const yObjects = doc.getMap('objects'); 
+const yEvents = doc.getArray('events'); 
 const objectMap = new Map(); 
+
+// --- DIAGNOSTICS LOGIC (ROBUST) ---
+const statusEl = document.getElementById('status-indicator');
+
+// Обновление статуса через polling, так как события могут теряться
+setInterval(() => {
+    // Получаем реальное количество подключенных пиров из провайдера
+    const peerCount = provider.room ? provider.room.peers.size : 0;
+    
+    if (!provider.connected) {
+        statusEl.innerHTML = '🔴 Offline';
+        statusEl.style.color = '#ff4444';
+    } else if (peerCount === 0) {
+        statusEl.innerHTML = '🟡 Waiting for peers...';
+        statusEl.style.color = '#ffcc00';
+    } else {
+        statusEl.innerHTML = `🟢 Peers: ${peerCount}`;
+        statusEl.style.color = '#44ff44';
+    }
+}, 2000);
+
 
 // --- P2P Helper Functions ---
 function generateUUID() {
@@ -212,7 +237,6 @@ renderer.shadowMap.enabled = false;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- II. Общие Настройки (Controls, Lights) ---
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.005;
@@ -221,7 +245,6 @@ controls.zoomSpeed = 0.5;
 controls.enablePan = true;
 controls.panSpeed = 0.3;
 
-// Lights 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
 const cameraLightGroup = new THREE.Group();
@@ -229,11 +252,9 @@ camera.add(cameraLightGroup);
 scene.add(camera);
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
 directionalLight.position.set(0, 0, 10);
-directionalLight.castShadow = false;
 cameraLightGroup.add(directionalLight);
 const ultramarineLight = new THREE.DirectionalLight(0x3f00ff, 1.0);
 ultramarineLight.position.set(0, 0, -10);
-ultramarineLight.castShadow = false;
 cameraLightGroup.add(ultramarineLight);
 
 const additionalLights = [
@@ -253,8 +274,7 @@ const colors = ['#006ee5', '#f84d54', '#000033', '#f84d54'];
 let currentColorIndex = 0;
 function changeBackgroundColor() {
     currentColorIndex = (currentColorIndex + 1) % colors.length;
-    const targetColor = new THREE.Color(colors[currentColorIndex]);
-    animateBackgroundColor(targetColor);
+    animateBackgroundColor(new THREE.Color(colors[currentColorIndex]));
 }
 function animateBackgroundColor(targetColor) {
     const startColor = scene.background.clone();
@@ -270,13 +290,10 @@ function animateBackgroundColor(targetColor) {
 }
 setInterval(changeBackgroundColor, 100000); 
 
-// =========================================================================
-// --- IV. Логика Объектов Forma Base (Кубы) ---
-// =========================================================================
+// --- IV. Forma Base Logic ---
 let formaCubeFaces = [];
 let formaCubeGroup = null;
 const CUBE_SIZE = 5;
-const STORAGE_KEY = 'formaCubeState'; 
 
 function addInternalLights(group) {
     const warmInternalLight = new THREE.PointLight(0xffaa00, 0.01, 0);
@@ -317,19 +334,11 @@ const createCubeFace = (config) => {
         opacity: 1.0,
         envMap: scene.background,
     });
-
     const face = new THREE.Mesh(faceGeometry, material);
-    face.castShadow = false;
-    face.receiveShadow = false;
     face.position.set(...config.pos);
     face.rotation.set(...config.rot);
     face.name = `face_${config.id}`;
-    face.userData = {
-        id: config.id,
-        originalColor: config.color,
-        isTransparent: false,
-        isFormaCubeFace: true 
-    };
+    face.userData = { id: config.id, originalColor: config.color, isTransparent: false, isFormaCubeFace: true };
     return face;
 }
 
@@ -345,222 +354,113 @@ const getCubeGroupAtPosition = (position) => {
     return targetCube;
 };
 
-const removeFaceFromCubeByNormal = (cubeGroup, worldNormal) => {
-    let faceRemoved = null;
-    cubeGroup.children.some(child => {
-        if (!child.isMesh) return false;
-
-        const faceNormalLocal = child.geometry.attributes.normal.array.slice(0, 3);
-        const faceNormalWorld = new THREE.Vector3(faceNormalLocal[0], faceNormalLocal[1], faceNormalLocal[2]).transformDirection(child.matrixWorld);
-
-        const inverseNormal = worldNormal.clone().negate();
-
-        if (faceNormalWorld.dot(inverseNormal) > 0.99) {
-            const index = formaCubeFaces.indexOf(child);
-            if (index > -1) formaCubeFaces.splice(index, 1);
-
-            cubeGroup.remove(child);
-            child.geometry.dispose();
-            faceRemoved = child;
-            return true;
-        }
-        return false;
-    });
-
-    if (cubeGroup.children.length === 1 && cubeGroup.children[0].isLight) {
-        scene.remove(cubeGroup);
-    }
-    return faceRemoved;
-}
-
 const createFormaCube = (position, excludeIndex = -1, facesToCreate = FACE_CONFIGS) => {
     const newFormaCubeGroup = new THREE.Group();
     newFormaCubeGroup.position.copy(position);
     newFormaCubeGroup.userData.isFormaCube = true;
 
     const excludeIds = new Set();
-    if (excludeIndex !== -1) {
-        excludeIds.add(excludeIndex);
-    }
+    if (excludeIndex !== -1) excludeIds.add(excludeIndex);
 
     if (facesToCreate === FACE_CONFIGS) {
         FACE_CONFIGS.forEach((baseConfig) => {
             const localNormal = baseConfig.normal;
-
             const neighborPosition = position.clone().add(localNormal.clone().multiplyScalar(CUBE_SIZE));
-
-            if (getCubeGroupAtPosition(neighborPosition)) {
-                excludeIds.add(baseConfig.id);
-            }
+            if (getCubeGroupAtPosition(neighborPosition)) excludeIds.add(baseConfig.id);
         });
     }
 
     const activeFaces = facesToCreate === FACE_CONFIGS ? FACE_CONFIGS : facesToCreate;
-
     activeFaces.forEach((faceData) => {
         const baseConfig = FACE_CONFIGS.find(f => f.id === faceData.id);
-
-        if (facesToCreate === FACE_CONFIGS && excludeIds.has(baseConfig.id)) {
-            return;
-        }
+        if (facesToCreate === FACE_CONFIGS && excludeIds.has(baseConfig.id)) return;
 
         const face = createCubeFace(baseConfig);
-
         if (faceData.isTransparent) {
              face.material.opacity = 0.5;
              face.material.envMapIntensity = 0.5;
              face.userData.isTransparent = true;
         }
-
-        // --- ДОБАВЛЕНИЕ: Установка wireframe при создании, если режим активен ---
         if (isWireframeMode) {
              face.material.wireframe = true;
-             // При создании, если грань прозрачна (0.5), то в Wireframe режиме она 0.3
-             if (face.userData.isTransparent) {
-                face.material.opacity = 0.3;
-             }
+             if (face.userData.isTransparent) face.material.opacity = 0.3;
         }
-        // ----------------------------------------------------------------------
-
-
         newFormaCubeGroup.add(face);
         formaCubeFaces.push(face);
     });
-
     scene.add(newFormaCubeGroup);
     addInternalLights(newFormaCubeGroup);
     return newFormaCubeGroup;
 };
 
-
-const clearWorld = () => {
-    scene.traverse(object => {
-        if (object.userData.isFormaCube) {
-            object.children.filter(child => child.isLight).forEach(light => object.remove(light));
-            scene.remove(object);
-            object.children.forEach(mesh => {
-                if (mesh.isMesh) {
-                    mesh.geometry.dispose();
-                    if (mesh.material && mesh.material.length) {
-                        mesh.material.forEach(m => m.dispose());
-                    } else if (mesh.material) {
-                        mesh.material.dispose();
-                    }
-                }
-            });
-        }
-    });
-    // Дополнительная очистка Polarity объектов
-    clearPolarityObjects();
-    formaCubeFaces = [];
-    formaCubeGroup = null;
-}
-
-    let lastTap = 0;
-const DOUBLE_TAP_DELAY = 300; // Максимальное время между касаниями в миллисекундах
+let lastTap = 0;
+const DOUBLE_TAP_DELAY = 300; 
 
 const initFormaCube = (position = new THREE.Vector3(0, 0, camera.position.z - 15)) => {
-    // P2P Check: Only init if we are the first or if yObjects is empty,
-    // otherwise wait for sync.
-    // For simplicity: We will let yObjects observer handle creation if valid.
-    // If empty after connection, we might create one. 
-    // Here we use the original logic but gated by P2P existence check in interaction.
-    
-    if (scene.children.filter(c => c.userData.isFormaCube).length === 0) {
-        // Original logic kept, but P2P observer will normally populate this.
-        // We will push to P2P if empty.
-        setTimeout(() => {
-            if (yObjects.size === 0) {
-                const initialPosition = position.clone();
-                const uuid = generateUUID();
-                yObjects.set(uuid, {
-                    type: 'forma',
-                    position: initialPosition.toArray(),
-                    excludeIndex: -1
-                });
-            }
-        }, 1000);
-    }
+    // Ждем синхронизации, но если пусто, создаем первый
+    setTimeout(() => {
+        if (yObjects.size === 0 && scene.children.filter(c => c.userData.isFormaCube).length === 0) {
+            const initialPosition = position.clone();
+            const uuid = generateUUID();
+            yObjects.set(uuid, {
+                type: 'forma',
+                position: initialPosition.toArray(),
+                excludeIndex: -1
+            });
+        }
+    }, 2000); 
     
     controls.target.set(camera.position.x, camera.position.y, camera.position.z - 15);
     controls.update();
-
-    updateButtonVisibility();
 };
 
-/**
- * [ИСПРАВЛЕННАЯ ФУНКЦИЯ] Выполняет логику переключения прозрачности грани Forma.
- * Использует isTransparent флаг, а не face.material.opacity для определения состояния.
- */
 const handleTransparentToggleLogic = (face) => {
-    // 1. Переключение логического состояния (Solid <-> Transparent)
     const wasTransparent = face.userData.isTransparent;
-    
     if (wasTransparent) {
-        // Toggle back to SOLID
         face.userData.isTransparent = false;
         face.material.envMapIntensity = 1.0;
-        // Устанавливаем базовую прозрачность (1.0)
         face.material.opacity = 1.0;
     } else {
-        // Toggle to TRANSPARENT
         face.userData.isTransparent = true;
         face.material.envMapIntensity = 0.5;
-        // Устанавливаем базовую прозрачность (0.5)
         face.material.opacity = 0.5;
     }
-    
-    // 2. Визуальное переопределение для режима Wireframe
-    if (isWireframeMode && face.userData.isTransparent) {
-        // Если Wireframe активен и грань ЛОГИЧЕСКИ прозрачна, используем 0.3 для лучшей видимости сетки.
-        face.material.opacity = 0.3;
-    }
-    // Если Wireframe активен, но грань ЛОГИЧЕСКИ Solid, ее opacity остается 1.0.
-    
+    if (isWireframeMode && face.userData.isTransparent) face.material.opacity = 0.3;
     face.material.needsUpdate = true;
 };
-
 
 const handleDeleteFormaFace = (faceToDelete) => {
     const obj = faceToDelete;
     const group = obj.parent;
+    
+    // Удаляем из массива faces
+    const index = formaCubeFaces.indexOf(obj);
+    if (index > -1) formaCubeFaces.splice(index, 1);
 
     if (group) {
         group.remove(obj);
         obj.geometry.dispose();
-    }
-    const index = formaCubeFaces.indexOf(obj);
-    if (index > -1) formaCubeFaces.splice(index, 1);
-
-    // Удаляем группу, если в ней остался только свет
-    if (group && group.children.filter(c => c.isMesh).length === 0 && group.children.filter(c => c.isLight).length > 0) {
-        scene.remove(group);
-        if (group === formaCubeGroup) formaCubeGroup = null;
+        
+        // Удаляем группу, если пусто
+        if (group.children.filter(c => c.isMesh).length === 0) {
+            scene.remove(group);
+            if (group === formaCubeGroup) formaCubeGroup = null;
+        }
     }
 };
-
 
 const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
     const obj = faceToDelete;
     const group = obj.parent;
-
     const faceNormal = intersection.face.normal.clone();
     faceNormal.transformDirection(obj.matrixWorld);
     faceNormal.normalize();
-
     const groupWorldPos = group.position.clone();
     const newGroupPosition = groupWorldPos.clone().add(faceNormal.clone().multiplyScalar(CUBE_SIZE));
 
-    if (getCubeGroupAtPosition(newGroupPosition)) {
-        console.log("Действие отменено: Позиция стыковки уже занята.");
-        return;
-    }
+    if (getCubeGroupAtPosition(newGroupPosition)) return;
 
     const excludeId = getTunnelFaceId(faceNormal);
-    
-    // --- P2P MODIFICATION START ---
-    // Instead of directly creating, we update Yjs.
-    // 1. Create new cube in Yjs
     const newUUID = generateUUID();
     yObjects.set(newUUID, {
         type: 'forma',
@@ -568,76 +468,31 @@ const handleDeleteAndCreateTunnel = (event, faceToDelete, intersection) => {
         excludeIndex: excludeId
     });
 
-    // 2. Remove the specific face from the *existing* cube.
-    // We do this by updating the existing cube's record to include the face in a 'removedFaces' list.
     const parentUUID = group.userData.uuid;
     if (parentUUID && yObjects.has(parentUUID)) {
         const parentData = yObjects.get(parentUUID);
-        const removedFaces = parentData.removedFaces || [];
-        // Determine the ID of the face to delete
+        // Добавляем ID грани в список удаленных для этого куба
+        const removedFaces = Array.isArray(parentData.removedFaces) ? [...parentData.removedFaces] : [];
         const faceId = obj.userData.id; 
+        
         if (!removedFaces.includes(faceId)) {
             removedFaces.push(faceId);
+            // КРИТИЧНО: Перезаписываем объект целиком, чтобы триггернуть 'update' в Yjs
             yObjects.set(parentUUID, { ...parentData, removedFaces: removedFaces });
         }
     } else {
-        // Fallback for local-only or non-synced objects (triggers visual removal immediately)
-        if (group) {
-            group.remove(obj);
-            obj.geometry.dispose();
-        }
-        const index = formaCubeFaces.indexOf(obj);
-        if (index > -1) formaCubeFaces.splice(index, 1);
+        // Fallback если нет сети
+        handleDeleteFormaFace(obj);
     }
-    
-    // Check neighbors for auto-removal (as per original logic)
-    FACE_CONFIGS.forEach(config => {
-        const localNormal = config.normal;
-        const neighborPosition = newGroupPosition.clone().add(localNormal.clone().multiplyScalar(CUBE_SIZE));
-        const neighborCube = getCubeGroupAtPosition(neighborPosition);
-
-        if (neighborCube && neighborCube.userData.uuid) {
-            const worldNormal = localNormal.clone().transformDirection(new THREE.Matrix4().makeTranslation(newGroupPosition.x, newGroupPosition.y, newGroupPosition.z));
-            // Calculate which face needs removal on the neighbor
-            // This requires mapping world normal back to face ID on neighbor
-            // For P2P simplicity, we trigger a scatter event or handle it via local logic that triggers Yjs updates
-            // But strict protocol says: Keep algorithms.
-            // We apply the physical removal locally if needed, but ideally we sync it.
-            // Let's use the local function 'removeFaceFromCubeByNormal' which modifies the scene.
-            // To sync this, we should really update Yjs.
-            const faceRemoved = removeFaceFromCubeByNormal(neighborCube, worldNormal);
-            if (faceRemoved && neighborCube.userData.uuid) {
-                 const nData = yObjects.get(neighborCube.userData.uuid);
-                 const nRemoved = nData.removedFaces || [];
-                 if (!nRemoved.includes(faceRemoved.userData.id)) {
-                     nRemoved.push(faceRemoved.userData.id);
-                     yObjects.set(neighborCube.userData.uuid, { ...nData, removedFaces: nRemoved });
-                 }
-            }
-        }
-    });
-    // --- P2P MODIFICATION END ---
 };
 
-const clearPolarityObjects = () => {
-    [...staticObjects, ...polarObjects].forEach(obj => scene.remove(obj));
-    staticObjects.length = 0;
-    polarObjects.length = 0;
-}
-
-
-// =========================================================================
-// --- V. Логика Объектов Space Polarity (Плаваюшие фигуры) ---
-// =========================================================================
+// --- V. Space Polarity Objects ---
 const secrets = ['slowly', 'focus', 'pinch', 'try', 'switch', 'scroll', 'scale', 'shift', 'move', 'tap', 'touch', 'click', 'right', 'button', 'mouse', 'screen', 'fly', 'double', 'follow', 'read', 'peer', 'rest', 'quick', 'hold', 'and', 'or', 'virtual', 'eternity', 'node', 'server', 'idea', 'word', 'victory', 'release', 'keep', 'calm', 'relax', 'rest', 'leave', 'chance', 'mine', 'token', 'visual', 'reality', 'space', 'polarity', 'keep', 'mind', 'think', 'dream', 'fantasy', 'trade', 'change', 'place', 'invest', 'look', 'ask', 'find', 'sign', 'type', 'play', 'experiment', 'phenomena', 'coordinate', 'carry', 'spend', 'accept', 'bring', 'transfer', 'take', 'sell', 'market', 'stay', 'well', 'top', 'hit'];
 const staticObjects = [];
 const polarObjects = [];
 const activePoints = [];
-let mode = 'Fix'; // Режим создания/удаления Polarity объектов
-
-// --- ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ РЕЖИМА WIREFRAME ---
+let mode = 'Fix'; 
 let isWireframeMode = false;
-// --------------------------------------------------------
 
 const GEOMETRY_TYPES = [
     { name: 'Box', creator: (size) => new THREE.BoxGeometry(size, size, size) },
@@ -661,159 +516,120 @@ const createGeometry = (size, typeName = null) => {
     return { geometry: type.creator(size), typeName: name };
 };
 
-/**
- * Объект создается статически перед камерой.
- */
-const createFixObject = (data = {}) => { // data={} оставлен для совместимости
+// --- ИСПРАВЛЕНИЕ: Функция создания Fix использует переданные данные для идентичности ---
+const createFixObject = (data = {}) => { 
+    // Используем данные из data (от P2P), иначе генерируем локально
     const size = data.size || (Math.random() * 1 + 2);
+    const color = data.color !== undefined ? data.color : (Math.random() * 0xffffff);
+    const roughness = data.roughness !== undefined ? data.roughness : (Math.random() * 0.8 + 0.1);
+    const metalness = data.metalness !== undefined ? data.metalness : (Math.random() * 0.8 + 0.2);
+    const opacity = data.opacity !== undefined ? data.opacity : (Math.random() * 0.8 + 0.4);
+    
     const { geometry, typeName } = createGeometry(size, data.typeName);
     const material = new THREE.MeshStandardMaterial({
-        color: data.color !== undefined ? data.color : (Math.random() * 0xffffff),
-        roughness: data.roughness !== undefined ? data.roughness : (Math.random() * 0.8 + 0.1),
-        metalness: data.metalness !== undefined ? data.metalness : (Math.random() * 0.8 + 0.2),
-        opacity: data.opacity !== undefined ? data.opacity : (Math.random() * 0.8 + 0.4),
+        color: color,
+        roughness: roughness,
+        metalness: metalness,
+        opacity: opacity,
         transparent: true,
         side: THREE.DoubleSide, 
-        wireframe: isWireframeMode, // <<< ДОБАВЛЕНО
+        wireframe: isWireframeMode,
     });
     const mesh = new THREE.Mesh(geometry, material);
     
-    // --- Логика позиционирования (Space Polarity) ---
     if (data.position) {
         mesh.position.fromArray(data.position);
+    } 
+    // Вращение берем из data, если есть
+    if (data.rotation) {
+        mesh.rotation.fromArray(data.rotation);
     } else {
-        const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction);
-        mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10)));
+        mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
     }
-    mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-    // ------------------------------------------------
 
     mesh.userData = {
-        scatterVelocity: null, 
-        scatterStart: null,
-        scatterDuration: 1.0,
-        scatterDeceleration: 0.05,
-        isPolarityObject: true,
-        isPolar: false, 
-        size: size, 
-        typeName: typeName,
-        // Default physical properties
-        velocity: new THREE.Vector3(0, 0, 0),
-        rotationSpeed: new THREE.Vector3(0, 0, 0),
-        mass: 1, 
-        polarity: 0,
+        scatterVelocity: null, scatterStart: null, scatterDuration: 1.0, scatterDeceleration: 0.05,
+        isPolarityObject: true, isPolar: false, size: size, typeName: typeName,
+        velocity: new THREE.Vector3(0, 0, 0), rotationSpeed: new THREE.Vector3(0, 0, 0),
+        mass: 1, polarity: 0,
     };
-
-    // --- ДОБАВЛЕНИЕ: Сохранение оригинальной прозрачности для Wireframe ---
     mesh.material.userData.originalOpacity = mesh.material.opacity;
-    if (isWireframeMode) {
-        mesh.material.opacity = 0.7; // Визуальное переопределение
-    }
-    // ----------------------------------------------------------------------
+    if (isWireframeMode) mesh.material.opacity = 0.7;
     
     scene.add(mesh);
     staticObjects.push(mesh);
-    return mesh; // P2P: Return mesh for UUID assignment
+    return mesh; 
 };
 
-/**
- * Объект создается с нулевой скоростью перед камерой.
- */
-const createPolarObject = (data = {}) => { // data={} оставлен для совместимости
+// --- ИСПРАВЛЕНИЕ: Функция создания Polar использует переданные данные ---
+const createPolarObject = (data = {}) => { 
     const size = data.size || (Math.random() * 1.0 + 2.0);
+    const color = data.color !== undefined ? data.color : (Math.random() * 0xffffff);
+    const roughness = data.roughness !== undefined ? data.roughness : Math.random();
+    const metalness = data.metalness !== undefined ? data.metalness : Math.random();
+    const opacity = data.opacity !== undefined ? data.opacity : (Math.random() * 0.5 + 0.5);
+
     const { geometry, typeName } = createGeometry(size, data.typeName);
     const material = new THREE.MeshStandardMaterial({
-        color: data.color !== undefined ? data.color : (Math.random() * 0xffffff),
-        roughness: data.roughness !== undefined ? data.roughness : Math.random(),
-        metalness: data.metalness !== undefined ? data.metalness : Math.random(),
-        opacity: data.opacity !== undefined ? data.opacity : (Math.random() * 0.5 + 0.5),
+        color: color,
+        roughness: roughness,
+        metalness: metalness,
+        opacity: opacity,
         transparent: true,
         side: THREE.DoubleSide, 
-        wireframe: isWireframeMode, // <<< ДОБАВЛЕНО
+        wireframe: isWireframeMode,
     });
     const mesh = new THREE.Mesh(geometry, material);
 
-    // --- Логика позиционирования (Space Polarity) ---
     if (data.position) {
         mesh.position.fromArray(data.position);
-    } else {
-        const direction = new THREE.Vector3();
-        camera.getWorldDirection(direction);
-        mesh.position.copy(camera.position.clone().add(direction.multiplyScalar(10)));
     }
-    // ------------------------------------------------
-    
-    mesh.userData = {
-        velocity: new THREE.Vector3(0, 0, 0), 
-        rotationSpeed: new THREE.Vector3((Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05),
-        mass: data.mass !== undefined ? data.mass : (Math.random() * 5 + 1),
-        polarity: data.polarity !== undefined ? data.polarity : (Math.random() < 0.5 ? 1 : -1),
-        scatterVelocity: null,
-        scatterStart: null,
-        scatterDuration: 1.0,
-        scatterDeceleration: 0.05,
-        isPolarityObject: true,
-        isPolar: true, 
-        size: size, 
-        typeName: typeName, 
-    };
 
-    // --- ДОБАВЛЕНИЕ: Сохранение оригинальной прозрачности для Wireframe ---
+    // Восстанавливаем физику из данных (чтобы полет был идентичен)
+    const velocity = data.velocity ? new THREE.Vector3().fromArray(data.velocity) : new THREE.Vector3(0,0,0);
+    const rotationSpeed = data.rotationSpeed ? new THREE.Vector3().fromArray(data.rotationSpeed) : new THREE.Vector3(0,0,0);
+    const polarity = data.polarity !== undefined ? data.polarity : (Math.random() < 0.5 ? 1 : -1);
+    const mass = data.mass !== undefined ? data.mass : (Math.random() * 5 + 1);
+
+    mesh.userData = {
+        velocity: velocity, 
+        rotationSpeed: rotationSpeed,
+        mass: mass,
+        polarity: polarity,
+        scatterVelocity: null, scatterStart: null, scatterDuration: 1.0, scatterDeceleration: 0.05,
+        isPolarityObject: true, isPolar: true, size: size, typeName: typeName, 
+    };
     mesh.material.userData.originalOpacity = mesh.material.opacity;
-    if (isWireframeMode) {
-        mesh.material.opacity = 0.7; // Визуальное переопределение
-    }
-    // ----------------------------------------------------------------------
+    if (isWireframeMode) mesh.material.opacity = 0.7;
 
     scene.add(mesh);
     polarObjects.push(mesh);
-    return mesh; // P2P Return
+    return mesh;
 };
 
-/**
- * --- ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ WIREFRAME ---
- */
 const toggleWireframe = () => {
     isWireframeMode = !isWireframeMode;
     wireButton.textContent = isWireframeMode ? 'Solid' : 'Wire';
-
     scene.traverse(object => {
         if (object.isMesh && object.material) {
-            // Forma Cube Faces Materials
             if (object.userData.isFormaCubeFace) {
                 object.material.wireframe = isWireframeMode;
-                // При wireframe-режиме используем 0.3, если грань логически прозрачна
                 if (isWireframeMode) {
                     object.material.opacity = object.userData.isTransparent ? 0.3 : 1.0;
                 } else {
-                    // При выходе из Wireframe-режима, возвращаем нормальные значения
                     object.material.opacity = object.userData.isTransparent ? 0.5 : 1.0;
                 }
                 object.material.needsUpdate = true;
-            }
-            
-            // Polarity Objects Materials
-            else if (object.userData.isPolarityObject) {
+            } else if (object.userData.isPolarityObject) {
                 object.material.wireframe = isWireframeMode;
-                
-                // Сохраняем логику прозрачности для Polarity
-                if (!object.material.userData.originalOpacity) {
-                    object.material.userData.originalOpacity = object.material.opacity;
-                }
-                
+                if (!object.material.userData.originalOpacity) object.material.userData.originalOpacity = object.material.opacity;
                 object.material.opacity = isWireframeMode ? 0.7 : object.material.userData.originalOpacity;
                 object.material.needsUpdate = true;
             }
         }
     });
 };
-// --------------------------------------------------------
 
-
-/**
- * Выполняет эффект рассеивания (scatter) для Polarity/Static объекта.
- */
 const applyScatterEffect = (obj) => {
     const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2).normalize();
     const speed = 15 + Math.random() * 10;
@@ -823,9 +639,7 @@ const applyScatterEffect = (obj) => {
     obj.rotation.x += Math.random() * 0.5;
     obj.rotation.y += Math.random() * 0.5;
     obj.rotation.z += Math.random() * 0.5;
-
-    const wordSpawnProbability = 0.3;
-    if (Math.random() < wordSpawnProbability) {
+    if (Math.random() < 0.3) {
         const t = 0.5;
         const wordPos3D = obj.position.clone().add(scatterVelocity.clone().multiplyScalar(t * 1.0));
         const wordPos2D = wordPos3D.project(camera);
@@ -835,30 +649,48 @@ const applyScatterEffect = (obj) => {
     }
 }
 
-/**
- * Создает новый Polarity Object в зависимости от текущего режима (Fix/Polar).
- */
+// --- ИСПРАВЛЕНИЕ: Генерируем все параметры ЗДЕСЬ и отправляем в сеть ---
 const handleCreation = () => {
-    // --- P2P MODIFICATION ---
     const uuid = generateUUID();
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
     const pos = camera.position.clone().add(direction.multiplyScalar(10)).toArray();
+    
+    // Общие случайные параметры для синхронизации
+    const commonProps = {
+        color: Math.random() * 0xffffff,
+        roughness: Math.random(),
+        metalness: Math.random(),
+        opacity: Math.random() * 0.5 + 0.5,
+        mass: Math.random() * 5 + 1,
+        // Для Fix объектов
+        rotation: [Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI],
+    };
 
     if (mode === 'Fix') { 
-        yObjects.set(uuid, {
-            type: 'fix',
-            position: pos
+        yObjects.set(uuid, { 
+            type: 'fix', 
+            position: pos,
+            ...commonProps
         });
     } else if (mode === 'Polar') {
-        yObjects.set(uuid, {
-            type: 'polar',
-            position: pos
+        // Для Polar генерируем скорости здесь
+        const polarity = Math.random() < 0.5 ? 1 : -1;
+        // Начальная скорость (если нужно, чтобы он летел) - пока 0, физика сама разгоняет если есть interaction
+        // Или можно задать начальный импульс
+        const velocity = new THREE.Vector3(0,0,0).toArray(); 
+        const rotationSpeed = [(Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05, (Math.random() - 0.5) * 0.05];
+
+        yObjects.set(uuid, { 
+            type: 'polar', 
+            position: pos,
+            velocity: velocity,
+            rotationSpeed: rotationSpeed,
+            polarity: polarity,
+            ...commonProps
         });
     }
-    // Note: The Observer will call createFixObject/createPolarObject
 };
-
 
 function createSecret(x, y) {
     const secret = document.createElement('a');
@@ -872,38 +704,16 @@ function createSecret(x, y) {
         padding: 10px; border-radius: 8px; pointer-events: auto; z-index: 1000;
     `;
     document.body.appendChild(secret);
-
     const rect = secret.getBoundingClientRect();
     const minWordDistance = Math.max(rect.width, rect.height) + 20;
     if (isWordOccupied(x, y, minWordDistance)) {
         secret.remove();
         return;
     }
-
     activePoints.push({ x, y, timestamp: Date.now(), isWord: true });
-
-    setTimeout(() => {
-        secret.style.opacity = 1;
-        secret.style.transform = 'translate(-50%, -50%) scale(1)';
-    }, 10);
-
-    setTimeout(() => {
-        secret.style.opacity = 0;
-        secret.style.transform = 'translate(-50%, -50%) scale(0.8)';
-    }, 8000);
-
-    setTimeout(() => {
-        secret.remove();
-        const index = activePoints.findIndex(p => p.x === x && p.y === y && p.isWord);
-        if (index !== -1) activePoints.splice(index, 1);
-    }, 8500);
-
-    secret.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-        if (!e.ctrlKey && !e.metaKey && secret.href === window.location.href + '#') {
-            secret.remove();
-        }
-    });
+    setTimeout(() => { secret.style.opacity = 1; secret.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
+    setTimeout(() => { secret.style.opacity = 0; secret.style.transform = 'translate(-50%, -50%) scale(0.8)'; }, 8000);
+    setTimeout(() => { secret.remove(); const index = activePoints.findIndex(p => p.x === x && p.y === y && p.isWord); if (index !== -1) activePoints.splice(index, 1); }, 8500);
 }
 
 function isWordOccupied(x, y, minDistance) {
@@ -916,28 +726,22 @@ function isWordOccupied(x, y, minDistance) {
     });
 }
 
-
 const handleDeletePolarity = (event) => {
     const mouse = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1);
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects([...staticObjects, ...polarObjects]); 
-    
     if (intersects.length > 0) {
         const selectedObject = intersects[0].object;
-        
-        // --- P2P MODIFICATION ---
         if (selectedObject.userData.uuid) {
             yObjects.delete(selectedObject.userData.uuid);
         } else {
-            // Fallback for local
             scene.remove(selectedObject);
             const staticIndex = staticObjects.indexOf(selectedObject);
             if (staticIndex > -1) staticObjects.splice(staticIndex, 1);
             const polarIndex = polarObjects.indexOf(selectedObject);
             if (polarIndex > -1) polarObjects.splice(polarIndex, 1);
         }
-        
         return true;
     }
     return false;
@@ -945,7 +749,6 @@ const handleDeletePolarity = (event) => {
 
 const applyCameraRepulsion = () => {
     if (mode === 'Across') return;
-
     const repulsionDistance = 15;
     const repulsionStrength = 0.05;
     [...staticObjects, ...polarObjects].forEach((obj) => {
@@ -953,7 +756,6 @@ const applyCameraRepulsion = () => {
         if (distance < repulsionDistance) {
             const direction = obj.position.clone().sub(camera.position).normalize();
             const force = direction.multiplyScalar((repulsionDistance - distance) * repulsionStrength);
-            
             if (obj.userData.isPolar) { 
                 obj.userData.velocity.add(force);
             } else if (!obj.userData.scatterVelocity) {
@@ -962,6 +764,7 @@ const applyCameraRepulsion = () => {
         }
     });
 };
+
 const handlePolarInteractions = () => {
     for (let i = 0; i < polarObjects.length; i++) {
         for (let j = i + 1; j < polarObjects.length; j++) {
@@ -986,13 +789,8 @@ const handlePolarAndStaticInteractions = () => {
             if (distance < 15) {
                 const direction = staticObj.position.clone().sub(polarObj.position).normalize();
                 const repulsionForce = direction.multiplyScalar(0.005 * (8 - distance));
-                if (!staticObj.userData.scatterVelocity) {
-                    staticObj.position.add(repulsionForce);
-                }
+                if (!staticObj.userData.scatterVelocity) staticObj.position.add(repulsionForce);
                 polarObj.userData.velocity.add(repulsionForce.clone().multiplyScalar(-1 / polarObj.userData.mass));
-                polarObj.userData.isRotating = true;
-            } else {
-                polarObj.userData.isRotating = false;
             }
         });
     });
@@ -1004,9 +802,7 @@ const applyDeceleration = () => {
         if (obj.userData.velocity.length() > 0) {
             const deceleration = 0.003;
             obj.userData.velocity.multiplyScalar(1 - deceleration);
-            if (obj.userData.velocity.length() < 0.001) {
-                obj.userData.velocity.set(0, 0, 0);
-            }
+            if (obj.userData.velocity.length() < 0.001) obj.userData.velocity.set(0, 0, 0);
         }
     });
 };
@@ -1019,11 +815,7 @@ const SCALE_RATE_DOWN = 0.995;
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 1000;
 
-
-// =========================================================================
-// --- VI. Управление Камерой и Кнопки ---
-// =========================================================================
-
+// --- VI. Camera & Buttons ---
 let isFlyingBase = false; 
 let currentSpeed = 0.0;
 const MAX_SPEED = 0.3;
@@ -1037,8 +829,6 @@ const moveCamera = (directionVector, distance) => {
     controls.update();
 };
 
-
-// Полет Polarity
 let targetVelocity = new THREE.Vector3();
 const accelerationPolarity = 0.001;
 const decelerationPolarity = 0.01;
@@ -1046,29 +836,16 @@ let isMovingForward = true;
 const cameraVelocity = new THREE.Vector3();
 let isMovingPolarity = false;
 
-// --- Кнопки Forma Base ---
 const closerButton = document.querySelector('.closer-button');
 const furtherButton = document.querySelector('.further-button');
 const flyButtonBase = document.querySelector('.fly-button-base'); 
-
-// Кнопки Polarity
-const goButton = document.querySelector('.go-button'); // Теперь "Bypass"
+const goButton = document.querySelector('.go-button');
 const foreButton = document.querySelector('.fore-button');
-
-// --- ССЫЛКА НА КНОПКУ WIRE ---
 const wireButton = document.querySelector('.wire-button');
-// -----------------------------------
 
-// >>> ЭЛЕМЕНТЫ ДЛЯ МЕНЮ
 const modeDropdownToggle = document.getElementById('mode-dropdown-toggle');
 const modeMenuList = document.getElementById('mode-menu-list');
 const modeMenuItems = document.querySelectorAll('.mode-menu-item');
-// <<< КОНЕЦ НОВЫХ ЭЛЕМЕНТОВ
-
-
-const updateButtonVisibility = () => {
-    //
-};
 
 closerButton.addEventListener('click', () => {
     const direction = new THREE.Vector3();
@@ -1093,9 +870,6 @@ flyButtonBase.addEventListener('click', () => {
     }
 });
 
-
-// --- ЛОГИКА ВЫПАДАЮЩЕГО МЕНЮ ---
-
 modeDropdownToggle.addEventListener('click', (event) => {
     event.stopPropagation();
     modeMenuList.classList.toggle('show');
@@ -1103,11 +877,8 @@ modeDropdownToggle.addEventListener('click', (event) => {
 
 modeMenuItems.forEach(item => {
     item.addEventListener('click', () => {
-        const newMode = item.getAttribute('data-mode');
-        mode = newMode; 
-        
+        mode = item.getAttribute('data-mode'); 
         modeDropdownToggle.textContent = item.textContent; 
-        
         modeMenuList.classList.remove('show');
     });
 });
@@ -1118,15 +889,7 @@ document.addEventListener('click', (event) => {
     }
 });
 
-
-// --- Обработчик для КНОПКИ WIRE ---
-wireButton.addEventListener('click', () => {
-    toggleWireframe();
-});
-// ---------------------------------
-
-
-// --- Кнопки Polarity ---
+wireButton.addEventListener('click', toggleWireframe);
 
 const adjustCameraFocus = () => {
     const direction = new THREE.Vector3();
@@ -1139,18 +902,13 @@ const adjustCameraFocus = () => {
     targetVelocity.copy(direction.multiplyScalar(isMovingForward ? 1.0 : -1.0));
 };
 
-goButton.addEventListener('click', () => { // Кнопка Bypass
+goButton.addEventListener('click', () => { 
     isMovingPolarity = !isMovingPolarity;
     goButton.innerText = isMovingPolarity ? "Stop" : "Bypass"; 
-    // Sync Event: Bypass
     yEvents.push([{ type: 'bypass' }]);
-    
     if (isMovingPolarity) {
         adjustCameraFocus();
-        if (isFlyingBase) {
-            isFlyingBase = false;
-            flyButtonBase.textContent = 'Fly';
-        }
+        if (isFlyingBase) { isFlyingBase = false; flyButtonBase.textContent = 'Fly'; }
     } else {
         targetVelocity.set(0, 0, 0);
     }
@@ -1164,7 +922,6 @@ const performCameraLunge = () => {
     const duration = 0.5;
     const peakTime = 0.25;
     let startTime = performance.now();
-
     const scatterObjects = () => {
         const scatterRadius = 15;
         const scatterSpeed = 20;
@@ -1180,7 +937,6 @@ const performCameraLunge = () => {
             }
         });
     };
-
     const animateLunge = () => {
         const elapsed = (performance.now() - startTime) / 1000;
         const t = Math.min(elapsed / duration, 1);
@@ -1202,23 +958,17 @@ const performCameraLunge = () => {
 
 foreButton.addEventListener('click', () => {
     performCameraLunge();
-    // Sync Event: Scatter (via Lunge)
     yEvents.push([{ type: 'scatter' }]);
 });
 
-
-// =========================================================================
-// --- VII. Логика Взаимодействия (Объединенная и ИСПРАВЛЕННАЯ) ---
-// =========================================================================
-
+// --- VII. Interactions ---
 let longPressTimer;
 const LONG_PRESS_DELAY = 700;
 let isLongPress = false;
 let longPressFired = false;
-const MOVE_THRESHOLD = 30; // <<< ИСПРАВЛЕНИЕ: УВЕЛИЧЕН ПОРОГ ДЛЯ НАДЕЖНОСТИ LONG PRESS
+const MOVE_THRESHOLD = 30; 
 let pointerDownPosition = new THREE.Vector2();
 
-// Общая функция для Raycasting
 const getIntersection = (event, objectsToCheck) => {
     const clientX = event.clientX;
     const clientY = event.clientY;
@@ -1228,53 +978,33 @@ const getIntersection = (event, objectsToCheck) => {
     return raycaster.intersectObjects(objectsToCheck, false); 
 };
 
-// 1. Pointer Down (Для Long Press и активации масштабирования)
 renderer.domElement.addEventListener('pointerdown', (event) => {
     if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return; 
 
-// --- НОВАЯ ЛОГИКА: РАСПОЗНАВАНИЕ ДВОЙНОГО КАСАНИЯ (АНАЛОГ ПКМ) ---
     const currentTime = new Date().getTime();
     const timeSinceLastTap = currentTime - lastTap;
     
-    // 1. Проверка на Double Tap
     if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
-        
-        // Это второе быстрое касание. Сбрасываем таймер, чтобы избежать тройного касания.
         lastTap = 0; 
-        
-        // 2. Выполняем Raycast для поиска объекта
         const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
         const intersects = getIntersection(event, allInteractableObjects);
-        
         if (intersects.length > 0) { 
             const nearestObject = intersects[0].object;
-            
-            // 3. Если Polarity/Static объект найден, начинаем УМЕНЬШЕНИЕ
             if (nearestObject.userData.isPolarityObject) {
                 objectToScale = nearestObject;
-                
-                // Устанавливаем флаги УМЕНЬШЕНИЯ (аналог ПКМ)
                 isScalingDown = true; 
                 isScalingUp = false;
-
-                // Отключаем OrbitControls для управления объектом
                 controls.enabled = false;
-                
-                // Важно: Выходим из функции, чтобы не сработала логика Одинарного Касания/Long Press
                 return; 
             }
         }
-        
     } else {
-        // Запоминаем время первого касания
         lastTap = currentTime;
     }
-    // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 
-// --- ДОБАВЛЕНИЕ: ОТКЛЮЧЕНИЕ ВСЕЙ ЛОГИКИ ИНТЕРАКЦИИ В РЕЖИМЕ 'View' ---
     if (mode === 'View') {
-        controls.enabled = true; // Убеждаемся, что OrbitControls включены
-        lastTap = currentTime; // Обновляем, чтобы избежать конфликтов при быстром переключении
+        controls.enabled = true;
+        lastTap = currentTime; 
         clearTimeout(longPressTimer);
         isLongPress = false;
         longPressFired = false;
@@ -1282,147 +1012,110 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
     }
     
     let shouldDisableControls = false;
-    
     if (event.button === 0 || event.button === 2) { 
         const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
         const intersects = getIntersection(event, allInteractableObjects);
-
         if (intersects.length > 0) { 
             const nearestObject = intersects[0].object;
-
             if (nearestObject.userData.isPolarityObject) {
                 objectToScale = nearestObject;
                 shouldDisableControls = true;
-                
                 if (event.button === 0) {
-                    isScalingUp = true; 
-                    isScalingDown = false;
+                    isScalingUp = true; isScalingDown = false;
                 } else if (event.button === 2) {
-                    isScalingDown = true; 
-                    isScalingUp = false;
+                    isScalingDown = true; isScalingUp = false;
                 }
             }
         }
     }
-    
     controls.enabled = !shouldDisableControls; 
-
     longPressFired = false;
     pointerDownPosition.set(event.clientX, event.clientY);
-
     isLongPress = false;
     clearTimeout(longPressTimer);
-
     longPressTimer = setTimeout(() => {
         const currentUpPosition = new THREE.Vector2(event.clientX, event.clientY);
         const moveDistance = pointerDownPosition.distanceTo(currentUpPosition);
-
         if (moveDistance <= MOVE_THRESHOLD) {
             isLongPress = true;
             longPressFired = true;
-            
             const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
             const intersects = getIntersection(event, allInteractableObjects);
-            
             if (intersects.length > 0) {
                 const nearestObject = intersects[0].object;
-                if (nearestObject.userData.isFormaCubeFace) {
-                    // Long Press: переключаем прозрачность грани Forma
-                    handleTransparentToggleLogic(nearestObject);
-                }
+                if (nearestObject.userData.isFormaCubeFace) handleTransparentToggleLogic(nearestObject);
             }
         }
     }, LONG_PRESS_DELAY);
 });
 
-// 2. Pointer Up (Для Short Click)
 renderer.domElement.addEventListener('pointerup', (event) => {
     if (isScalingUp || isScalingDown) {
-        isScalingUp = false;
-        isScalingDown = false;
-        objectToScale = null;
-        controls.enabled = true;
+        isScalingUp = false; isScalingDown = false; objectToScale = null; controls.enabled = true;
     }
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (event.target.closest('.control-button, .top-control, .mid-control, .polarity-top-control, .polarity-bottom-control, .secret, .mode-menu-container')) return;
 
     clearTimeout(longPressTimer);
-
     const clientX = event.clientX;
     const clientY = event.clientY;
     const currentUpPosition = new THREE.Vector2(clientX, clientY);
-
     const moveDistance = pointerDownPosition.distanceTo(currentUpPosition);
     if (moveDistance > MOVE_THRESHOLD) {
-        isLongPress = false;
-        longPressFired = false;
-        return; 
+        isLongPress = false; longPressFired = false; return; 
     }
-
     if (longPressFired) {
-        isLongPress = false;
-        longPressFired = false;
-        return;
+        isLongPress = false; longPressFired = false; return;
     }
-// --- ДОБАВЛЕНИЕ: ОТКЛЮЧЕНИЕ СОЗДАНИЯ/УДАЛЕНИЯ В РЕЖИМЕ 'View' ---
-    if (mode === 'View') {
-        return;
-    }
-
-    // --- Логика Short Click ---
+    if (mode === 'View') return;
 
     const allInteractableObjects = [...formaCubeFaces, ...staticObjects, ...polarObjects];
     const intersects = getIntersection(event, allInteractableObjects);
     const closestIntersection = intersects.length > 0 ? intersects[0] : null;
     const selectedObject = closestIntersection ? closestIntersection.object : null;
 
-    // A. РЕЖИМ DELETE
     if (mode === 'Delete' && selectedObject) {
         if (selectedObject.userData.isFormaCubeFace) {
             handleDeleteFormaFace(selectedObject);
-            // P2P: Update removed faces for Forma (Not implemented in full detail for basic deletions of single faces without tunnels, but Tunnel logic handles it below)
         } else if (selectedObject.userData.isPolarityObject) {
             handleDeletePolarity(event); 
         }
         return; 
     }
 
-// B. ИНТЕРАКЦИЯ СО СУЩЕСТВУЮЩИМИ ОБЪЕКТАМИ
     if (selectedObject) {
         if (selectedObject.userData.isFormaCubeFace) {
             if (selectedObject.userData.isTransparent) {
-                // Short Click по ПРОЗРАЧНОЙ грани Forma -> СОЗДАНИЕ ТУННЕЛЯ. 
                 handleDeleteAndCreateTunnel(event, selectedObject, closestIntersection);
                 return;
             } 
-            
         } else if (selectedObject.userData.isPolarityObject) {
-            // Short Click по Polarity Object: Scatter ТОЛЬКО если режим НЕ Across.
             if (mode !== 'Across') {
                 applyScatterEffect(selectedObject);
-                // Sync Scatter
                 yEvents.push([{ type: 'scatter' }]);
                 return;
             }
         }
     }
 
-    // C. ДЕЙСТВИЕ ПО УМОЛЧАНИЮ 
     if (mode === 'Across') {
-        // P2P: Trigger fix object creation via Yjs
         const uuid = generateUUID();
         const direction = new THREE.Vector3();
         camera.getWorldDirection(direction);
         const pos = camera.position.clone().add(direction.multiplyScalar(10)).toArray();
-        yObjects.set(uuid, { type: 'fix', position: pos });
+        // Across также требует параметров, используем createFixObject параметры
+        yObjects.set(uuid, { 
+            type: 'fix', 
+            position: pos,
+            color: Math.random() * 0xffffff,
+            rotation: [Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI]
+        });
     } else {
         handleCreation(); 
     }
-
     isLongPress = false; 
 });
 
-// 3. Pointer Move (Отмена Long Press при сдвиге и восстановление вращения)
 renderer.domElement.addEventListener('pointermove', (event) => {
     if (longPressTimer) {
         const dist = pointerDownPosition.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
@@ -1430,43 +1123,27 @@ renderer.domElement.addEventListener('pointermove', (event) => {
             clearTimeout(longPressTimer);
             isLongPress = false;
             longPressFired = false;
-            
             if (objectToScale && !controls.enabled) {
-                isScalingUp = false;
-                isScalingDown = false;
-                objectToScale = null;
-                controls.enabled = true;
+                isScalingUp = false; isScalingDown = false; objectToScale = null; controls.enabled = true;
             }
         }
     }
 });
 
-// 4. Context Menu / Right Click
-document.addEventListener('contextmenu', (event) => {
-    event.preventDefault(); 
-});
+document.addEventListener('contextmenu', (event) => { event.preventDefault(); });
 
-
-// --- VIII. Animation Loop (Объединенная) ---
-
+// --- VIII. Animation ---
 const animate = () => {
     controls.update();
-
     if (objectToScale) {
         if (isScalingUp) {
             objectToScale.scale.multiplyScalar(SCALE_RATE);
-            if (objectToScale.scale.x > MAX_SCALE) {
-                objectToScale.scale.set(MAX_SCALE, MAX_SCALE, MAX_SCALE);
-            }
+            if (objectToScale.scale.x > MAX_SCALE) objectToScale.scale.set(MAX_SCALE, MAX_SCALE, MAX_SCALE);
         } else if (isScalingDown) { 
             objectToScale.scale.multiplyScalar(SCALE_RATE_DOWN);
-            if (objectToScale.scale.x < MIN_SCALE) {
-                objectToScale.scale.set(MIN_SCALE, MIN_SCALE, MIN_SCALE);
-            }
+            if (objectToScale.scale.x < MIN_SCALE) objectToScale.scale.set(MIN_SCALE, MIN_SCALE, MIN_SCALE);
         }
     }
-
-    // 1. Forma Base Fly Logic
     if (isFlyingBase) {
         currentSpeed = Math.min(currentSpeed + ACCELERATION, MAX_SPEED);
     } else {
@@ -1477,8 +1154,6 @@ const animate = () => {
         camera.getWorldDirection(direction);
         moveCamera(direction, currentSpeed);
     }
-
-    // 2. Polarity Fly Logic
     if (isMovingPolarity) {
         cameraVelocity.lerp(targetVelocity, accelerationPolarity);
     } else {
@@ -1486,12 +1161,9 @@ const animate = () => {
     }
     camera.position.add(cameraVelocity);
 
-    // 3. Polarity Physics
     applyCameraRepulsion();
     
-    // Static and Polar objects physics
     [...staticObjects, ...polarObjects].forEach((obj) => {
-        // Scatter logic
         if (obj.userData.scatterVelocity) {
             const elapsed = (performance.now() - obj.userData.scatterStart) / 1000;
             if (elapsed < obj.userData.scatterDuration) {
@@ -1506,8 +1178,6 @@ const animate = () => {
                 }
             }
         }
-        
-        // Polarity/Velocity logic (only for polar objects)
         if (obj.userData.isPolar) {
             obj.position.add(obj.userData.velocity);
             if (obj.userData.rotationSpeed) {
@@ -1518,9 +1188,7 @@ const animate = () => {
         }
     });
 
-    if (mode === 'Polar') {
-        handlePolarInteractions();
-    }
+    if (mode === 'Polar') handlePolarInteractions();
     handlePolarAndStaticInteractions();
     applyDeceleration();
 
@@ -1533,40 +1201,54 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-window.addEventListener('orientationchange', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+
+// --- P2P Observer Logic (Fixed) ---
+
+const syncObject = (key, data) => {
+    if (!objectMap.has(key)) {
+        let mesh;
+        if (data.type === 'forma') {
+            const pos = new THREE.Vector3().fromArray(data.position);
+            const grp = createFormaCube(pos, data.excludeIndex);
+            grp.userData.uuid = key;
+            objectMap.set(key, grp);
+            // Apply initial removed faces
+            if (data.removedFaces) {
+                data.removedFaces.forEach(faceId => {
+                    const face = grp.children.find(c => c.userData.id === faceId);
+                    if (face) handleDeleteFormaFace(face);
+                });
+            }
+        } else if (data.type === 'fix') {
+            mesh = createFixObject(data); // Передаем data полностью
+            mesh.userData.uuid = key;
+            objectMap.set(key, mesh);
+        } else if (data.type === 'polar') {
+            mesh = createPolarObject(data); // Передаем data полностью
+            mesh.userData.uuid = key;
+            objectMap.set(key, mesh);
+        }
+    }
+};
+
+provider.on('synced', ({ synced }) => {
+    if (synced) {
+        yObjects.forEach((data, key) => {
+             syncObject(key, data);
+        });
+    }
 });
 
-// --- P2P Observer Logic ---
 yObjects.observe(event => {
+    // 1. Обработка добавлений и удалений объектов
     event.changes.keys.forEach((change, key) => {
         if (change.action === 'add') {
             const data = yObjects.get(key);
-            if (!objectMap.has(key)) {
-                let mesh;
-                if (data.type === 'forma') {
-                    const pos = new THREE.Vector3().fromArray(data.position);
-                    // Pass empty array if undefined, handled locally
-                    const grp = createFormaCube(pos, data.excludeIndex);
-                    grp.userData.uuid = key;
-                    objectMap.set(key, grp);
-                } else if (data.type === 'fix') {
-                    mesh = createFixObject(data);
-                    mesh.userData.uuid = key;
-                    objectMap.set(key, mesh);
-                } else if (data.type === 'polar') {
-                    mesh = createPolarObject(data);
-                    mesh.userData.uuid = key;
-                    objectMap.set(key, mesh);
-                }
-            }
+            syncObject(key, data);
         } else if (change.action === 'delete') {
             if (objectMap.has(key)) {
                 const obj = objectMap.get(key);
                 scene.remove(obj);
-                // Also remove from array lists
                 if (obj.userData.isPolar) {
                     const idx = polarObjects.indexOf(obj);
                     if (idx > -1) polarObjects.splice(idx, 1);
@@ -1574,7 +1256,6 @@ yObjects.observe(event => {
                     const idx = staticObjects.indexOf(obj);
                     if (idx > -1) staticObjects.splice(idx, 1);
                 } else if (obj.userData.isFormaCube) {
-                     // FormaCube removal logic
                      obj.children.forEach(c => {
                          const idx = formaCubeFaces.indexOf(c);
                          if(idx > -1) formaCubeFaces.splice(idx, 1);
@@ -1583,11 +1264,14 @@ yObjects.observe(event => {
                 objectMap.delete(key);
             }
         } else if (change.action === 'update') {
-            // Handle removed faces updates
+            // 2. ИСПРАВЛЕНИЕ: Синхронизация удаленных граней (update event)
             const data = yObjects.get(key);
             const obj = objectMap.get(key);
-            if (obj && data.removedFaces && obj.userData.isFormaCube) {
+            
+            // Если это FormaCube и есть список удаленных граней
+            if (obj && obj.userData.isFormaCube && data.removedFaces) {
                 data.removedFaces.forEach(faceId => {
+                     // Ищем грань внутри группы, которая еще не удалена
                      const face = obj.children.find(c => c.userData.id === faceId);
                      if (face) {
                          handleDeleteFormaFace(face);
@@ -1598,30 +1282,22 @@ yObjects.observe(event => {
     });
 });
 
-// Observe Events (Scatter, Bypass)
 yEvents.observe(event => {
-    // Only react to new events
     if(event.changes.delta.length > 0) {
         event.changes.delta.forEach(item => {
             if(item.insert) {
                 item.insert.forEach(e => {
-                     // Trigger visual effects based on synced event
-                     // Note: We avoid re-pushing to yEvents to prevent loops
+                     // Visual effects trigger
                 });
             }
         });
     }
 });
 
-
-// Global Exports for "Black Screen" fix
 window.moveCamera = moveCamera;
 window.scene = scene;
 window.camera = camera;
 window.renderer = renderer;
-window.createFormaCube = createFormaCube;
-window.createFixObject = createFixObject;
-window.createPolarObject = createPolarObject;
 
 initFormaCube();
 animate();
